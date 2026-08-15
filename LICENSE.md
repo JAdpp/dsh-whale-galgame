@@ -1,6 +1,6 @@
 # License
 
-## Software and repository documentation
+## Software and documentation
 
 Copyright (c) 2026 JAdpp
 
@@ -22,13 +22,18 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-## Visual assets
+The MIT terms above cover this repository's software and documentation.
+Repository-authored neutral placeholder artwork distributed as source code is
+also covered unless [NOTICE.md](NOTICE.md) states otherwise.
 
-The privacy-safe vector mockups and neutral placeholder artwork included in
-the public repository are covered by the MIT terms above. User-uploaded
-backgrounds, sprites, generated CGs, and any locally substituted artwork keep
-their original ownership and licensing; they are not contributed to this
-repository merely by using the plugin.
+## Screenshots and other visual assets
 
-Optional third-party skins or artwork are governed by their own licenses. See
-[NOTICE.md](NOTICE.md) before redistributing a customized build.
+Real interface screenshots are documentation captures, not a relicensing of
+the characters, backgrounds, skins, or other artwork visible in them. Each
+pictured or separately supplied visual asset remains subject to its original
+license and attribution requirements. See [NOTICE.md](NOTICE.md) before
+copying, modifying, or redistributing a screenshot or customized build.
+
+User-uploaded backgrounds and sprites, generated CGs, and locally substituted
+artwork retain their original ownership and licensing. Using them with the
+plugin does not contribute them to this repository or place them under MIT.

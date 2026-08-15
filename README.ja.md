@@ -1,120 +1,103 @@
 # dsh-whale-galgame
 
-![version](https://img.shields.io/badge/version-0.2.0-6fa8dc) ![platform](https://img.shields.io/badge/platform-DSH%20Web-1c9a86) ![license](https://img.shields.io/badge/code-MIT-c8a35f)
-
 [简体中文](README.md) · [English](README.en.md) · **日本語** · [한국어](README.ko.md)
 
-DeepSeek Harness Web 向けのマルチキャラクター Galgame UI と、任意で使えるデスクトップペットです。キャラクターの出典、会話モデル、背景、キャラクター別立ち絵を独立して変更できます。
+DeepSeek Harness Web にギャルゲーム形式の会話画面を追加するプラグインです。表示するキャラクターと返信に使うモデルを別々に選べ、好感度・記憶・会話履歴・CG・立ち絵は 6 キャラクターそれぞれに保存されます。デスクトップペットと CG 生成は無効にできます。
 
-![Galgame UI イメージ](docs/preview.svg)
+![DSH Web で実際に動作している dsh-whale-galgame](docs/screenshots/galgame-overview.png)
 
-> 本プロジェクトは非公式のコミュニティプラグインです。公開版にはプライバシーに配慮した中立的なプレースホルダーのみを収録し、管理者のセーブ、会話履歴、非公開 CG、アップロード画像、ローカル素材集は含みません。
+_この画像は、デモ会話を使って DSH Web 上で実際に動作させた画面です。API key、ローカルパス、個人の会話履歴は含みません。_
 
-## 主な機能
+> プラグインの画面表示は現在、簡体字中国語です。このページはインストール方法と使用方法の日本語訳です。
 
-- **6 人の独立キャラクター**：DeepSeek、Claude、GPT、Gemini、Kimi、Grok の好感度、レベル、記憶、会話履歴、CG 図鑑を分離して保存します。
-- **キャラクターとモデルを分離**：ワークスペースモデルへの追従またはキャラクター固定、Flash 既定値・ワークスペース・DSH の利用可能モデルから会話モデルを選択できます。
-- **ローカル画像カスタマイズ**：上部バーから Galgame 専用背景と、各キャラクター専用の立ち絵をアップロードできます。
-- **Galgame 機能**：多様な返信候補、好感度とレベル、会話履歴、CG 図鑑、任意のレベルアップ記念 CG。
-- **任意のデスクトップペット**：クリックで Galgame タブを開き、他のフローティングプラグインと競合する場合は無効にできます。
-- **DSH 設定への統合**：「設定 → プラグイン → プラグイン設定」で有効化、キャラクター、会話モデルを変更できます。
+## 機能
 
-![プラグイン設定イメージ](docs/settings.svg)
+- 表示キャラクターと返信モデルを別々に選択できます。キャラクターはワークスペースモデルへの追従または固定、返信は既定の <code>deepseek-v4-flash</code>、ワークスペースへの追従、DSH のモデル一覧から選択できます。
+- DeepSeek、Claude、GPT、Gemini、Kimi、Grok の好感度、レベル、記憶、会話履歴、CG 図鑑、立ち絵は分けて保存されます。
+- 各ターンに、親密・通常・距離を置く 3 種類の返信候補を順不同で表示します。自由入力も利用できます。
+- 背景、キャラクター別立ち絵、会話履歴、CG 図鑑、デスクトップペットを画面から管理できます。ペットをクリックすると <code>galgame</code> タブが開きます。
 
-## クイックインストール
+## インストール
 
-### 必要条件
+<code>dsh</code> コマンドと Web profile を利用できる DeepSeek Harness が必要です。
 
-- `dsh` コマンドを実行できる DeepSeek Harness。
-- DSH Web profile。
-
-### GitHub からインストール
-
-```sh
+~~~sh
 dsh plugin --profile web add github:JAdpp/dsh-whale-galgame#main
-```
+~~~
 
-インストール後に Web profile を再起動してください。各会話のタブに `galgame` が表示されます。
+インストール後、実行中の Web profile を停止してから再起動します。
 
-```sh
+~~~sh
 dsh --profile web
-```
+~~~
 
-Harness のソース checkout から実行している場合は、環境に合わせて `dsh` を `pnpm dsh` に置き換えてください。
+ソースからのインストールで <code>pnpm dsh</code> を使う場合も、引数は同じです。
 
 ### 更新・削除
 
-```sh
+~~~sh
 dsh plugin --profile web update @dsh-external/dsh-whale-galgame
 dsh plugin --profile web remove @dsh-external/dsh-whale-galgame
-```
+~~~
 
-どちらも実行後に Web profile の再起動が必要です。
+どちらも実行後に Web profile を停止し、再起動してください。
 
-## 設定
+## 使用方法と設定
 
-### 上部バー
+![DSH Web のプラグイン設定画面](docs/screenshots/plugin-settings.png)
 
-- **キャラクター出典**：ワークスペースに追従、または一人を固定。
-- **実際の会話**：プラグイン既定値、ワークスペース、ほかの利用可能モデルを選択。
-- **背景画像**：Galgame 専用背景をプレビュー、適用、置換、初期化。
-- **キャラクター立ち絵**：現在のキャラクター専用立ち絵をアップロード、または初期画像へ戻す。
+Galgame 画面上部で、表示キャラクターと実際の返信モデルを切り替えられます。背景や現在のキャラクターの立ち絵もここからアップロードできます。PNG、JPEG、WebP、AVIF に対応し、ブラウザー側の上限は 1 ファイル 12 MB です。
 
-PNG、JPEG、WebP、AVIF に対応し、ブラウザー側の上限は 12 MB です。画像は現在のワークスペースのローカルセーブにだけ保存され、このリポジトリへ送信されません。
+「設定 → プラグイン → プラグイン設定」では、プラグインの有効・無効、既定キャラクター、既定返信モデルを設定できます。無効にすると Galgame 会話と好感度計算が停止しますが、保存済みデータは削除されません。
 
-### 任意のレベルアップ CG
+## オプションの CG 生成
 
-DashScope key がなくても、チャット、キャラクター切替、履歴、好感度、画像カスタマイズは利用できます。CG 生成だけが無効になります。有効化する場合はローカル DSH プロセスに設定してください。
+レベルアップ CG は、既定で DashScope の <code>qwen-image-3.0</code> を使用し、1920 × 1080 で生成します。DashScope key がなくても、チャット、キャラクター切替、履歴、好感度、カスタム画像は利用でき、CG 生成だけが無効になります。
 
-```powershell
+DSH を起動するローカル環境の環境変数でのみ key を設定することを推奨します。
+
+~~~powershell
 $env:DASHSCOPE_API_KEY = 'your-local-key'
 dsh --profile web
-```
+~~~
 
-```sh
+~~~sh
 DASHSCOPE_API_KEY='your-local-key' dsh --profile web
-```
+~~~
 
-インストール先の `cordis.patch.yml` をローカル編集することもできますが、実キーを commit しないでください。リポジトリの値は常に空です。
+実際の key をリポジトリ内のファイルに書いたり、Git に commit したりしないでください。
 
 ## データとプライバシー
 
-![データフロー](docs/architecture.svg)
+実行時データは、使用中のワークスペース直下にある <code>.whale-girl-save.json</code> に保存されます。キャラクター状態、会話履歴、CG、背景、立ち絵を含む場合があるため、個人データとして扱ってください。
 
-実行時データはアクティブなワークスペース直下の `.whale-girl-save.json` に保存されます。キャラクター状態、会話履歴、CG、ユーザー背景・立ち絵を含む場合があり、Git の対象外です。
+- 通常の会話は、DSH で選択したモデルプロバイダーへ送信されます。
+- レベルアップ CG の生成時は、テキストプロンプトが DashScope へ送信されます。
+- ユーザーが追加した背景と立ち絵はワークスペースのセーブに保存され、上記の外部リクエストには含まれません。
 
-- 通常のポーリングはメタデータだけを返し、大きな画像は必要時に取得します。
-- カスタム立ち絵はキャラクター別、背景はワークスペース単位です。
-- 無効化すると Galgame 会話と好感度精算を停止し、再有効化用の設定カードは残します。
-- 公開ドキュメントとビルドに実ユーザーの履歴は使いません。
+本プラグインリポジトリの <code>.gitignore</code> は、別のワークスペースを自動では保護しません。使用中のワークスペースも Git リポジトリである場合は、そのワークスペースの <code>.gitignore</code> に次を追加してください。
+
+~~~gitignore
+.whale-girl-save.json
+.whale-girl-save.*.json
+~~~
+
+公開リポジトリには、メンテナーのセーブ、会話履歴、非公開 CG、アップロード画像、ローカル素材集を含めていません。
 
 ## 開発
 
-```sh
+~~~sh
 npm ci
 npm run prune:art
 npm run verify
-```
+~~~
 
-GitHub からそのまま導入できるよう、`lib/index.js` と `lib/client.js` を commit します。`src/` 変更後は両 bundle を再ビルドしてください。
+そのままインストールできるよう、<code>lib/index.js</code> と <code>lib/client.js</code> をリポジトリに含めています。<code>src/</code> の変更後は両方を再ビルドして commit してください。
 
-## 構成
+## ライセンスとクレジット
 
-```text
-build/                         DSH Web クライアント用ビルドアダプター
-docs/                          プライバシー安全な README 用 SVG
-lib/                           インストール可能な host/client bundle
-scripts/prune-art.mjs          未使用の内蔵素材を削除
-src/index.ts                   状態、モデルルーティング、セーブ、CG、API
-src/client/index.ts            Galgame、ペット、設定、アップロード UI
-src/client/art.generated.ts    公開版の中立的なプレースホルダー
-cordis.patch.yml               key を含まない既定設定
-```
+コードと文書には [MIT License](LICENSE.md) が適用されます。README の実画面スクリーンショット、および画像内に表示されるキャラクター、背景、その他の素材には、それぞれ元のライセンスが適用されます。出典と詳細は [NOTICE.md](NOTICE.md) を参照してください。
 
-## ライセンスと謝辞
+上善、ZipZipPipe、[Small-tailqwq / dsh-deep-whale](https://github.com/Small-tailqwq/dsh-deep-whale)、[@linxin666/dsh-pet（dsh-web-ui）](https://github.com/zhu1090093659/dsh-web-ui) に感謝します。第三者素材を利用または再配布する前に、該当ライセンスを確認し、作者表記を保持してください。
 
-ソフトウェア、ドキュメント、中立的な公開プレースホルダーは MIT License です。詳細は [LICENSE.md](LICENSE.md) と [NOTICE.md](NOTICE.md) を参照してください。
-
-創作・技術面で、上善、ZipZipPipe、[Small-tailqwq / dsh-deep-whale](https://github.com/Small-tailqwq/dsh-deep-whale)、[@linxin666/dsh-pet（dsh-web-ui）](https://github.com/zhu1090093659/dsh-web-ui) に感謝します。公開パッケージは各作者の原画像を再配布しません。ローカルで第三者素材を追加する場合は、該当ライセンスと完全なクレジット表記に従ってください。
-
-DeepSeek、Claude、ChatGPT/GPT、Gemini、Kimi、Grok などの名称・商標は各権利者に帰属します。本プロジェクトは各社の公式・提携・推奨プロジェクトではありません。
+DeepSeek、Claude、ChatGPT/GPT、Gemini、Kimi、Grok などの名称・商標は各権利者に帰属します。本プロジェクトは非公式コミュニティプラグインであり、各社との提携、協力、承認関係はありません。
