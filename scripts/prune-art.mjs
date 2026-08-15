@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
 
@@ -25,6 +25,15 @@ const keep = [
 ]
 
 const source = readFileSync(target, 'utf8')
-const missing = keep.filter((key) => !new RegExp(`['\"]${key}['\"]\\s*:`).test(source))
+const entries = new Map()
+const pattern = /^\s*'([^']+)'\s*:\s*('(?:\\.|[^'\\])*')\s*,?\s*$/gm
+for (const match of source.matchAll(pattern)) entries.set(match[1], match[2])
+
+const missing = keep.filter((key) => !entries.has(key))
 if (missing.length) throw new Error(`Missing generated art keys: ${missing.join(', ')}`)
-console.log(`Verified ${keep.length} privacy-safe public art keys.`)
+
+const body = keep.map((key) => `  '${key}': ${entries.get(key)},`).join('\n')
+const output = `// Generated whale-girl galgame art (build-time inlined data URLs).\nexport const WHALE_ART: Record<string, string> = {\n${body}\n}\n`
+writeFileSync(target, output, 'utf8')
+
+console.log(`Kept ${keep.length} referenced art entries; removed ${entries.size - keep.length}.`)

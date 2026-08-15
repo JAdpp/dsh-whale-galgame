@@ -25,9 +25,11 @@
   },
   "scripts": {
     "build": "tsdown",
+    "export:art": "node scripts/export-art.mjs",
     "prune:art": "node scripts/prune-art.mjs",
+    "audit:release": "node scripts/release-audit.mjs",
     "check": "node --check lib/index.js && node --check lib/client.js",
-    "verify": "npm run build && npm run check"
+    "verify": "npm run prune:art && npm run export:art && npm run build && npm run check && npm run audit:release"
   },
   "repository": {
     "type": "git",
@@ -49,6 +51,8 @@
     "node": "^22.19.0 || >=24.0.0"
   },
   "files": [
+    "assets/default/README.md",
+    "assets/default/licenses",
     "build",
     "docs",
     "lib/*.js",
@@ -57,6 +61,7 @@
     "cordis.patch.yml",
     "LICENSE.md",
     "NOTICE.md",
+    "THIRD_PARTY_LICENSES.md",
     "README*.md",
     "SECURITY.md",
     "tsdown.config.ts"

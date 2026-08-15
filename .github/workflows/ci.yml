@@ -18,6 +18,12 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run verify
-      - name: Check committed bundles
+      - name: Check committed art and bundles
         shell: pwsh
-        run: git diff --exit-code -- lib
+        run: |
+          git diff --exit-code -- assets/default src/client/art.generated.ts lib
+          $changes = git status --porcelain --untracked-files=all -- assets/default src/client/art.generated.ts lib
+          if ($changes) {
+            $changes
+            exit 1
+          }
