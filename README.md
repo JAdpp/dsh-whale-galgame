@@ -8,8 +8,6 @@ DeepSeek Harness Web 的 Galgame 对话插件。显示角色与实际回复模�
 
 ![dsh-whale-galgame 在 DSH Web 中的实际运行界面](docs/screenshots/galgame-overview.png)
 
-_截图来自实际运行的 DSH Web 演示会话，不包含 API key、文件路径或个人聊天记录。_
-
 ## 功能
 
 - 显示角色与回复模型分开选择：角色可以跟随工作区模型或手动固定；回复模型可以使用默认的 `deepseek-v4-flash`、跟随工作区，或从 DSH 模型目录中选择。

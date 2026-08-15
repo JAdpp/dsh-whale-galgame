@@ -8,8 +8,6 @@ DeepSeek Harness Web にギャルゲーム形式の会話画面を追加する�
 
 ![DSH Web で実際に動作している dsh-whale-galgame](docs/screenshots/galgame-overview.png)
 
-_この画像は、デモ会話を使って DSH Web 上で実際に動作させた画面です。API key、ローカルパス、個人の会話履歴は含みません。_
-
 > プラグインの画面表示は現在、簡体字中国語です。このページはインストール方法と使用方法の日本語訳です。
 
 ## 機能

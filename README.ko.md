@@ -8,8 +8,6 @@ DeepSeek Harness Web에 Galgame 형식의 대화 화면을 추가하는 플러�
 
 ![DSH Web에서 실제로 실행 중인 dsh-whale-galgame](docs/screenshots/galgame-overview.png)
 
-_이 이미지는 데모 대화를 사용해 DSH Web에서 실제로 실행한 화면입니다. API key, 로컬 파일 경로, 개인 대화 기록은 포함하지 않습니다._
-
 > 플러그인 화면은 현재 중국어 간체로 표시됩니다. 이 페이지는 설치 및 사용 문서의 한국어 번역입니다.
 
 ## 기능

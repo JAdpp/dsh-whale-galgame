@@ -8,8 +8,6 @@ The installed plugin embeds and uses 16 real default images: six character sprit
 
 ![dsh-whale-galgame running in DSH Web](docs/screenshots/galgame-overview.png)
 
-_This screenshot shows the plugin running in DSH Web with a demonstration conversation. It contains no API key, local file path, or personal chat history._
-
 > The plugin interface is currently in Simplified Chinese. This page translates the installation and usage documentation.
 
 ## What it does
