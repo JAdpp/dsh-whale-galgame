@@ -2,7 +2,7 @@
 
 **简体中文** · [English](README.en.md) · [日本語](README.ja.md) · [한국어](README.ko.md)
 
-DeepSeek Harness Web 的 Galgame 对话插件。显示角色与实际回复模型可以分别选择；DeepSeek、Claude、GPT、Gemini、Kimi、Grok 六个角色分别保存好感度、记忆、聊天记录、CG 图鉴和自定义立绘。桌宠与升级 CG 均可关闭。
+DeepSeek Harness Web 的 Galgame 对话插件。显示角色与实际回复模型可以分别选择；DeepSeek、Claude、GPT、Gemini、Kimi、Grok 六个模型角色分别保存好感度、记忆、聊天记录、CG 图鉴和自定义立绘。桌宠与升级 CG 均可关闭。
 
 插件安装包实际内嵌并使用 16 项默认美术：六张角色立绘、一张背景、八张鲸鱼娘表情和一张 11 行桌宠动画图集。GitHub 公开仓库在 [`assets/default/`](assets/default/README.md) 另行提供同一批可核对的导出图片；这里没有另做一套占位素材。
 
