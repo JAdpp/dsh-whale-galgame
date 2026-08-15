@@ -1,0 +1,69 @@
+{
+  "name": "@dsh-external/dsh-whale-galgame",
+  "description": "A multi-character Galgame interface and optional desktop companion for DeepSeek Harness Web.",
+  "version": "0.2.0",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-runtime",
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ],
+      "platform": "web",
+      "immediately": true
+    }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "prune:art": "node scripts/prune-art.mjs",
+    "check": "node --check lib/index.js && node --check lib/client.js",
+    "verify": "npm run build && npm run check"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JAdpp/dsh-whale-galgame.git"
+  },
+  "homepage": "https://github.com/JAdpp/dsh-whale-galgame#readme",
+  "bugs": {
+    "url": "https://github.com/JAdpp/dsh-whale-galgame/issues"
+  },
+  "keywords": [
+    "deepseek",
+    "deepseek-harness",
+    "dsh-plugin",
+    "galgame",
+    "visual-novel",
+    "desktop-pet"
+  ],
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "files": [
+    "build",
+    "docs",
+    "lib/*.js",
+    "scripts",
+    "src",
+    "cordis.patch.yml",
+    "LICENSE.md",
+    "NOTICE.md",
+    "README*.md",
+    "SECURITY.md",
+    "tsdown.config.ts"
+  ],
+  "license": "SEE LICENSE IN LICENSE.md",
+  "devDependencies": {
+    "lightningcss": "^1.32.0",
+    "tsdown": "0.22.14"
+  }
+}

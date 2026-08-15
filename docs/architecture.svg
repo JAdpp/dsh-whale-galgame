@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420" role="img" aria-labelledby="title desc">
+  <title id="title">dsh-whale-galgame data flow</title><desc id="desc">How DSH models, role routing and workspace-local data connect.</desc>
+  <defs><linearGradient id="b" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#06152f"/><stop offset="1" stop-color="#102b4c"/></linearGradient><marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0 0L8 3 0 6z" fill="#77c9e9"/></marker></defs>
+  <rect width="1200" height="420" rx="24" fill="url(#b)"/>
+  <g font-family="Segoe UI,Arial,sans-serif"><text x="52" y="58" fill="#e4f7ff" font-size="22" font-weight="700">MODEL CHANNEL → ROLE STATE → GALGAME STAGE</text><text x="52" y="84" fill="#7ea8c5" font-size="12" letter-spacing="2">WORKSPACE-LOCAL BY DESIGN</text>
+    <g fill="#0b1f3b" stroke="#477595" stroke-width="2"><rect x="52" y="126" width="238" height="180" rx="18"/><rect x="358" y="126" width="238" height="180" rx="18"/><rect x="664" y="126" width="238" height="180" rx="18"/><rect x="970" y="126" width="178" height="180" rx="18"/></g>
+    <g fill="#e4f7ff" font-size="16" font-weight="700"><text x="78" y="162">DSH model catalog</text><text x="384" y="162">Independent role buckets</text><text x="690" y="162">Local visual layer</text><text x="996" y="162">Galgame UI</text></g>
+    <g fill="#9fc4da" font-size="13"><text x="78" y="198">Workspace model</text><text x="78" y="225">Plugin default model</text><text x="78" y="252">Manual route</text><text x="384" y="198">Affection + level</text><text x="384" y="225">Dialogue history</text><text x="384" y="252">Memory + CG gallery</text><text x="690" y="198">Built-in placeholder</text><text x="690" y="225">Custom background</text><text x="690" y="252">Per-role custom sprite</text><text x="996" y="198">Dialogue</text><text x="996" y="225">Archive</text><text x="996" y="252">Optional pet</text></g>
+    <g stroke="#77c9e9" stroke-width="3" marker-end="url(#a)"><path d="M298 216H346"/><path d="M604 216H652"/><path d="M910 216H958"/></g>
+    <rect x="358" y="334" width="544" height="44" rx="22" fill="#123a58" stroke="#3f84a7"/><text x="445" y="361" fill="#cceeff" font-size="13">.whale-girl-save.json · never included in the repository</text>
+  </g>
+</svg>

@@ -1,0 +1,16 @@
+# dsh-whale-galgame bundle patch: inserts the plugin into the DSH Web bundle.
+- insert:
+    - id: ui-whale-galgame
+      name: '@dsh-external/dsh-whale-galgame'
+      config:
+        enabled: true
+        # Optional: set a DashScope API key locally to enable level-up CG generation.
+        # Never commit a real key to this file.
+        dashscopeBaseUrl: 'https://dashscope.aliyuncs.com'
+        dashscopeApiKey: ''
+        dashscopeModel: 'qwen-image-3.0'
+        dashscopeSize: '1920*1080'
+        # Default galgame dialogue route. Set chatModel to '' to follow the
+        # active workspace model instead.
+        chatProvider: 'deepseek-official'
+        chatModel: 'deepseek-v4-flash'

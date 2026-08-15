@@ -1,0 +1,18 @@
+node_modules/
+*.log
+*.map
+.DS_Store
+Thumbs.db
+.env
+.env.*
+!.env.example
+.codex-backup-*/
+*.backup
+*.bak
+
+# Workspace-local Galgame data and user-provided visuals
+.whale-girl-save*.json
+.whale-galgame/
+screenshots/private/
+assets/private/
+cordis.patch.local.yml

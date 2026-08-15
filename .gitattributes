@@ -1,0 +1,5 @@
+lib/*.js linguist-generated=true
+src/client/art.generated.ts linguist-generated=true
+*.svg text eol=lf
+*.ts text eol=lf
+*.md text eol=lf
