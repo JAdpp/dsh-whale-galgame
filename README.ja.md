@@ -4,9 +4,9 @@
 
 DeepSeek Harness Web にギャルゲーム形式の会話画面を追加するプラグインです。表示キャラクターと返信に使うモデルを別々に選べ、DeepSeek、Claude、GPT、Gemini、Kimi、Grok の好感度・記憶・会話履歴・CG 図鑑・カスタム立ち絵はキャラクターごとに保存されます。デスクトップペットと CG 生成は無効にできます。
 
-インストールされるプラグインには、実際に使うデフォルト画像 16 点（立ち絵 6 点、背景 1 点、鯨娘の表情 8 点、11 行のデスクトップペット用アニメーションアトラス 1 点）が埋め込まれています。GitHub の公開ソースリポジトリでは、同じ画像を [`assets/default/`](assets/default/README.md) から個別に確認でき、公開用の代替プレースホルダーは使っていません。
+インストールされるプラグインには、実際に使うビジュアル素材 16 点（立ち絵 6 点、背景 1 点、鯨娘の表情 8 点、[dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet) 由来の 11 行デスクトップペット用アニメーションアトラス 1 点）が埋め込まれています。GitHub の公開ソースリポジトリでは、同じ画像を [`assets/default/`](assets/default/README.md) から個別に確認できます。
 
-![DSH Web で実際に動作している dsh-whale-galgame](docs/screenshots/galgame-overview.png)
+![DSH Web で実際に動作している dsh-whale-galgame](docs/screenshots/galgame-overview.jpg)
 
 > プラグインの画面表示は現在、簡体字中国語です。このページはインストール方法と使用方法の日本語訳です。
 
@@ -19,7 +19,7 @@ DeepSeek Harness Web にギャルゲーム形式の会話画面を追加する�
 
 ## 同梱デフォルト画像
 
-次の 6 点は、インストール後に各キャラクターが使う実際のデフォルト立ち絵で、README 用の mockup ではありません。GitHub ソースリポジトリの [`assets/default/`](assets/default/README.md) で 16 点すべての書き出しファイルと用途を確認できます。npm インストール版は、同じ画像をクライアント bundle に埋め込んで使い、書き出し原画像を重複収録しません。
+次の 6 点は、インストール後に各キャラクターが使うデフォルト立ち絵です。GitHub ソースリポジトリの [`assets/default/`](assets/default/README.md) で 16 点すべての書き出しファイルと用途を確認できます。npm インストール版は、同じ画像をクライアント bundle に埋め込んで使い、書き出し原画像を重複収録しません。
 
 <table>
   <tr>
@@ -34,7 +34,7 @@ DeepSeek Harness Web にギャルゲーム形式の会話画面を追加する�
   </tr>
 </table>
 
-残りのデフォルト画像は、深海宮殿の背景 `palace-night.webp`、8 点の `whale-*.png` 表情画像、8 列 × 11 行のアニメーションアトラス `pet-spritesheet.webp` です。出典、変更内容、ファイルごとのライセンスは [NOTICE](NOTICE.md) と[第三者ライセンス一覧](THIRD_PARTY_LICENSES.md)を参照してください。
+残りの実行時素材は、深海宮殿の背景 `palace-night.webp`、8 点の `whale-*.png` 表情画像、8 列 × 11 行のアニメーションアトラス `pet-spritesheet.webp` です。最初のデフォルト画像 15 点とペット用アトラスには別々のライセンスが適用されます。出典、変更内容、ファイルごとのライセンスは [NOTICE](NOTICE.md) と[第三者ライセンス一覧](THIRD_PARTY_LICENSES.md)を参照してください。
 
 Galgame のレイアウト、会話ボックス、操作部品、装飾は [`src/client/index.ts`](src/client/index.ts) で公開され、非公開の UI 画像パックには依存しません。
 
@@ -103,8 +103,6 @@ DASHSCOPE_API_KEY='your-local-key' dsh --profile web
 .whale-girl-save.*.json
 ~~~
 
-公開リポジトリに含まれるのは、プラグインと一緒に配布するデフォルト画像だけです。メンテナーまたはユーザーのセーブ、会話履歴、生成 CG、アップロード背景、アップロード立ち絵、API key、非公開素材集は含みません。
-
 ## 開発
 
 ~~~sh
@@ -113,21 +111,28 @@ npm run export:art
 npm run verify
 ~~~
 
-そのままインストールできるよう、`lib/index.js` と `lib/client.js` をリポジトリに含めています。`src/` の変更後は両方を再ビルドして commit してください。`npm run export:art` は実行時データから公開用のデフォルト画像 16 点を書き出します。
+そのままインストールできるよう、`lib/index.js` と `lib/client.js` をリポジトリに含めています。`src/` の変更後は両方を再ビルドして commit してください。`npm run export:art` は実行時データから公開用のビジュアル素材 16 点を書き出します。
 
 ## ライセンスとクレジット
 
-コード、Galgame UI の実装、文書には [MIT License](LICENSE.md) が適用されます。同梱するデフォルト画像 16 点は [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) で配布します。本プロジェクトが制作した AI 支援画像については、メンテナーが該当する権利を有する範囲でのみ同ライセンスを適用します。ファイルごとの範囲は [NOTICE](NOTICE.md)、保存した上流ライセンス原文は [`assets/default/licenses/`](assets/default/licenses/) を確認してください。
+コード、Galgame UI の実装、文書には [MIT License](LICENSE.md) が適用されます。立ち絵 6 点、背景 1 点、鯨娘の表情 8 点の計 15 点のデフォルト画像は、[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) で配布します。本プロジェクトが制作した AI 支援画像については、メンテナーが該当する権利を有する範囲でのみ同ライセンスを適用します。`pet-spritesheet.webp` と [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet) から直接継承したコードには、上流の MIT ライセンスを引き続き適用します。ファイルごとの範囲は [NOTICE](NOTICE.md)、保存した上流ライセンス原文は [`assets/default/licenses/`](assets/default/licenses/) を確認してください。
 
 最後に、具体的な作品と実装知識をコミュニティへ公開してくださった皆さまに感謝します。
 
 - **上善**は鯨娘の原初キャラクターを制作しました：[Pixiv](https://www.pixiv.net/users/62155430) · [Bilibili](https://space.bilibili.com/4456176)。
 - **ZipZipPipe**はその鯨娘に DeepSeek 要素を加え、メイド鯨娘として二次創作しました：[Pixiv](https://www.pixiv.net/users/18604994) · [Bilibili](https://space.bilibili.com/4168597)。
-- **Small-tailqwq**は [dsh-deep-whale](https://github.com/Small-tailqwq/dsh-deep-whale) で、本プラグインが利用する深海宮殿背景、鯨娘立ち絵、Galgame UI 装飾と完全な帰属関係を公開しました。本プロジェクトはそれらを基に、表情画像 8 点と 11 行のデスクトップペット用アニメーションアトラス 1 点を追加制作しました。
-- [dsh-web-ui](https://github.com/zhu1090093659/dsh-web-ui) に収録されている **@linxin666/dsh-pet** は、ペット状態アニメーション、クリック操作、DSH 接続の実装参考です。現在の鯨娘ペット用アトラスは本プロジェクトが制作したもので、`dsh-pet` から提供された画像ではありません。
-- **Craybreeding / [Hatch Pet](https://github.com/Craybreeding/hatch-pet)** は、Codex v2 用 8 × 11 ペットアトラスの生成・検証・パッケージ化ワークフローを公開しました。本プロジェクトは鯨娘アトラスの構成と確認にその手順を利用しましたが、Hatch Pet のサンプル動物画像は使用していません。
+- **Small-tailqwq**は [dsh-deep-whale](https://github.com/Small-tailqwq/dsh-deep-whale) で、本プラグインが利用する深海宮殿背景、鯨娘立ち絵、Galgame UI 装飾と完全な帰属関係を公開しました。本プロジェクトはそれらを基に、表情画像 8 点を追加制作しました。
+- **f0909172434 / [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet)** は、DSH 用の鯨娘デスクトップペットを MIT ライセンスで公開しました。本プラグインのペット機能は同プロジェクトを基に二次開発したもので、`pet-spritesheet.webp` は上流のアトラスと同一です。本プロジェクトではプラグインへの統合方法と表示スタイルを変更し、ペットのクリックで Galgame 画面を開く操作を追加しました。
 - Claude、GPT、Gemini、Kimi、Grok の立ち絵 5 点と Galgame UI は、本プロジェクトによる非公式の AI 支援素材です。各社の公式キャラクター、提携、承認を示すものではありません。
 
-これらのオープンソース素材や実装が役立った場合は、[dsh-deep-whale](https://github.com/Small-tailqwq/dsh-deep-whale)、[dsh-web-ui](https://github.com/zhu1090093659/dsh-web-ui)、[Hatch Pet](https://github.com/Craybreeding/hatch-pet) に Star を付けたり、Pixiv または Bilibili で上善と ZipZipPipe をフォローしたりしていただけるとうれしいです。インストール、動作、互換性の問題は、素材作者ではなく[本リポジトリの Issues](https://github.com/JAdpp/dsh-whale-galgame/issues) へ報告してください。
+これらのオープンソース素材や実装が役立った場合は、[dsh-deep-whale](https://github.com/Small-tailqwq/dsh-deep-whale) と [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet) に Star を付けたり、Pixiv または Bilibili で上善と ZipZipPipe をフォローしたりしていただけるとうれしいです。インストール、動作、互換性の問題は、素材作者ではなく[本リポジトリの Issues](https://github.com/JAdpp/dsh-whale-galgame/issues) へ報告してください。
 
 DeepSeek、Claude、ChatGPT/GPT、Gemini、Kimi、Grok などの名称・商標は各権利者に帰属します。本プロジェクトは非公式コミュニティプラグインであり、各社との提携、協力、承認関係はありません。
+
+## 関連プロジェクト
+
+- [gal-view](https://github.com/Ayase34/gal-view)
+- [dsh-galgame](https://github.com/Lanxing6480/dsh-galgame)
+- デスクトップペットのおすすめ：[dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet)
+
+気に入ったプロジェクトがあれば、ぜひリポジトリに Star を付けてください。

@@ -4,9 +4,9 @@
 
 DeepSeek Harness Web 的 Galgame 对话插件。显示角色与实际回复模型可以分别选择；DeepSeek、Claude、GPT、Gemini、Kimi、Grok 六个模型角色分别保存好感度、记忆、聊天记录、CG 图鉴和自定义立绘。桌宠与升级 CG 均可关闭。
 
-插件安装包实际内嵌并使用 16 项默认美术：六张角色立绘、一张背景、八张鲸鱼娘表情和一张 11 行桌宠动画图集。GitHub 公开仓库在 [`assets/default/`](assets/default/README.md) 另行提供同一批可核对的导出图片。
+插件安装包实际内嵌并使用 16 项运行时美术：六张角色立绘、一张背景、八张鲸鱼娘表情，以及一张来自 [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet) 的 11 行桌宠动画图集。GitHub 公开仓库在 [`assets/default/`](assets/default/README.md) 另行提供同一批可核对的导出图片。
 
-![dsh-whale-galgame 在 DSH Web 中的实际运行界面](docs/screenshots/galgame-overview.png)
+![dsh-whale-galgame 在 DSH Web 中的实际运行界面](docs/screenshots/galgame-overview.jpg)
 
 ## 功能
 
@@ -32,7 +32,7 @@ DeepSeek Harness Web 的 Galgame 对话插件。显示角色与实际回复模�
   </tr>
 </table>
 
-完整默认包还包括：`palace-night.webp` 深海宫殿背景、八张 `whale-*.png` 表情，以及 8 列 × 11 行的 `pet-spritesheet.webp` 桌宠动画图集。来源、修改内容和逐文件许可见 [NOTICE](NOTICE.md) 与 [第三方许可索引](THIRD_PARTY_LICENSES.md)。
+完整运行时素材还包括：`palace-night.webp` 深海宫殿背景、八张 `whale-*.png` 表情，以及 8 列 × 11 行的 `pet-spritesheet.webp` 桌宠动画图集。前 15 张默认图片与桌宠图集采用不同许可；来源、修改内容和逐文件许可见 [NOTICE](NOTICE.md) 与 [第三方许可索引](THIRD_PARTY_LICENSES.md)。
 
 Galgame 界面的布局、对话框、控件和装饰随 [`src/client/index.ts`](src/client/index.ts) 公开，不依赖未公开的 UI 图片包。
 
@@ -109,21 +109,28 @@ npm run export:art
 npm run verify
 ~~~
 
-仓库提交了可直接安装的 `lib/index.js` 和 `lib/client.js`。修改 `src/` 后需要重新构建并提交这两个文件；`npm run export:art` 会从运行时数据导出公开的 16 项默认美术。
+仓库提交了可直接安装的 `lib/index.js` 和 `lib/client.js`。修改 `src/` 后需要重新构建并提交这两个文件；`npm run export:art` 会从运行时数据导出公开的 16 项运行时美术。
 
 ## 许可与致谢
 
-代码、Galgame UI 实现与文档采用 [MIT License](LICENSE.md)。随包分发的 16 项默认图片采用 [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)；本项目制作的 AI 辅助图片仅在维护者持有相应权利的范围内按该许可提供。逐文件边界见 [NOTICE](NOTICE.md)，上游许可原文见 [`assets/default/licenses/`](assets/default/licenses/)。
+代码、Galgame UI 实现与文档采用 [MIT License](LICENSE.md)。六张角色立绘、一张背景和八张鲸鱼娘表情，共 15 张默认图片，采用 [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)；本项目制作的 AI 辅助图片仅在维护者持有相应权利的范围内按该许可提供。`pet-spritesheet.webp` 桌宠图集及直接继承自 [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet) 的代码沿用其 MIT 许可。逐文件边界见 [NOTICE](NOTICE.md)，上游许可原文见 [`assets/default/licenses/`](assets/default/licenses/)。
 
 最后，感谢以下创作者把具体作品和实现经验分享给社区：
 
 - **上善**创作了鲸鱼娘的原始角色形象：[Pixiv](https://www.pixiv.net/users/62155430) · [Bilibili](https://space.bilibili.com/4456176)。
 - **ZipZipPipe**在鲸鱼娘形象上加入 DeepSeek 元素，完成女仆鲸鱼娘二创：[Pixiv](https://www.pixiv.net/users/18604994) · [Bilibili](https://space.bilibili.com/4168597)。
-- **Small-tailqwq** 在开源项目 [dsh-deep-whale](https://github.com/Small-tailqwq/dsh-deep-whale) 中提供了本插件沿用的深海宫殿背景、鲸鱼娘立绘和 Galgame UI 装饰，并保留了完整创作链。本项目在这些素材基础上继续制作了八张表情和一张 11 行桌宠动画图集。
-- **@linxin666/dsh-pet**（收录于 [dsh-web-ui](https://github.com/zhu1090093659/dsh-web-ui)）为桌宠的状态动画、点击交互和 DSH 接入提供了实现参考。当前的鲸鱼娘桌宠图集由本项目制作，并非来自 `dsh-pet`。
-- **Craybreeding / [Hatch Pet](https://github.com/Craybreeding/hatch-pet)** 公开了 Codex v2 的 8 × 11 桌宠图集生成、校验和打包工作流。本项目据此组织并检查鲸鱼娘图集，没有使用其示例宠物美术。
+- **Small-tailqwq** 在开源项目 [dsh-deep-whale](https://github.com/Small-tailqwq/dsh-deep-whale) 中提供了本插件沿用的深海宫殿背景、鲸鱼娘立绘和 Galgame UI 装饰，并保留了完整创作链。本项目在这些素材基础上继续制作了八张表情。
+- **f0909172434 / [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet)** 以 MIT 许可开源了 DSH 鲸鱼娘桌宠。本插件的桌宠功能基于该项目二次开发，`pet-spritesheet.webp` 与上游相同；本项目调整了插件集成方式与界面样式，并加入点击桌宠进入 Galgame 界面的交互。
 - Claude、GPT、Gemini、Kimi、Grok 五张模型娘立绘和 Galgame UI 为本项目制作的非官方 AI 辅助素材，不代表相关厂商的官方形象、合作或背书。
 
-如果这些开源素材和实现对你有帮助，欢迎给 [dsh-deep-whale](https://github.com/Small-tailqwq/dsh-deep-whale)、[dsh-web-ui](https://github.com/zhu1090093659/dsh-web-ui) 与 [Hatch Pet](https://github.com/Craybreeding/hatch-pet) 点个 Star，也可以在 Pixiv 或 Bilibili 关注上善与 ZipZipPipe。插件安装、运行或兼容性问题请提交到[本仓库 Issues](https://github.com/JAdpp/dsh-whale-galgame/issues)，不要打扰素材作者排查插件代码。
+如果这些开源素材和实现对你有帮助，欢迎给 [dsh-deep-whale](https://github.com/Small-tailqwq/dsh-deep-whale) 与 [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet) 点个 Star，也可以在 Pixiv 或 Bilibili 关注上善与 ZipZipPipe。插件安装、运行或兼容性问题请提交到[本仓库 Issues](https://github.com/JAdpp/dsh-whale-galgame/issues)，不要打扰素材作者排查插件代码。
 
 DeepSeek、Claude、ChatGPT/GPT、Gemini、Kimi、Grok 等名称和商标归各自权利人所有。本项目是非官方社区插件，与相关厂商不存在隶属、合作或背书关系。
+
+## 友情链接
+
+- [gal-view](https://github.com/Ayase34/gal-view)
+- [dsh-galgame](https://github.com/Lanxing6480/dsh-galgame)
+- 桌宠推荐：[dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet)
+
+如果你喜欢这些项目，欢迎前往仓库点个 Star。

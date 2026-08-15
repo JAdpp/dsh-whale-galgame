@@ -34,19 +34,22 @@ Only this allowlisted set is part of the public default art pack.
   background.
 - The eight `whale-*.png` files are resized and processed expression variants
   created from the credited maid whale-girl design for this plugin.
-- `pet-spritesheet.webp` is a further whale-girl adaptation assembled with the
-  [Hatch Pet](https://github.com/Craybreeding/hatch-pet) workflow. It adds animation frames, poses, and a Chinese fortune
-  dialogue frame; it is not a byte-for-byte copy of the current
-  `@linxin666/dsh-pet` atlas.
+- `pet-spritesheet.webp` is a byte-identical copy of
+  [`f0909172434/dsh-deepseek-girl-pet`](https://github.com/f0909172434/dsh-deepseek-girl-pet)'s
+  `assets/spritesheet.webp` (SHA-256
+  `234f24a97c18195a00c6093da0090773e675993c169e92e7e13a24c37b323fa2`).
+  It remains under the upstream MIT License. This plugin modifies the pet's
+  integration and interaction, not the atlas image itself.
 - The Claude-, GPT-, Gemini-, Kimi-, and Grok-inspired standing sprites are
   unofficial, AI-assisted concept art created for this project. They do not
   contain or reproduce official model-company artwork or exact logos.
 - The Galgame interface itself is React/CSS source under `src/client/index.ts`;
   there is no separate hidden UI image pack.
 
-The whale-girl attribution chain is 上善 → ZipZipPipe → Small-tailqwq. The
-bundled visual art is released under CC BY-NC-SA 4.0, with project-made assets
-covered to the extent the maintainer holds applicable rights. Code, UI source,
-and documentation remain under MIT. See [`NOTICE.md`](../../NOTICE.md),
+The whale-girl attribution chain is 上善 → ZipZipPipe → Small-tailqwq. Fifteen
+bundled default images are released under CC BY-NC-SA 4.0, with project-made
+assets covered to the extent the maintainer holds applicable rights. The pet
+atlas remains under its upstream MIT License. Code, UI source, and documentation
+remain under MIT. See [`NOTICE.md`](../../NOTICE.md),
 [`LICENSE.md`](../../LICENSE.md), and the preserved upstream texts in
 [`licenses/`](licenses/) before redistributing or modifying these files.

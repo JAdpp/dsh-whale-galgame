@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { dirname, extname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -53,7 +54,7 @@ const expectedArtTree = [
   ...Object.values(expectedArtFiles),
   'licenses/dsh-deep-whale-LICENSE.txt',
   'licenses/dsh-deep-whale-NOTICE.txt',
-  'licenses/dsh-pet-LICENSE.txt',
+  'licenses/dsh-deepseek-girl-pet-LICENSE.txt',
 ].sort()
 const actualArtTree = listRelativeFiles(artDir)
 if (actualArtTree.length !== expectedArtTree.length || expectedArtTree.some((name, index) => actualArtTree[index] !== name)) {
@@ -70,6 +71,10 @@ for (const [key, fileName] of Object.entries(expectedArtFiles)) {
   if (entry.subtype !== expectedSubtype) throw new Error(`${key} uses image/${entry.subtype}; expected image/${expectedSubtype}`)
   const exported = readFileSync(resolve(artDir, fileName))
   if (!exported.equals(Buffer.from(entry.data, 'base64'))) throw new Error(`${fileName} does not match the embedded runtime art.`)
+}
+const petHash = createHash('sha256').update(readFileSync(resolve(artDir, 'pet-spritesheet.webp'))).digest('hex')
+if (petHash !== '234f24a97c18195a00c6093da0090773e675993c169e92e7e13a24c37b323fa2') {
+  throw new Error(`Desktop-pet atlas hash mismatch: ${petHash}`)
 }
 
 const packCommand = npmExecPath?.endsWith('.js')
@@ -110,7 +115,7 @@ for (const required of [
   'assets/default/README.md',
   'assets/default/licenses/dsh-deep-whale-LICENSE.txt',
   'assets/default/licenses/dsh-deep-whale-NOTICE.txt',
-  'assets/default/licenses/dsh-pet-LICENSE.txt',
+  'assets/default/licenses/dsh-deepseek-girl-pet-LICENSE.txt',
 ]) {
   if (!packPaths.includes(required)) throw new Error(`Package is missing ${required}`)
 }
