@@ -17,7 +17,7 @@ DeepSeek Harness Web 的 Galgame 对话插件。显示角色与实际回复模�
 
 ## 内置默认美术
 
-下面六张图就是安装后各角色使用的默认立绘，不是 README mockup。GitHub 源码仓库中的 [`assets/default/`](assets/default/README.md) 列出了全部 16 项图片及其运行时用途；npm 安装包使用嵌入在客户端 bundle 中的同一批素材，不再重复打包一份导出原图。
+下面六张图就是安装后各模型角色使用的默认立绘。GitHub 源码仓库中的 [`assets/default/`](assets/default/README.md) 列出了全部 16 项图片及其运行时用途；npm 安装包使用嵌入在客户端 bundle 中的同一批素材，不再重复打包一份导出原图。
 
 <table>
   <tr>
@@ -100,8 +100,6 @@ DASHSCOPE_API_KEY='your-local-key' dsh --profile web
 .whale-girl-save.json
 .whale-girl-save.*.json
 ~~~
-
-公开仓库只包含随插件分发的默认美术，不包含维护者或用户的存档、聊天记录、生成 CG、上传背景、上传立绘、API key 或私人素材库。
 
 ## 开发
 
