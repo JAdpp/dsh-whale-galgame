@@ -127,10 +127,9 @@ npm run verify
 
 DeepSeek、Claude、ChatGPT/GPT、Gemini、Kimi、Grok 等名称和商标归各自权利人所有。本项目是非官方社区插件，与相关厂商不存在隶属、合作或背书关系。
 
-## 友情链接
+## dsh galgame相关项目友情链接
 
 - [gal-view](https://github.com/Ayase34/gal-view)
 - [dsh-galgame](https://github.com/Lanxing6480/dsh-galgame)
-- 桌宠推荐：[dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet)
 
 如果你喜欢这些项目，欢迎前往仓库点个 Star。
