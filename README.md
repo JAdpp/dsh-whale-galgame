@@ -188,6 +188,5 @@ DeepSeek、Claude、ChatGPT/GPT、Gemini、Kimi、Grok 等名称和商标归各�
 
 ## dsh galgame相关项目友情链接
 
-- [gal-view](https://github.com/Ayase34/gal-view)
-- [dsh-galgame](https://github.com/Lanxing6480/dsh-galgame)
-- 上游桌宠项目（已内置，无需另装）：[dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet)
+- [gal-view](https://github.com/Ayase34/gal-view) - DSH Web GUI 会话页的 Galgame 风格对话视图 + 场景元素可视化编辑器
+- [dsh-galgame](https://github.com/Lanxing6480/dsh-galgame) - GalGame 模式界面插件
