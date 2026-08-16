@@ -1,4 +1,4 @@
-# dsh-whale-galgame · 跨会话上下文敏感的galgame引擎插件
+# dsh-whale-galgame · 跨会话事件敏感的galgame引擎插件
 
 **简体中文** · [English](README.en.md) · [日本語](README.ja.md) · [한국어](README.ko.md)
 
