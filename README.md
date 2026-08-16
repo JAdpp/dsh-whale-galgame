@@ -131,5 +131,3 @@ DeepSeek、Claude、ChatGPT/GPT、Gemini、Kimi、Grok 等名称和商标归各�
 
 - [gal-view](https://github.com/Ayase34/gal-view)
 - [dsh-galgame](https://github.com/Lanxing6480/dsh-galgame)
-
-如果你喜欢这些项目，欢迎前往仓库点个 Star。
