@@ -31,6 +31,10 @@ test('binds the active workspace, counts Harness usage, and consumes a safe acti
   let saved = ''
   const listeners = new Map<string, Function>()
   const mainSystems: string[] = []
+  let releaseActivityScan!: () => void
+  let markActivityScanStarted!: () => void
+  const activityScanGate = new Promise<void>((resolve) => { releaseActivityScan = resolve })
+  const activityScanStarted = new Promise<void>((resolve) => { markActivityScanStarted = resolve })
   const llm = {
     listProviders: () => [{ id: 'deepseek-official', name: 'DeepSeek' }],
     listModels: () => [{ id: 'deepseek-v4-flash', name: 'DeepSeek V4 Flash' }],
@@ -58,10 +62,14 @@ test('binds the active workspace, counts Harness usage, and consumes a safe acti
     workspaceRegistry: { list: () => [{ path: root }] },
     agentDefaultModel: { currentSelection: () => ({ provider: 'deepseek-official', model: 'deepseek-v4-flash' }) },
     sessionQuery: {
-      listSessions: async () => [
-        { header, live: true, persisted: true },
-        { header: otherHeader, live: true, persisted: true },
-      ],
+      listSessions: async () => {
+        markActivityScanStarted()
+        await activityScanGate
+        return [
+          { header, live: true, persisted: true },
+          { header: otherHeader, live: true, persisted: true },
+        ]
+      },
       listEvents: async () => events.map((event) => ({ sessionId, seq: event.seq, time: event.time, type: event.type })),
       filterSessions: async () => [{ header, live: true, persisted: true }],
       readSession: async (id: string) => id === otherSessionId
@@ -93,13 +101,24 @@ test('binds the active workspace, counts Harness usage, and consumes a safe acti
     return JSON.parse(body)
   }
 
-  await post('view', { sessionId })
+  const firstView = await Promise.race([
+    post('view', { sessionId }),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('view waited for the activity scan')), 100)),
+  ])
+  assert.equal((firstView as any).name, '鲸鱼娘')
+  await activityScanStarted
+  releaseActivityScan()
   const onSessionEvent = listeners.get('session/event')
   assert.equal(typeof onSessionEvent, 'function')
   onSessionEvent!({ header }, {
     type: 'assistant/message',
     data: { usage: { inputTokens: 3_000, outputTokens: 2_000, cacheReadTokens: 8_000 } },
   })
+  await post('view', { sessionId })
+  for (let i = 0; i < 50; i++) {
+    if (saved && JSON.parse(saved).characters.deepseek.affection === 1) break
+    await new Promise((resolve) => setTimeout(resolve, 5))
+  }
   const afterUsage = await post('view', { sessionId })
   assert.equal(afterUsage.affection, 1)
 

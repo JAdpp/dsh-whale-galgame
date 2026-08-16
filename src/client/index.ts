@@ -429,6 +429,29 @@ function viewFromResult(result: any): any | null {
   return null
 }
 
+const VIEW_CACHE_LIMIT = 8
+const VIEW_CACHE_BY_SESSION = new Map<string, any>()
+
+function viewCacheKey(sessionId?: string): string {
+  const id = typeof sessionId === 'string' ? sessionId.trim() : ''
+  return id ? 'session:' + id : 'unscoped'
+}
+
+function cachedView(key: string): any | null {
+  return VIEW_CACHE_BY_SESSION.get(key) || null
+}
+
+function rememberView(key: string, value: any): void {
+  if (!value || typeof value !== 'object') return
+  VIEW_CACHE_BY_SESSION.delete(key)
+  VIEW_CACHE_BY_SESSION.set(key, value)
+  while (VIEW_CACHE_BY_SESSION.size > VIEW_CACHE_LIMIT) {
+    const oldest = VIEW_CACHE_BY_SESSION.keys().next().value
+    if (typeof oldest !== 'string') break
+    VIEW_CACHE_BY_SESSION.delete(oldest)
+  }
+}
+
 const PROFILE_KEYS = ['displayName', 'address', 'greeting', 'persona', 'tone', 'visual'] as const
 type ProfileKey = typeof PROFILE_KEYS[number]
 type CharacterProfile = Record<ProfileKey, string>
@@ -672,7 +695,17 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     ? { ...(args && typeof args === 'object' ? args : {}), sessionId: props.sessionId }
     : args)
   const appScope = props.variant === 'tab' ? 'tab' : 'overlay'
-  const [s, setS] = useState<any>(null)
+  const cacheKey = viewCacheKey(props.sessionId)
+  const [viewState, setViewState] = useState<any>(() => ({ key: cacheKey, value: cachedView(cacheKey) }))
+  const s = viewState && viewState.key === cacheKey ? viewState.value : cachedView(cacheKey)
+  const setS = (nextOrUpdater: any) => {
+    setViewState((previous: any) => {
+      const base = previous && previous.key === cacheKey ? previous.value : cachedView(cacheKey)
+      const next = typeof nextOrUpdater === 'function' ? nextOrUpdater(base) : nextOrUpdater
+      rememberView(cacheKey, next)
+      return { key: cacheKey, value: next }
+    })
+  }
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [text, setText] = useState('')

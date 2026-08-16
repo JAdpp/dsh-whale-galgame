@@ -313,7 +313,10 @@ export function apply(ctx: any, config: any = {}): void {
   let activityCacheAt = 0
   let activityCacheGeneration = 0
   let activityRefreshPromise: Promise<void> | null = null
-  let chatMutex: Promise<void> = Promise.resolve()
+  let activityWarmTimer: ReturnType<typeof setTimeout> | null = null
+  let viewMaintenancePromise: Promise<void> | null = null
+  let viewMaintenanceNeedsSave = false
+  let stateMutationMutex: Promise<void> = Promise.resolve()
 
   function emptyCharacter(): any {
     return {
@@ -679,6 +682,16 @@ export function apply(ctx: any, config: any = {}): void {
     }
   }
 
+  function scheduleActivityWarmup(delayMs = 0): void {
+    if (activityWarmTimer) clearTimeout(activityWarmTimer)
+    activityWarmTimer = setTimeout(() => {
+      activityWarmTimer = null
+      void refreshActivityCache().catch((err) => {
+        console.warn('whale-galgame activity warmup failed:', err)
+      })
+    }, Math.max(0, delayMs))
+  }
+
   function resolvePolicy(): any {
     try {
       if (!sandboxPolicy) return undefined
@@ -711,6 +724,9 @@ export function apply(ctx: any, config: any = {}): void {
     if (type === 'user/message' || type === 'tool/call' || type === 'todo/write' || type === 'turn/end') {
       activityCacheGeneration += 1
       activityCacheAt = 0
+      // Do the expensive cross-session scan after the event burst, not while
+      // the Galgame view is waiting for its first frame.
+      scheduleActivityWarmup(type === 'turn/end' ? 50 : 600)
     }
   })
 
@@ -1653,6 +1669,47 @@ export function apply(ctx: any, config: any = {}): void {
     return readyPromise
   }
 
+  async function runSerializedStateTask<T>(task: () => Promise<T>): Promise<T> {
+    const previous = stateMutationMutex
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => { release = resolve })
+    stateMutationMutex = previous.catch(() => { /* keep the queue alive */ }).then(() => gate)
+    await previous.catch(() => { /* the prior task returned its own error */ })
+    try {
+      return await task()
+    } finally {
+      release()
+    }
+  }
+
+  function scheduleViewMaintenance(persistHint = false): void {
+    viewMaintenanceNeedsSave = viewMaintenanceNeedsSave || persistHint
+    scheduleActivityWarmup(0)
+    if (viewMaintenancePromise) return
+    // A timer boundary guarantees the HTTP handler can flush the current
+    // view before token settlement or a multi-megabyte save begins.
+    viewMaintenancePromise = new Promise<void>((resolve) => setTimeout(resolve, 0)).then(() => runSerializedStateTask(async () => {
+      let shouldSave = viewMaintenanceNeedsSave
+      viewMaintenanceNeedsSave = false
+      const actualSelection = await pickModel()
+      if (s) {
+        s.modelOnline = !!actualSelection
+        s.chatModelLabel = actualSelection && actualSelection.model ? String(actualSelection.model) : ''
+        s.lastModel = s.chatModelLabel
+      }
+      const heroineChanged = syncHeroine()
+      const settled = settle()
+      const leveled = !!(s && checkLevelUp(s.current, s.characters[s.current]))
+      shouldSave = shouldSave || heroineChanged || settled.changed || leveled
+      if (shouldSave) await save()
+    })).catch((err) => {
+      console.warn('whale-galgame background maintenance failed:', err)
+    }).finally(() => {
+      viewMaintenancePromise = null
+      if (viewMaintenanceNeedsSave) scheduleViewMaintenance(false)
+    })
+  }
+
   async function dispatchAction(action: string, args: any): Promise<any> {
     await ensureReady().catch(() => { /* ignore */ })
     const hasSessionId = !!(args && typeof args.sessionId === 'string' && args.sessionId.trim())
@@ -1879,15 +1936,10 @@ export function apply(ctx: any, config: any = {}): void {
       case 'view': {
         const p = ensurePreferences()
         if (p.enabled === false) return view()
-        await refreshActivityCache()
         const heroineChanged = syncHeroine()
-        const actualSelection = await pickModel()
-        s.chatModelLabel = actualSelection && actualSelection.model ? String(actualSelection.model) : ''
-        s.lastModel = s.chatModelLabel
-        const r = settle()
-        if (s) checkLevelUp(s.current, s.characters[s.current])
-        if (r.changed || heroineChanged) await save()
-        return view()
+        const immediate = view(false)
+        scheduleViewMaintenance(heroineChanged)
+        return immediate
       }
       case 'chat': {
         if (ensurePreferences().enabled === false) return view()
@@ -2155,16 +2207,7 @@ export function apply(ctx: any, config: any = {}): void {
 
   async function handleAction(action: string, args: any): Promise<any> {
     if (action !== 'chat') return dispatchAction(action, args)
-    const previous = chatMutex
-    let release!: () => void
-    const gate = new Promise<void>((resolve) => { release = resolve })
-    chatMutex = previous.catch(() => { /* keep the queue alive */ }).then(() => gate)
-    await previous.catch(() => { /* a prior request already returned its own error */ })
-    try {
-      return await dispatchAction(action, args)
-    } finally {
-      release()
-    }
+    return runSerializedStateTask(() => dispatchAction(action, args))
   }
 
   if (webServer && typeof webServer.register === 'function') {
