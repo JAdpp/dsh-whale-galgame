@@ -47,14 +47,14 @@ const expectedArtHashes = {
   'maid-left.webp': 'af7bfd2e18505fc9d6f94cefd9febc92b31c1b2b66c756982d91fc7b93fb184c',
   'palace-night.webp': 'ae6917bb1aafa71e6a10cfcaa1289f13e265aa7f32d3fb7c1988004bf50f8983',
   'pet-spritesheet.webp': '234f24a97c18195a00c6093da0090773e675993c169e92e7e13a24c37b323fa2',
-  'whale-angry.png': '1b039bdf8125f32a45444912c5778c09166bb99baad36e92979aa84491baac6b',
-  'whale-cheerful.png': '95e1aebcbc2bd58ed75e512bce88d796198b6070a3b0a1025ced3b9cae2fd7de',
-  'whale-confused.png': 'd722a6d60d5531d88efe76a4f4f685827964957424accf672584a7daaba60b14',
-  'whale-exasperated.png': '99a31f3593a08dee4b82229e26f2dd6c0985025b9ab5fe605c317a578171b195',
-  'whale-frightened.png': 'e1c309af2a69e22de7edb7585e846feeb912d3ae3d5fb9cb33a44fa26f063676',
-  'whale-serious.png': 'af0d68e7805b7eeb0b849c925cf6f9d24752a5f85cf3f1a29747de471506a85f',
-  'whale-shy.png': '575148e26095de46c3003b4a61d0d7948efdc1474665b7a67f3710ac2b414a95',
-  'whale-starry.png': '9e9f92db628a9d80d468581e79589432f1d19bf9c9175f3e50ac1bbde7043869',
+  'whale-angry.png': 'aa000e690ef4752539f3d4ffd2fae09b026fe3557619e22ed0844c9ebfe1f5c1',
+  'whale-cheerful.png': '911f0b9ad0a4aa5e4fea47e70303c963eb7a5f326235aeac66579e05f03f574d',
+  'whale-confused.png': 'e71c2b87ece719639f5765071a32ecaa7f6b7f1643bb78428a648f1c1b505d06',
+  'whale-exasperated.png': 'b40046c63bf35cf9f918c6cdd7d7f2b194038e6c3168634f7386547eadb98666',
+  'whale-frightened.png': '6b3474e71216844140f7f7d5ba791aea2b971a6a2f60ee01396312c5d5e88140',
+  'whale-serious.png': '7ead530a1bf41447844097a53771819ecb9987dfaa912e0fd61e15b3b347b270',
+  'whale-shy.png': 'd96ea4da00c15c421fef256d555b86deda40f657ddc9dbe31467ae5aaadd187a',
+  'whale-starry.png': '6bf39264f814d66047072a1e15ecceb932a7d239bfac6d9272ba04d0a3e64030',
 }
 const roleBackgroundKeys = [
   'bg-deepseek-seaside-study',
@@ -64,6 +64,16 @@ const roleBackgroundKeys = [
   'bg-kimi-moonlit-reading-study',
   'bg-grok-electronics-studio',
 ]
+const whaleExpressionDimensions = {
+  'whale-cheerful.png': [935, 1682],
+  'whale-shy.png': [935, 1682],
+  'whale-serious.png': [935, 1682],
+  'whale-confused.png': [935, 1683],
+  'whale-angry.png': [935, 1683],
+  'whale-frightened.png': [935, 1683],
+  'whale-exasperated.png': [935, 1682],
+  'whale-starry.png': [935, 1682],
+}
 const expectedHashFiles = Object.keys(expectedArtHashes).sort()
 const expectedImageFiles = Object.values(expectedArtFiles).sort()
 if (expectedHashFiles.length !== expectedImageFiles.length || expectedImageFiles.some((name, index) => expectedHashFiles[index] !== name)) {
@@ -118,6 +128,17 @@ for (const [key, fileName] of Object.entries(expectedArtFiles)) {
   if (hash !== expectedArtHashes[fileName]) throw new Error(`${fileName} hash mismatch: ${hash}`)
 }
 const pngSignature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+for (const [fileName, [expectedWidth, expectedHeight]] of Object.entries(whaleExpressionDimensions)) {
+  const png = readFileSync(resolve(artDir, fileName))
+  if (png.length < 24 || !png.subarray(0, pngSignature.length).equals(pngSignature) || png.toString('ascii', 12, 16) !== 'IHDR') {
+    throw new Error(`${fileName} is not a valid PNG with an IHDR chunk.`)
+  }
+  const width = png.readUInt32BE(16)
+  const height = png.readUInt32BE(20)
+  if (width !== expectedWidth || height !== expectedHeight) {
+    throw new Error(`${fileName} dimensions changed: ${width} × ${height}; expected ${expectedWidth} × ${expectedHeight}`)
+  }
+}
 const allowedBackgroundChunks = new Set(['IHDR', 'PLTE', 'tRNS', 'IDAT', 'IEND'])
 for (const key of roleBackgroundKeys) {
   const fileName = expectedArtFiles[key]

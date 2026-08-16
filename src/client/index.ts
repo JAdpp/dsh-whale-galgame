@@ -27,7 +27,7 @@ const CSS = [
   '@media (prefers-reduced-motion:reduce){.whg-pet-sprite{animation:none}}',
   // ── fullscreen VN ──────────────────────────────────────────────────────
   '.whg-root{position:fixed;inset:0;z-index:8000;font-family:system-ui,"Segoe UI","Microsoft YaHei",sans-serif;user-select:none;pointer-events:auto;overflow:hidden;background:#050b18;color:#eaf5ff}',
-  '.whg-root-tab{position:relative;min-height:calc(100vh - 170px);width:100%;z-index:auto;font-family:system-ui,"Segoe UI","Microsoft YaHei",sans-serif;user-select:none;overflow:hidden;background:#050b18;color:#eaf5ff;border-radius:16px;border:1px solid rgba(140,200,255,.15)}',
+  '.whg-root-tab{position:relative;flex:1 1 0;width:100%;height:100%;min-height:0;box-sizing:border-box;z-index:auto;font-family:system-ui,"Segoe UI","Microsoft YaHei",sans-serif;user-select:none;overflow:hidden;background:#050b18;color:#eaf5ff;border:0;border-radius:0}',
   '.whg-root-tab .whg-sprite-wrap{height:88vh;margin-bottom:0}',
   '.whg-root-tab .whg-panel{min-height:20vh;max-height:30vh;bottom:0;border-radius:16px}',
   '.whg-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:brightness(.94)}',
