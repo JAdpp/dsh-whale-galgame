@@ -22,6 +22,10 @@ This project directly adapts the upstream desktop-pet state animation, 16-direct
 
 `assets/default/pet-spritesheet.webp` is a byte-identical copy of the upstream `assets/spritesheet.webp` (SHA-256 `234f24a97c18195a00c6093da0090773e675993c169e92e7e13a24c37b323fa2`) and remains under the same MIT terms.
 
+## Project-produced role artwork
+
+The five non-DeepSeek standing sprites and six `bg-*.png` role backgrounds are unofficial, AI-assisted artwork newly produced for this project, not third-party company art. They are distributed under CC BY-NC-SA 4.0 to the extent the maintainer holds the applicable rights. The six backgrounds map to DeepSeek, Claude, GPT, Gemini, Kimi, and Grok; the DeepSeek seaside-study scene is an optional built-in alternative, while the other five are their roles' defaults. See [NOTICE.md](NOTICE.md) for the exact file-by-file map.
+
 ## Creator profiles
 
 - 上善, original whale-girl character: [Pixiv](https://www.pixiv.net/users/62155430) · [Bilibili](https://space.bilibili.com/4456176)

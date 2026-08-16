@@ -67,6 +67,21 @@ const CSS = [
   '.whg-bg-picker{width:min(360px,calc(100vw - 28px));padding:12px}',
   '.whg-bg-preview{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;margin:2px 0 10px;border:1px solid rgba(143,216,239,.28);border-radius:10px;background:#020a14}',
   '.whg-bg-empty{display:grid;place-items:center;width:100%;aspect-ratio:16/9;margin:2px 0 10px;border:1px dashed rgba(143,216,239,.28);border-radius:10px;color:#7f9cae;font-size:11px;background:rgba(1,10,20,.25)}',
+  '.whg-bg-builtins{margin:2px 0 12px;padding:10px;border:1px solid rgba(143,216,239,.18);border-radius:11px;background:rgba(1,10,20,.24)}',
+  '.whg-bg-builtins-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;color:#dff3ff;font-size:11px;font-weight:700}',
+  '.whg-bg-builtins-role{max-width:170px;overflow:hidden;color:#83a9bd;font:10px/1.3 Consolas,monospace;text-overflow:ellipsis;white-space:nowrap}',
+  '.whg-bg-builtins-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}',
+  '.whg-bg-builtin{position:relative;min-width:0;overflow:hidden;padding:0;border:1px solid rgba(143,216,239,.2);border-radius:9px;background:#041422;color:#dff3ff;cursor:pointer;text-align:left;font-family:inherit}',
+  '.whg-bg-builtin:hover,.whg-bg-builtin:focus-visible{border-color:rgba(143,216,239,.58);outline:none}',
+  '.whg-bg-builtin[aria-pressed="true"]{border-color:rgba(215,182,108,.72);box-shadow:0 0 0 1px rgba(215,182,108,.18)}',
+  '.whg-bg-builtin:only-child{grid-column:1/-1}',
+  '.whg-bg-builtin:disabled{opacity:.48;cursor:default}',
+  '.whg-bg-builtin-img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;background:#020a14}',
+  '.whg-bg-builtin-fallback{display:grid;place-items:center;color:#607f91;font:10px/1.3 Consolas,monospace}',
+  '.whg-bg-builtin-meta{display:flex;align-items:center;gap:5px;min-width:0;padding:7px 8px}',
+  '.whg-bg-builtin-name{min-width:0;flex:1;overflow:hidden;font-size:11px;font-weight:700;text-overflow:ellipsis;white-space:nowrap}',
+  '.whg-bg-builtin-tag{flex:none;color:#d7c48f;font:700 9px/1 Consolas,monospace}',
+  '.whg-bg-override-note{margin:-3px 0 9px;padding:7px 9px;border-left:2px solid rgba(215,182,108,.52);background:rgba(215,182,108,.07);color:#b9a978;font-size:10px;line-height:1.5}',
   '.whg-bg-actions{display:flex;flex-wrap:wrap;gap:7px}',
   '.whg-bg-file{display:none}',
   '.whg-bg-error{margin:8px 1px 0;color:#ffb5bd;font-size:11px;line-height:1.5}',
@@ -1039,6 +1054,25 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     }).then(() => setPickerLoading(false))
   }
 
+  function applyBuiltinBackground(key: string): void {
+    if (!key || pickerLoading) return
+    setPickerLoading(true)
+    setPickerError('')
+    callApi('bg-set-builtin', { key }).then(async (result) => {
+      assertApiResult(result, '内置背景未应用')
+      bgCache.current = null
+      let nextView = viewFromResult(result)
+      if (!nextView) nextView = await callApi('view')
+      if (nextView && typeof nextView === 'object') setS(nextView)
+      window.dispatchEvent(new CustomEvent('whg:bg-changed', {
+        detail: { dataUrl: null, view: nextView },
+      }))
+      closePicker()
+    }).catch((err) => {
+      setPickerError('内置背景切换失败：' + String(err && err.message ? err.message : err))
+    }).then(() => setPickerLoading(false))
+  }
+
   function chooseSpriteFile(event: any): void {
     const file: File | undefined = event && event.target && event.target.files ? event.target.files[0] : undefined
     if (event && event.target) event.target.value = ''
@@ -1321,8 +1355,58 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
 
   function backgroundPicker(): React.ReactElement | null {
     if (pickerPanel !== 'background') return null
-    const visiblePreview = backgroundPreview || bgCache.current
-    const hasSavedBackground = !!s && (s.bg === 'custom' || s.bg === 'cg')
+    const backgroundMode = String((s && s.backgroundMode) || (s && (s.bg === 'custom' || s.bg === 'cg') ? s.bg : 'builtin'))
+    const hasSavedBackground = backgroundMode === 'custom' || backgroundMode === 'cg'
+    const builtinOptions = Array.isArray(s && s.builtinBackgroundOptions)
+      ? s.builtinBackgroundOptions.filter((item: any) => item && typeof item.key === 'string' && item.key)
+      : []
+    const currentBuiltin = String(
+      (s && (s.builtinBackgroundKey || s.selectedBuiltinBackground))
+      || (builtinOptions.find((item: any) => item.current === true || item.selected === true) || {}).key
+      || (!hasSavedBackground && s && s.bg ? s.bg : ''),
+    )
+    const currentActual = hasSavedBackground ? bgCache.current : art(s && s.bg)
+    const visiblePreview = backgroundPreview || currentActual
+    const builtinSection = builtinOptions.length > 0
+      ? React.createElement('section', { className: 'whg-bg-builtins', 'aria-label': (s && s.name ? s.name : '当前角色') + '的内置背景' },
+        React.createElement('div', { className: 'whg-bg-builtins-head' },
+          React.createElement('span', null, '角色内置背景'),
+          React.createElement('span', { className: 'whg-bg-builtins-role' }, s && s.name ? s.name : ''),
+        ),
+        hasSavedBackground
+          ? React.createElement('div', { className: 'whg-bg-override-note' },
+            backgroundMode === 'cg' ? '特殊 CG 正在覆盖角色背景。选择下方背景会退出 CG 覆盖。' : '自定义图片正在覆盖角色背景。选择下方背景会退出自定义覆盖。',
+          )
+          : null,
+        React.createElement('div', { className: 'whg-bg-builtins-grid' },
+          builtinOptions.map((option: any, index: number) => {
+            const key = String(option.key)
+            const label = String(option.label || option.name || ('内置背景 ' + (index + 1)))
+            const preview = art(key)
+            const selected = key === currentBuiltin
+            const isDefault = option.default === true || option.isDefault === true
+            return React.createElement('button', {
+              'aria-label': label + (isDefault ? '，角色默认背景' : '') + (selected && hasSavedBackground ? '，退出覆盖后使用' : ''),
+              'aria-pressed': selected && !hasSavedBackground,
+              className: 'whg-bg-builtin',
+              disabled: pickerLoading,
+              key,
+              onClick: () => applyBuiltinBackground(key),
+              type: 'button',
+            },
+              preview
+                ? React.createElement('img', { alt: '', className: 'whg-bg-builtin-img', draggable: false, src: preview })
+                : React.createElement('div', { className: 'whg-bg-builtin-img whg-bg-builtin-fallback' }, 'BACKGROUND'),
+              React.createElement('span', { className: 'whg-bg-builtin-meta' },
+                React.createElement('span', { className: 'whg-bg-builtin-name' }, label),
+                isDefault ? React.createElement('span', { className: 'whg-bg-builtin-tag' }, '默认') : null,
+                selected ? React.createElement('span', { className: 'whg-bg-builtin-tag' }, hasSavedBackground ? '恢复后' : '使用中') : null,
+              ),
+            )
+          }),
+        ),
+      )
+      : null
     return React.createElement('div', {
       'aria-label': '修改 galgame 背景图',
       className: 'whg-picker right whg-bg-picker',
@@ -1332,12 +1416,13 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     },
       React.createElement('div', { className: 'whg-picker-head' },
         React.createElement('span', null, 'BACKGROUND FILE'),
-        React.createElement('span', null, backgroundPreview ? '预览' : hasSavedBackground ? '使用中' : '默认'),
+        React.createElement('span', null, backgroundPreview ? '预览' : hasSavedBackground ? '覆盖中' : '角色背景'),
       ),
       visiblePreview
         ? React.createElement('img', { className: 'whg-bg-preview', src: visiblePreview, alt: backgroundPreview ? '待应用背景预览' : '当前 galgame 背景' })
         : React.createElement('div', { className: 'whg-bg-empty' }, '选择一张本地图片后在这里预览'),
-      React.createElement('div', { className: 'whg-picker-note' }, '图片只会保存在本工作区，并只用于 galgame 界面。建议使用横向 16:9 图片。'),
+      builtinSection,
+      React.createElement('div', { className: 'whg-picker-note' }, '内置背景会随角色切换。上传的图片只保存在本工作区，并会持续覆盖角色背景；建议使用横向 16:9 图片。'),
       React.createElement('input', {
         accept: 'image/png,image/jpeg,image/webp,image/avif',
         className: 'whg-bg-file',

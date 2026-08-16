@@ -4,7 +4,7 @@
 
 A Galgame conversation view for DeepSeek Harness Web. Choose the displayed character separately from the model that writes replies; DeepSeek, Claude, GPT, Gemini, Kimi, and Grok each keep separate affection, memory, dialogue history, CG gallery, and custom-sprite data. The desktop pet and generated CGs are optional.
 
-The installed plugin embeds 16 runtime visual assets: six character sprites, one background, eight whale-girl expressions, and one 11-row desktop-pet animation atlas from [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet). The public GitHub source repository also exposes matching exported files in [`assets/default/`](assets/default/README.md).
+The installed plugin embeds 22 runtime visual assets: six character sprites, seven built-in backgrounds, eight whale-girl expressions, and one 11-row desktop-pet animation atlas from [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet). The public GitHub source repository also exposes matching exported files in [`assets/default/`](assets/default/README.md).
 
 ![dsh-whale-galgame running in DSH Web](docs/screenshots/galgame-overview.jpg)
 
@@ -15,6 +15,7 @@ The installed plugin embeds 16 runtime visual assets: six character sprites, one
 - Choose the displayed character separately from the reply model. A role can follow the workspace model or be pinned; replies can use the default `deepseek-v4-flash`, follow the workspace, or use a model listed by DSH.
 - The six roles keep separate affection, level, memory, dialogue history, CG gallery, and custom-sprite data.
 - Each turn offers close, neutral, and distant reply options in shuffled positions. Free-text input remains available.
+- Switching roles also switches to that role's built-in background. The whale-girl still defaults to the deep-sea palace; her new seaside study is an optional built-in alternative. A user upload or saved CG overrides role defaults until a built-in background is restored.
 - Manage the background, per-role sprite, dialogue archive, CG gallery, and desktop pet from the interface. Clicking the pet opens the `galgame` tab.
 
 ## Affection and cross-session context
@@ -33,7 +34,7 @@ Only fixed category and status cues are passed to the Galgame reply model and CG
 
 ## Bundled default art
 
-The six images below are the default role sprites used after installation. In the GitHub source repository, [`assets/default/`](assets/default/README.md) lists all 16 exported files and their runtime purposes. The npm installation uses the same images embedded in the client bundle instead of packaging a second raw-image copy.
+The six images below are the default role sprites used after installation. In the GitHub source repository, [`assets/default/`](assets/default/README.md) lists all 22 exported files and their runtime purposes. The npm installation carries only the client bundle with embedded art, rather than duplicating the raw exports or generated-art source.
 
 <table>
   <tr>
@@ -48,7 +49,22 @@ The six images below are the default role sprites used after installation. In th
   </tr>
 </table>
 
-The remaining runtime assets comprise the `palace-night.webp` deep-sea palace background, eight `whale-*.png` expression images, and the 8-column × 11-row `pet-spritesheet.webp` animation atlas. The first 15 default images and the pet atlas use different licenses; see the [NOTICE](NOTICE.md) and [third-party license index](THIRD_PARTY_LICENSES.md) for sources, modifications, and file-by-file licensing.
+The six new role backgrounds are shown below. Claude, GPT, Gemini, Kimi, and Grok use their matching scene by default. DeepSeek keeps `palace-night.webp` as the whale-girl default; the seaside study shown here is a selectable built-in alternative.
+
+<table>
+  <tr>
+    <td align="center"><img src="assets/default/bg-deepseek-seaside-study.png" width="260" alt="Optional DeepSeek whale-girl seaside-study background"><br><strong>DeepSeek · optional</strong></td>
+    <td align="center"><img src="assets/default/bg-claude-writing-study.png" width="260" alt="Claude writing-study default background"><br><strong>Claude</strong></td>
+    <td align="center"><img src="assets/default/bg-gpt-collaboration-workshop.png" width="260" alt="GPT collaboration-workshop default background"><br><strong>GPT</strong></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="assets/default/bg-gemini-twin-creative-studio.png" width="260" alt="Gemini twin creative-studio default background"><br><strong>Gemini</strong></td>
+    <td align="center"><img src="assets/default/bg-kimi-moonlit-reading-study.png" width="260" alt="Kimi moonlit reading-study default background"><br><strong>Kimi</strong></td>
+    <td align="center"><img src="assets/default/bg-grok-electronics-studio.png" width="260" alt="Grok electronics-studio default background"><br><strong>Grok</strong></td>
+  </tr>
+</table>
+
+The remaining runtime assets comprise eight `whale-*.png` expression images and the 8-column × 11-row `pet-spritesheet.webp` animation atlas. The first 21 default images and the pet atlas use different licenses; see the [NOTICE](NOTICE.md) and [third-party license index](THIRD_PARTY_LICENSES.md) for sources, modifications, and file-by-file licensing.
 
 The Galgame layout, dialogue box, controls, and decorations are public in [`src/client/index.ts`](src/client/index.ts); there is no undisclosed UI-image pack.
 
@@ -123,15 +139,17 @@ This plugin repository's `.gitignore` cannot protect a different workspace autom
 
 ~~~sh
 npm ci
+npm run sanitize:backgrounds
+npm run embed:art
 npm run export:art
 npm run verify
 ~~~
 
-The repository commits installable `lib/index.js` and `lib/client.js` bundles. Rebuild and commit both after changing `src/`. `npm run export:art` exports the 16 public runtime visual assets from the runtime data.
+The repository commits installable `lib/index.js` and `lib/client.js` bundles. Rebuild and commit both after changing `src/`. `npm run sanitize:backgrounds` strips non-visual PNG metadata from the six role backgrounds, `npm run embed:art` writes the allowlisted files into the runtime source, and `npm run export:art` reproduces all 22 public assets for byte-level checking.
 
 ## License and credits
 
-Code, the Galgame UI implementation, and documentation are covered by the [MIT License](LICENSE.md). The six character sprites, one background, and eight whale-girl expressions—15 default images in total—are distributed under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/); project-produced AI-assisted images are offered under that license only to the extent the maintainer holds the applicable rights. The `pet-spritesheet.webp` atlas and code directly inherited from [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet) retain its MIT license. See the file-by-file [NOTICE](NOTICE.md) and preserved upstream texts in [`assets/default/licenses/`](assets/default/licenses/).
+Code, the Galgame UI implementation, and documentation are covered by the [MIT License](LICENSE.md). The six character sprites, seven built-in backgrounds, and eight whale-girl expressions—21 default images in total—are distributed under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/); project-produced AI-assisted images are offered under that license only to the extent the maintainer holds the applicable rights. The `pet-spritesheet.webp` atlas and code directly inherited from [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet) retain its MIT license. See the file-by-file [NOTICE](NOTICE.md) and preserved upstream texts in [`assets/default/licenses/`](assets/default/licenses/).
 
 Finally, thank you to the people who made specific artwork and implementation knowledge available to the community:
 
@@ -139,7 +157,7 @@ Finally, thank you to the people who made specific artwork and implementation kn
 - **ZipZipPipe** added DeepSeek elements to that character in the maid whale-girl redesign: [Pixiv](https://www.pixiv.net/users/18604994) · [Bilibili](https://space.bilibili.com/4168597).
 - **Small-tailqwq** published the deep-sea palace background, whale-girl standing sprite, and Galgame UI decorations reused here in [dsh-deep-whale](https://github.com/Small-tailqwq/dsh-deep-whale), together with the full attribution chain. This project built eight additional expression images from that material.
 - **f0909172434 / [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet)** released the DSH whale-girl desktop pet under MIT. This plugin's pet feature is a derivative of that project, and its `pet-spritesheet.webp` is identical to the upstream atlas. This project changed the plugin integration and visual styling and added the click-to-open-Galgame interaction.
-- The Claude-, GPT-, Gemini-, Kimi-, and Grok-inspired sprites and the Galgame UI are unofficial, AI-assisted project artwork. They are not official character designs, partnerships, or endorsements from the named companies.
+- The Claude-, GPT-, Gemini-, Kimi-, and Grok-inspired sprites, six daily-life role backgrounds, and the Galgame UI are unofficial, AI-assisted project artwork. They are not official character designs, partnerships, or endorsements from the named companies.
 
 If these open-source materials and implementations help you, consider starring [dsh-deep-whale](https://github.com/Small-tailqwq/dsh-deep-whale) and [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet), or following 上善 and ZipZipPipe on Pixiv or Bilibili. Please report installation, runtime, or compatibility problems to [this repository's Issues](https://github.com/JAdpp/dsh-whale-galgame/issues) rather than asking the artists to troubleshoot plugin code.
 

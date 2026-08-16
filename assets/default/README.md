@@ -1,6 +1,6 @@
 # Bundled default art
 
-This directory contains the exact 16 image files embedded in
+This directory contains the exact 22 image files embedded in
 `src/client/art.generated.ts` and `lib/client.js`. Run `npm run export:art`
 from the repository root to reproduce the files from the runtime data URLs.
 Only this allowlisted set is part of the public default art pack.
@@ -20,6 +20,12 @@ Only this allowlisted set is part of the public default art pack.
 | `whale-exasperated` | `whale-exasperated.png` | Exasperated expression variant |
 | `whale-starry` | `whale-starry.png` | Starry-eyed expression variant |
 | `palace-night` | `palace-night.webp` | Default deep-sea palace background |
+| `bg-deepseek-seaside-study` | `bg-deepseek-seaside-study.png` | Optional DeepSeek / whale-girl seaside-study background |
+| `bg-claude-writing-study` | `bg-claude-writing-study.png` | Claude writing-study default background |
+| `bg-gpt-collaboration-workshop` | `bg-gpt-collaboration-workshop.png` | GPT collaboration-workshop default background |
+| `bg-gemini-twin-creative-studio` | `bg-gemini-twin-creative-studio.png` | Gemini twin creative-studio default background |
+| `bg-kimi-moonlit-reading-study` | `bg-kimi-moonlit-reading-study.png` | Kimi moonlit reading-study default background |
+| `bg-grok-electronics-studio` | `bg-grok-electronics-studio.png` | Grok electronics-studio default background |
 | `claude-amber-manuscript-mediator-v5` | `claude-amber-manuscript-mediator-v5.png` | Claude-inspired role sprite |
 | `gpt-recursive-weaver-v7` | `gpt-recursive-weaver-v7.png` | GPT-inspired role sprite |
 | `gemini-dual-prism-translator-v4` | `gemini-dual-prism-translator-v4.png` | Gemini-inspired role sprite |
@@ -43,10 +49,16 @@ Only this allowlisted set is part of the public default art pack.
 - The Claude-, GPT-, Gemini-, Kimi-, and Grok-inspired standing sprites are
   unofficial, AI-assisted concept art created for this project. They do not
   contain or reproduce official model-company artwork or exact logos.
+- The six `bg-*.png` role backgrounds are new, AI-assisted project artwork.
+  Claude, GPT, Gemini, Kimi, and Grok use their matching background by default.
+  DeepSeek keeps the upstream deep-sea palace as its default, with the new
+  seaside-study scene available as a built-in alternative. A user-uploaded
+  background or a saved CG overrides the current role's built-in background
+  until the user restores a built-in choice.
 - The Galgame interface itself is React/CSS source under `src/client/index.ts`;
   there is no separate hidden UI image pack.
 
-The whale-girl attribution chain is 上善 → ZipZipPipe → Small-tailqwq. Fifteen
+The whale-girl attribution chain is 上善 → ZipZipPipe → Small-tailqwq. Twenty-one
 bundled default images are released under CC BY-NC-SA 4.0, with project-made
 assets covered to the extent the maintainer holds applicable rights. The pet
 atlas remains under its upstream MIT License. Code, UI source, and documentation

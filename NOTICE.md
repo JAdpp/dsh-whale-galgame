@@ -2,7 +2,7 @@
 
 ## Public-distribution boundary
 
-This public repository includes the exact 16 default image files used by the installed plugin. It does not include a placeholder-art substitute.
+This public repository includes the exact 22 default image files used by the installed plugin. It does not include a placeholder-art substitute.
 
 It does **not** include a maintainer or user save, dialogue history, generated CG, uploaded background, uploaded character sprite, API key, or private source-art collection. Those remain local user data and are outside this distribution.
 
@@ -17,9 +17,9 @@ The whale-girl material follows this attribution chain:
 
 This chain is distributed under CC BY-NC-SA 4.0. Preserve the full attribution, use the material only on the license's noncommercial terms, and license adaptations under the same terms. The upstream license and notice copies are preserved at [`assets/default/licenses/dsh-deep-whale-LICENSE.txt`](assets/default/licenses/dsh-deep-whale-LICENSE.txt) and [`assets/default/licenses/dsh-deep-whale-NOTICE.txt`](assets/default/licenses/dsh-deep-whale-NOTICE.txt).
 
-## File-by-file map of the 16 bundled images
+## File-by-file map of the 22 bundled images
 
-Files 1–10 and 12–16 are distributed under CC BY-NC-SA 4.0. File 11 is copied from `dsh-deepseek-girl-pet` and remains under its MIT License. For project-produced, AI-assisted images, the CC grant applies only to the extent the maintainer holds the applicable rights.
+Files 1–10 and 12–22 are distributed under CC BY-NC-SA 4.0. File 11 is copied from `dsh-deepseek-girl-pet` and remains under its MIT License. For project-produced, AI-assisted images, the CC grant applies only to the extent the maintainer holds the applicable rights.
 
 | # | File | Source and role | Modifications in this distribution |
 | ---: | --- | --- | --- |
@@ -39,6 +39,14 @@ Files 1–10 and 12–16 are distributed under CC BY-NC-SA 4.0. File 11 is copie
 | 14 | `assets/default/gemini-dual-prism-translator-v4.png` | Unofficial Gemini-inspired, AI-assisted project artwork | Exported as a 1024 × 1536 runtime PNG and assigned to the Gemini role; it does not reproduce an official character design or exact logo. |
 | 15 | `assets/default/kimi-lunar-scroll-navigator-v5.png` | Unofficial Kimi-inspired, AI-assisted project artwork | Exported as a 1024 × 1536 runtime PNG and assigned to the Kimi role; it does not reproduce an official character design or exact logo. |
 | 16 | `assets/default/grok-cosmic-signal-ranger-v5.png` | Unofficial Grok-inspired, AI-assisted project artwork | Exported as a 1024 × 1536 runtime PNG and assigned to the Grok role; it does not reproduce an official character design or exact logo. |
+| 17 | `assets/default/bg-deepseek-seaside-study.png` | New, unofficial DeepSeek whale-girl background created for this project with AI assistance | Exported as a 1586 × 992 PNG and offered as the built-in seaside-study alternative to the upstream deep-sea palace. |
+| 18 | `assets/default/bg-claude-writing-study.png` | New, unofficial Claude-inspired background created for this project with AI assistance | Exported as a 1586 × 992 PNG and assigned as the Claude role's built-in default background. |
+| 19 | `assets/default/bg-gpt-collaboration-workshop.png` | New, unofficial GPT-inspired background created for this project with AI assistance | Exported as a 1586 × 992 PNG and assigned as the GPT role's built-in default background. |
+| 20 | `assets/default/bg-gemini-twin-creative-studio.png` | New, unofficial Gemini-inspired background created for this project with AI assistance | Exported as a 1586 × 992 PNG and assigned as the Gemini role's built-in default background. |
+| 21 | `assets/default/bg-kimi-moonlit-reading-study.png` | New, unofficial Kimi-inspired background created for this project with AI assistance | Exported as a 1586 × 992 PNG and assigned as the Kimi role's built-in default background. |
+| 22 | `assets/default/bg-grok-electronics-studio.png` | New, unofficial Grok-inspired background created for this project with AI assistance | Exported as a 1586 × 992 PNG and assigned as the Grok role's built-in default background. |
+
+The six role-background PNGs were copied from the project's approved source-art set using this explicit allowlist. Non-visual PNG metadata chunks were removed without recompressing their image data; no generation prompt, local path, author/software field, or other source-directory file is distributed with them.
 
 The exported file list is reproducible from the embedded runtime data with `npm run export:art`. [`assets/default/README.md`](assets/default/README.md) records the corresponding runtime keys. The same image payloads are embedded as data URLs in `src/client/art.generated.ts` and `lib/client.js`; each payload retains the license listed here, while the surrounding program code remains under MIT.
 

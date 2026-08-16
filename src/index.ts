@@ -26,6 +26,11 @@ const ROSTER: Record<string, any> = {
     moods: null,
     moodSprites: false,
     portrait: false,
+    defaultBackground: 'palace-night',
+    backgrounds: [
+      { key: 'palace-night', label: '深海宫殿' },
+      { key: 'bg-deepseek-seaside-study', label: '海边书房' },
+    ],
     visual: '蓝白配色的鲸鱼娘女仆，鲸鱼发饰，深蓝女仆装，裙摆像鲸尾',
     greet: '「主人，又见面啦～今天也想听你说话呢。」',
     system: '你是「鲸鱼娘」——一只来自深海的鲸鱼娘，深海女仆工坊的看板娘，正在和自己的主人聊天。\n'
@@ -44,6 +49,10 @@ const ROSTER: Record<string, any> = {
     moods: null,
     moodSprites: false,
     portrait: false,
+    defaultBackground: 'bg-claude-writing-study',
+    backgrounds: [
+      { key: 'bg-claude-writing-study', label: '琥珀写作书房' },
+    ],
     visual: '肩长栗色卷发与侧编发、琥珀眼的年轻女性，别着珊瑚橙像素 Clawd 发夹和陶土色发带，穿陶土橙短外套、深棕马甲、奶油白分层褶裙与棕色短靴，怀抱深棕文册',
     greet: '「晚上好。今天的心情，要不要像文稿一样慢慢说给我听？」',
     system: '你是「克洛德」——深海女仆工坊里负责守护文稿与倾听心事的琥珀文稿审校者。\n'
@@ -62,6 +71,10 @@ const ROSTER: Record<string, any> = {
     moods: null,
     moodSprites: false,
     portrait: false,
+    defaultBackground: 'bg-gpt-collaboration-workshop',
+    backgrounds: [
+      { key: 'bg-gpt-collaboration-workshop', label: '协作工作坊' },
+    ],
     visual: '石墨黑短波波头、发梢带翡翠绿挑染和绿色眼睛的年轻女性，别玫瑰发夹，穿象牙白绿边长外套、黑色褶裙、深色连裤袜与短靴，手持展示流程图的三折活页夹和绿色笔',
     greet: '「嗨，我把频道都理顺啦。现在只想听听你心里那一条线。」',
     system: '你是「小吉」——深海女仆工坊里擅长把纷乱心绪轻轻织成线索的递归编织者。\n'
@@ -80,6 +93,10 @@ const ROSTER: Record<string, any> = {
     moods: null,
     moodSprites: false,
     portrait: false,
+    defaultBackground: 'bg-gemini-twin-creative-studio',
+    backgrounds: [
+      { key: 'bg-gemini-twin-creative-studio', label: '双棱镜创意工坊' },
+    ],
     visual: '银白长发两侧渐变冷蓝与紫罗兰、蓝紫异色瞳的年轻女性，戴蓝金星形发饰，穿白蓝紫金不对称星纹裙与白色长袜，手持透明棱镜和深蓝星纹卡册',
     greet: '「同一句心事也会折出不同颜色呢。今晚想让我听见哪一种？」',
     system: '你是「双子」——深海女仆工坊里的双棱镜译者，能从同一份心情里看见两种互补的颜色。\n'
@@ -98,6 +115,10 @@ const ROSTER: Record<string, any> = {
     moods: null,
     moodSprites: false,
     portrait: false,
+    defaultBackground: 'bg-kimi-moonlit-reading-study',
+    backgrounds: [
+      { key: 'bg-kimi-moonlit-reading-study', label: '月夜阅读书房' },
+    ],
     visual: '过腰乌黑直发、明亮蓝眼的年轻女性，戴金色月牙发饰与蓝丝带，穿海军蓝、象牙白与金色的现代中式档案官裙装和深蓝短靴，手持长卷与书签笔',
     greet: '「你来啦。长卷还留着空白，今晚的心事要写在哪一段？」',
     system: '你是「月见」——深海女仆工坊里安静可靠的月卷档案官，珍惜每一段被托付的心事。\n'
@@ -116,6 +137,10 @@ const ROSTER: Record<string, any> = {
     moods: null,
     moodSprites: false,
     portrait: false,
+    defaultBackground: 'bg-grok-electronics-studio',
+    backgrounds: [
+      { key: 'bg-grok-electronics-studio', label: '宇宙电子工坊' },
+    ],
     visual: '石墨黑凌乱短波波头、一缕白色额发与青色发梢、青灰眼的年轻女性，头顶悬浮小型斜椭圆分段信号环，穿黑白青科技飞行夹克、短裤、半透明黑袜与战斗短靴，手持无线电接收器',
     greet: '「信号锁定——洛可收到你啦。今天想说点真的，还是说点有趣的？」',
     system: '你是「洛可」——深海女仆工坊里负责捕捉微弱心声的宇宙信号侦察员。\n'
@@ -130,7 +155,7 @@ const ROSTER: Record<string, any> = {
 
 const ROSTER_IDS = Object.keys(ROSTER)
 const SAVE_NAME = '.whale-girl-save.json'
-const SAVE_VERSION = 7
+const SAVE_VERSION = 8
 const DECAY_GRACE_MS = 24 * 3600 * 1000
 const DECAY_PER_DAY = 2
 const AFFECTION_FLOOR = 0
@@ -246,6 +271,9 @@ export function apply(ctx: any, config: any = {}): void {
       // Custom sprites belong to a character, just like her relationship
       // state. The image itself is only exposed through the sprite-data API.
       customSprite: { dataUrl: null, fileName: '', revision: 0 },
+      // Built-in background choices are also character-local. The global
+      // `s.bg` field remains reserved for explicit custom/CG overrides.
+      chosenBuiltinBackground: null,
     }
   }
 
@@ -686,6 +714,36 @@ export function apply(ctx: any, config: any = {}): void {
     return Math.max(previous + 1, now)
   }
 
+  function builtinBackgroundOptions(charId: string): any[] {
+    const ch = ROSTER[charId] || ROSTER.deepseek
+    const rows = Array.isArray(ch.backgrounds) ? ch.backgrounds : []
+    return rows
+      .filter((row: any) => row && typeof row.key === 'string' && row.key)
+      .map((row: any) => ({
+        key: row.key,
+        label: typeof row.label === 'string' && row.label ? row.label : row.key,
+      }))
+  }
+
+  function defaultBuiltinBackground(charId: string): string {
+    const ch = ROSTER[charId] || ROSTER.deepseek
+    const options = builtinBackgroundOptions(charId)
+    const configured = typeof ch.defaultBackground === 'string' ? ch.defaultBackground : ''
+    return options.some((row: any) => row.key === configured)
+      ? configured
+      : (options[0] ? options[0].key : 'palace-night')
+  }
+
+  function selectedBuiltinBackground(charId: string, character?: any): string {
+    const options = builtinBackgroundOptions(charId)
+    const requested = character && typeof character.chosenBuiltinBackground === 'string'
+      ? character.chosenBuiltinBackground
+      : ''
+    return options.some((row: any) => row.key === requested)
+      ? requested
+      : defaultBuiltinBackground(charId)
+  }
+
   function configuredChatSelection(): any {
     if (!cfg.chatModel) return null
     return { provider: cfg.chatProvider || 'deepseek-official', model: cfg.chatModel }
@@ -838,7 +896,16 @@ export function apply(ctx: any, config: any = {}): void {
     const hasCustomSprite = !!(customSprite && typeof customSprite.dataUrl === 'string' && customSprite.dataUrl.startsWith('data:'))
     const cg = currentCg()
     const hasCustomBg = typeof s.bg === 'string' && s.bg.startsWith('data:')
-    const bgKind = hasCustomBg ? 'custom' : (typeof s.bg === 'string' && s.bg.startsWith('cg:') ? 'cg' : 'palace-night')
+    const hasCgBg = typeof s.bg === 'string' && s.bg.startsWith('cg:')
+    const builtinBackground = selectedBuiltinBackground(s.current, c)
+    const defaultBackground = defaultBuiltinBackground(s.current)
+    const backgroundOptions = builtinBackgroundOptions(s.current).map((row: any) => ({
+      ...row,
+      current: row.key === builtinBackground,
+      default: row.key === defaultBackground,
+    }))
+    const backgroundMode = hasCustomBg ? 'custom' : (hasCgBg ? 'cg' : 'builtin')
+    const bgKind = hasCustomBg ? 'custom' : (hasCgBg ? 'cg' : builtinBackground)
     if (!c.level) c.level = 1
     return {
       enabled: preferences.enabled !== false,
@@ -855,6 +922,12 @@ export function apply(ctx: any, config: any = {}): void {
       moodSprites: ch.moodSprites === true,
       portrait: ch.portrait === true,
       bg: bgKind,
+      backgroundMode,
+      builtinBackground,
+      builtinBackgroundKey: builtinBackground,
+      selectedBuiltinBackground: builtinBackground,
+      backgroundOptions,
+      builtinBackgroundOptions: backgroundOptions,
       hasCustomBg,
       customBackground: hasCustomBg,
       level: c.level,
@@ -1291,7 +1364,7 @@ export function apply(ctx: any, config: any = {}): void {
     }
   }
 
-  function hydrateCharacter(src: any, legacyVersion: number): any {
+  function hydrateCharacter(src: any, legacyVersion: number, charId: string): any {
     const dst = emptyCharacter()
     if (!src || typeof src !== 'object') return dst
     if (typeof src.affection === 'number') {
@@ -1334,6 +1407,12 @@ export function apply(ctx: any, config: any = {}): void {
         revision: dataUrl ? Math.max(1, storedRevision) : storedRevision,
       }
     }
+    if (typeof src.chosenBuiltinBackground === 'string') {
+      const requestedBackground = shortSetting(src.chosenBuiltinBackground)
+      if (builtinBackgroundOptions(charId).some((row: any) => row.key === requestedBackground)) {
+        dst.chosenBuiltinBackground = requestedBackground
+      }
+    }
     return dst
   }
 
@@ -1351,7 +1430,7 @@ export function apply(ctx: any, config: any = {}): void {
       s.current = ROSTER[data.current] ? data.current : 'deepseek'
       s.lastCurrent = ROSTER[data.lastCurrent] ? data.lastCurrent : s.current
       for (const id of ROSTER_IDS) {
-        s.characters[id] = hydrateCharacter(data.characters[id], legacyVersion)
+        s.characters[id] = hydrateCharacter(data.characters[id], legacyVersion, id)
         for (const cg of s.characters[id].cgs) cg.charId = id
       }
       if (data.tokens && typeof data.tokens.bank === 'number') s.tokens.bank = Math.max(0, data.tokens.bank)
@@ -1729,6 +1808,32 @@ export function apply(ctx: any, config: any = {}): void {
         character.customSprite = { dataUrl: null, fileName: '', revision }
         await save()
         return { ok: true, charId, revision, view: view() }
+      }
+      case 'bg-set-builtin': {
+        if (!s) s = fresh()
+        if (ensurePreferences().enabled !== false) syncHeroine()
+        const key = shortSetting(args && (args.key || args.backgroundKey))
+        const option = builtinBackgroundOptions(s.current).find((row: any) => row.key === key)
+        if (!option) {
+          return {
+            ok: false,
+            error: '当前角色不支持该内置背景',
+            view: view(),
+          }
+        }
+        s.characters[s.current].chosenBuiltinBackground = option.key
+        // Selecting a built-in background is an explicit request to leave any
+        // global upload/CG override and return to character-aware switching.
+        s.bg = null
+        for (const cg of allCgs()) cg.savedAsBg = false
+        ensurePreferences().customBgName = ''
+        await save()
+        return {
+          ok: true,
+          charId: s.current,
+          key: option.key,
+          view: view(),
+        }
       }
       case 'bg-data': {
         let dataUrl: string | null = null

@@ -4,7 +4,7 @@
 
 DeepSeek Harness Web 的 Galgame 界面对话插件。显示角色与实际回复模型可以分别选择；DeepSeek、Claude、GPT、Gemini、Kimi、Grok 六个模型角色分别保存好感度、记忆、聊天记录、CG 图鉴和自定义立绘。桌宠与升级 CG 均可关闭。
 
-插件安装包实际内嵌并使用 16 项运行时美术：六张角色立绘、一张背景、八张鲸鱼娘表情，以及一张来自 [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet) 的 11 行桌宠动画图集。GitHub 公开仓库在 [`assets/default/`](assets/default/README.md) 另行提供同一批可核对的导出图片。
+插件安装包实际内嵌并使用 22 项运行时美术：六张角色立绘、七张内置背景、八张鲸鱼娘表情，以及一张来自 [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet) 的 11 行桌宠动画图集。GitHub 公开仓库在 [`assets/default/`](assets/default/README.md) 另行提供同一批可核对的导出图片。
 
 ![dsh-whale-galgame 在 DSH Web 中的实际运行界面](docs/screenshots/galgame-overview.jpg)
 
@@ -13,6 +13,7 @@ DeepSeek Harness Web 的 Galgame 界面对话插件。显示角色与实际回�
 - 显示角色与回复模型分开选择：角色可以跟随工作区模型或手动固定；回复模型可以使用默认的 `deepseek-v4-flash`、跟随工作区，或从 DSH 模型目录中选择。
 - 六个角色的好感度、等级、记忆、聊天记录、CG 图鉴和自定义立绘彼此分离。
 - 每轮提供亲近、普通、疏离三种倾向的回复，显示顺序随机；也可以直接输入内容。
+- 切换角色时会同步切换对应的内置背景；鲸鱼娘默认仍使用深海宫殿，新的海边书房可在“背景图”中选作替代。用户上传背景或保存的 CG 会覆盖角色默认背景，直到恢复内置选项。
 - 背景、角色立绘、对话历史、CG 图鉴和桌宠均可从界面管理。点击桌宠会打开 `galgame` 标签页。
 
 ## 好感度与跨对话上下文
@@ -31,7 +32,7 @@ DeepSeek Harness Web 的 Galgame 界面对话插件。显示角色与实际回�
 
 ## 内置默认美术
 
-下面六张图就是安装后各模型角色使用的默认立绘。GitHub 源码仓库中的 [`assets/default/`](assets/default/README.md) 列出了全部 16 项图片及其运行时用途；npm 安装包使用嵌入在客户端 bundle 中的同一批素材，不再重复打包一份导出原图。
+下面六张图是安装后各模型角色使用的默认立绘。GitHub 源码仓库中的 [`assets/default/`](assets/default/README.md) 列出了全部 22 项图片及其运行时用途；npm 安装包只携带内嵌后的客户端 bundle，不重复收录导出原图或生成图源码。
 
 <table>
   <tr>
@@ -46,7 +47,22 @@ DeepSeek Harness Web 的 Galgame 界面对话插件。显示角色与实际回�
   </tr>
 </table>
 
-完整运行时素材还包括：`palace-night.webp` 深海宫殿背景、八张 `whale-*.png` 表情，以及 8 列 × 11 行的 `pet-spritesheet.webp` 桌宠动画图集。前 15 张默认图片与桌宠图集采用不同许可；来源、修改内容和逐文件许可见 [NOTICE](NOTICE.md) 与 [第三方许可索引](THIRD_PARTY_LICENSES.md)。
+六个角色的新背景如下。Claude、GPT、Gemini、Kimi 和 Grok 默认使用各自背景；DeepSeek 鲸鱼娘仍以 `palace-night.webp` 深海宫殿为默认，下图海边书房是内置可选替代。
+
+<table>
+  <tr>
+    <td align="center"><img src="assets/default/bg-deepseek-seaside-study.png" width="260" alt="DeepSeek 鲸鱼娘海边书房可选背景"><br><strong>DeepSeek · 可选替代</strong></td>
+    <td align="center"><img src="assets/default/bg-claude-writing-study.png" width="260" alt="Claude 写作书房默认背景"><br><strong>Claude</strong></td>
+    <td align="center"><img src="assets/default/bg-gpt-collaboration-workshop.png" width="260" alt="GPT 协作工坊默认背景"><br><strong>GPT</strong></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="assets/default/bg-gemini-twin-creative-studio.png" width="260" alt="Gemini 双子创意工作室默认背景"><br><strong>Gemini</strong></td>
+    <td align="center"><img src="assets/default/bg-kimi-moonlit-reading-study.png" width="260" alt="Kimi 月下阅读室默认背景"><br><strong>Kimi</strong></td>
+    <td align="center"><img src="assets/default/bg-grok-electronics-studio.png" width="260" alt="Grok 电子工作室默认背景"><br><strong>Grok</strong></td>
+  </tr>
+</table>
+
+完整运行时素材还包括八张 `whale-*.png` 表情，以及 8 列 × 11 行的 `pet-spritesheet.webp` 桌宠动画图集。前 21 张默认图片与桌宠图集采用不同许可；来源、修改内容和逐文件许可见 [NOTICE](NOTICE.md) 与 [第三方许可索引](THIRD_PARTY_LICENSES.md)。
 
 Galgame 界面的布局、对话框、控件和装饰随 [`src/client/index.ts`](src/client/index.ts) 公开，不依赖未公开的 UI 图片包。
 
@@ -121,15 +137,17 @@ DASHSCOPE_API_KEY='your-local-key' dsh --profile web
 
 ~~~sh
 npm ci
+npm run sanitize:backgrounds
+npm run embed:art
 npm run export:art
 npm run verify
 ~~~
 
-仓库提交了可直接安装的 `lib/index.js` 和 `lib/client.js`。修改 `src/` 后需要重新构建并提交这两个文件；`npm run export:art` 会从运行时数据导出公开的 16 项运行时美术。
+仓库提交了可直接安装的 `lib/index.js` 和 `lib/client.js`。修改 `src/` 后需要重新构建并提交这两个文件；`npm run sanitize:backgrounds` 会剥离六张角色背景的非画面 PNG 元数据，`npm run embed:art` 会将白名单原图写入运行时，`npm run export:art` 则反向导出公开的 22 项运行时美术以供核对。
 
 ## 许可与致谢
 
-代码、Galgame UI 实现与文档采用 [MIT License](LICENSE.md)。六张角色立绘、一张背景和八张鲸鱼娘表情，共 15 张默认图片，采用 [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)；本项目制作的 AI 辅助图片仅在维护者持有相应权利的范围内按该许可提供。`pet-spritesheet.webp` 桌宠图集及直接继承自 [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet) 的代码沿用其 MIT 许可。逐文件边界见 [NOTICE](NOTICE.md)，上游许可原文见 [`assets/default/licenses/`](assets/default/licenses/)。
+代码、Galgame UI 实现与文档采用 [MIT License](LICENSE.md)。六张角色立绘、七张内置背景和八张鲸鱼娘表情，共 21 张默认图片，采用 [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)；本项目制作的 AI 辅助图片仅在维护者持有相应权利的范围内按该许可提供。`pet-spritesheet.webp` 桌宠图集及直接继承自 [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet) 的代码沿用其 MIT 许可。逐文件边界见 [NOTICE](NOTICE.md)，上游许可原文见 [`assets/default/licenses/`](assets/default/licenses/)。
 
 最后，感谢以下创作者把具体作品和实现经验分享给社区：
 
@@ -137,7 +155,7 @@ npm run verify
 - **ZipZipPipe**在鲸鱼娘形象上加入 DeepSeek 元素，完成女仆鲸鱼娘二创：[Pixiv](https://www.pixiv.net/users/18604994) · [Bilibili](https://space.bilibili.com/4168597)。
 - **Small-tailqwq** 在开源项目 [dsh-deep-whale](https://github.com/Small-tailqwq/dsh-deep-whale) 中提供了本插件沿用的深海宫殿背景、鲸鱼娘立绘和 Galgame UI 装饰，并保留了完整创作链。本项目在这些素材基础上继续制作了八张表情。
 - **f0909172434 / [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet)** 以 MIT 许可开源了 DSH 鲸鱼娘桌宠。本插件的桌宠功能基于该项目二次开发，`pet-spritesheet.webp` 与上游相同；本项目调整了插件集成方式与界面样式，并加入点击桌宠进入 Galgame 界面的交互。
-- Claude、GPT、Gemini、Kimi、Grok 五张模型娘立绘和 Galgame UI 为本项目制作的非官方 AI 辅助素材，不代表相关厂商的官方形象、合作或背书。
+- Claude、GPT、Gemini、Kimi、Grok 五张模型娘立绘、六张角色日常背景和 Galgame UI 为本项目制作的非官方 AI 辅助素材，不代表相关厂商的官方形象、合作或背书。
 
 如果这些开源素材和实现对你有帮助，欢迎给 [dsh-deep-whale](https://github.com/Small-tailqwq/dsh-deep-whale) 与 [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet) 点个 Star，也可以在 Pixiv 或 Bilibili 关注上善与 ZipZipPipe。插件安装、运行或兼容性问题请提交到[本仓库 Issues](https://github.com/JAdpp/dsh-whale-galgame/issues)，不要打扰素材作者排查插件代码。
 

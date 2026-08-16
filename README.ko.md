@@ -4,7 +4,7 @@
 
 DeepSeek Harness Web에 Galgame 형식의 대화 화면을 추가하는 플러그인입니다. 표시할 캐릭터와 답변에 사용할 모델을 따로 선택할 수 있으며, DeepSeek, Claude, GPT, Gemini, Kimi, Grok의 호감도·기억·대화 기록·CG 도감·사용자 캐릭터 이미지는 캐릭터별로 저장됩니다. 데스크톱 펫과 CG 생성은 선택 기능입니다.
 
-설치되는 플러그인에는 실제로 사용하는 시각 소재 16개가 내장됩니다. 캐릭터 이미지 6개, 배경 1개, 고래 소녀 표정 8개, [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet)에서 가져온 11행 데스크톱 펫 애니메이션 아틀라스 1개입니다. GitHub 공개 소스 저장소는 [`assets/default/`](assets/default/README.md)에 같은 이미지의 개별 내보내기 파일을 제공합니다.
+설치되는 플러그인에는 실제로 사용하는 시각 소재 22개가 내장됩니다. 캐릭터 이미지 6개, 내장 배경 7개, 고래 소녀 표정 8개, [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet)에서 가져온 11행 데스크톱 펫 애니메이션 아틀라스 1개입니다. GitHub 공개 소스 저장소는 [`assets/default/`](assets/default/README.md)에 같은 이미지의 개별 내보내기 파일을 제공합니다.
 
 ![DSH Web에서 실제로 실행 중인 dsh-whale-galgame](docs/screenshots/galgame-overview.jpg)
 
@@ -15,6 +15,7 @@ DeepSeek Harness Web에 Galgame 형식의 대화 화면을 추가하는 플러�
 - 표시할 캐릭터와 답변 모델을 따로 선택합니다. 캐릭터는 작업공간 모델을 따르거나 고정할 수 있고, 답변은 기본 `deepseek-v4-flash`, 작업공간 모델 또는 DSH 모델 목록에서 선택할 수 있습니다.
 - 6개 캐릭터의 호감도, 레벨, 기억, 대화 기록, CG 도감, 사용자 캐릭터 이미지 데이터는 각각 분리해 저장됩니다.
 - 각 턴에 친밀함, 보통, 거리 두기의 세 가지 답변 후보를 순서를 섞어 표시합니다. 직접 입력도 사용할 수 있습니다.
+- 캐릭터를 바꾸면 해당 캐릭터의 내장 배경도 함께 바뀌어 표시됩니다. 고래 소녀의 기본값은 계속 심해 궁전이며, 새 해변 서재는 선택할 수 있는 내장 대체 배경입니다. 사용자가 올린 배경이나 저장한 CG는 내장 배경으로 복원할 때까지 캐릭터 기본값을 덮어씁니다.
 - 배경, 캐릭터별 이미지, 대화 기록, CG 도감, 데스크톱 펫을 화면에서 관리합니다. 펫을 클릭하면 `galgame` 탭이 열립니다.
 
 ## 호감도와 세션 간 컨텍스트
@@ -33,7 +34,7 @@ Galgame 답변 모델과 CG 생성 서비스에는 미리 정해진 작업 분�
 
 ## 포함된 기본 이미지
 
-아래 6개 이미지는 설치 후 각 캐릭터에 적용되는 기본 이미지입니다. GitHub 소스 저장소의 [`assets/default/`](assets/default/README.md)에서 내보낸 파일 16개 전체와 각 용도를 확인할 수 있습니다. npm 설치본은 같은 이미지를 클라이언트 bundle에 내장해 사용하며 원본 내보내기 파일을 한 번 더 포장하지 않습니다.
+아래 6개 이미지는 설치 후 각 캐릭터에 적용되는 기본 이미지입니다. GitHub 소스 저장소의 [`assets/default/`](assets/default/README.md)에서 내보낸 파일 22개 전체와 각 용도를 확인할 수 있습니다. npm 설치본은 이미지가 내장된 클라이언트 bundle만 포함하고, 원본 내보내기 파일이나 생성 이미지 소스는 중복해 담지 않습니다.
 
 <table>
   <tr>
@@ -48,7 +49,22 @@ Galgame 답변 모델과 CG 생성 서비스에는 미리 정해진 작업 분�
   </tr>
 </table>
 
-나머지 런타임 소재는 심해 궁전 배경 `palace-night.webp`, `whale-*.png` 표정 이미지 8개, 8열 × 11행 애니메이션 아틀라스 `pet-spritesheet.webp`입니다. 앞의 기본 이미지 15개와 펫 아틀라스에는 서로 다른 라이선스가 적용됩니다. 출처, 수정 사항, 파일별 라이선스는 [NOTICE](NOTICE.md)와 [제3자 라이선스 색인](THIRD_PARTY_LICENSES.md)을 확인하세요.
+새로 추가한 6개 캐릭터 배경은 아래와 같습니다. Claude, GPT, Gemini, Kimi, Grok은 각자의 장면을 기본 배경으로 사용합니다. DeepSeek 고래 소녀의 기본 배경은 `palace-night.webp`로 유지되며, 해변 서재는 선택할 수 있는 내장 대체 배경입니다.
+
+<table>
+  <tr>
+    <td align="center"><img src="assets/default/bg-deepseek-seaside-study.png" width="260" alt="DeepSeek 고래 소녀 해변 서재 대체 배경"><br><strong>DeepSeek · 선택 대안</strong></td>
+    <td align="center"><img src="assets/default/bg-claude-writing-study.png" width="260" alt="Claude 글쓰기 서재 기본 배경"><br><strong>Claude</strong></td>
+    <td align="center"><img src="assets/default/bg-gpt-collaboration-workshop.png" width="260" alt="GPT 협업 공방 기본 배경"><br><strong>GPT</strong></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="assets/default/bg-gemini-twin-creative-studio.png" width="260" alt="Gemini 쌍둥이 창작 스튜디오 기본 배경"><br><strong>Gemini</strong></td>
+    <td align="center"><img src="assets/default/bg-kimi-moonlit-reading-study.png" width="260" alt="Kimi 달빛 독서실 기본 배경"><br><strong>Kimi</strong></td>
+    <td align="center"><img src="assets/default/bg-grok-electronics-studio.png" width="260" alt="Grok 전자 공작실 기본 배경"><br><strong>Grok</strong></td>
+  </tr>
+</table>
+
+나머지 런타임 소재는 `whale-*.png` 표정 이미지 8개와 8열 × 11행 애니메이션 아틀라스 `pet-spritesheet.webp`입니다. 앞의 기본 이미지 21개와 펫 아틀라스에는 서로 다른 라이선스가 적용됩니다. 출처, 수정 사항, 파일별 라이선스는 [NOTICE](NOTICE.md)와 [제3자 라이선스 색인](THIRD_PARTY_LICENSES.md)을 확인하세요.
 
 Galgame 레이아웃, 대화 상자, 컨트롤, 장식은 [`src/client/index.ts`](src/client/index.ts)에 공개되어 있으며 비공개 UI 이미지 팩에 의존하지 않습니다.
 
@@ -123,15 +139,17 @@ DASHSCOPE_API_KEY='your-local-key' dsh --profile web
 
 ~~~sh
 npm ci
+npm run sanitize:backgrounds
+npm run embed:art
 npm run export:art
 npm run verify
 ~~~
 
-바로 설치할 수 있도록 `lib/index.js`와 `lib/client.js`를 저장소에 포함합니다. `src/`를 변경한 뒤 두 파일을 다시 빌드해 commit하세요. `npm run export:art`는 런타임 데이터에서 공개 시각 소재 16개를 내보냅니다.
+바로 설치할 수 있도록 `lib/index.js`와 `lib/client.js`를 저장소에 포함합니다. `src/`를 변경한 뒤 두 파일을 다시 빌드해 commit하세요. `npm run sanitize:backgrounds`는 6개 배경에서 화면 표시에 필요 없는 PNG 메타데이터를 제거하고, `npm run embed:art`는 허용 목록의 이미지를 런타임 소스에 쓰며, `npm run export:art`는 바이트 단위 검증을 위해 공개 소재 22개를 다시 내보냅니다.
 
 ## 라이선스와 감사
 
-코드, Galgame UI 구현, 문서는 [MIT License](LICENSE.md)를 따릅니다. 캐릭터 이미지 6개, 배경 1개, 고래 소녀 표정 8개로 구성된 기본 이미지 15개는 [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)으로 배포합니다. 프로젝트에서 제작한 AI 보조 이미지는 메인테이너가 해당 권리를 보유한 범위에서만 이 라이선스로 제공합니다. `pet-spritesheet.webp`와 [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet)에서 직접 상속한 코드는 업스트림의 MIT 라이선스를 그대로 따릅니다. 파일별 범위는 [NOTICE](NOTICE.md), 보존된 업스트림 라이선스 원문은 [`assets/default/licenses/`](assets/default/licenses/)에서 확인하세요.
+코드, Galgame UI 구현, 문서는 [MIT License](LICENSE.md)를 따릅니다. 캐릭터 이미지 6개, 내장 배경 7개, 고래 소녀 표정 8개로 구성된 기본 이미지 21개는 [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)으로 배포합니다. 프로젝트에서 제작한 AI 보조 이미지는 메인테이너가 해당 권리를 보유한 범위에서만 이 라이선스로 제공합니다. `pet-spritesheet.webp`와 [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet)에서 직접 상속한 코드는 업스트림의 MIT 라이선스를 그대로 따릅니다. 파일별 범위는 [NOTICE](NOTICE.md), 보존된 업스트림 라이선스 원문은 [`assets/default/licenses/`](assets/default/licenses/)에서 확인하세요.
 
 마지막으로 구체적인 작품과 구현 지식을 커뮤니티에 공개해 주신 분들께 감사드립니다.
 
@@ -139,7 +157,7 @@ npm run verify
 - **ZipZipPipe**는 이 고래 소녀에 DeepSeek 요소를 더해 메이드 고래 소녀로 2차 창작했습니다: [Pixiv](https://www.pixiv.net/users/18604994) · [Bilibili](https://space.bilibili.com/4168597).
 - **Small-tailqwq**는 [dsh-deep-whale](https://github.com/Small-tailqwq/dsh-deep-whale)에서 이 플러그인이 사용하는 심해 궁전 배경, 고래 소녀 전신 이미지, Galgame UI 장식과 전체 저작자 표시 계보를 공개했습니다. 이 프로젝트는 해당 소재를 바탕으로 표정 이미지 8개를 추가 제작했습니다.
 - **f0909172434 / [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet)**은 DSH용 고래 소녀 데스크톱 펫을 MIT 라이선스로 공개했습니다. 이 플러그인의 펫 기능은 해당 프로젝트를 바탕으로 2차 개발했으며, `pet-spritesheet.webp`는 업스트림 아틀라스와 동일합니다. 이 프로젝트에서는 플러그인 통합 방식과 화면 스타일을 수정하고, 펫을 클릭하면 Galgame 화면이 열리는 동작을 추가했습니다.
-- Claude, GPT, Gemini, Kimi, Grok 캐릭터 이미지 5개와 Galgame UI는 이 프로젝트에서 만든 비공식 AI 보조 소재입니다. 해당 기업의 공식 캐릭터, 제휴 또는 보증을 뜻하지 않습니다.
+- Claude, GPT, Gemini, Kimi, Grok 캐릭터 이미지 5개, 일상 장면 배경 6개, Galgame UI는 이 프로젝트에서 만든 비공식 AI 보조 소재입니다. 해당 기업의 공식 캐릭터, 제휴 또는 보증을 뜻하지 않습니다.
 
 이 오픈소스 소재와 구현이 도움이 되었다면 [dsh-deep-whale](https://github.com/Small-tailqwq/dsh-deep-whale)와 [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet)에 Star를 눌러 주시거나 Pixiv 또는 Bilibili에서 上善과 ZipZipPipe를 팔로우해 주세요. 설치, 실행 또는 호환성 문제는 소재 제작자에게 플러그인 코드를 문의하는 대신 [이 저장소의 Issues](https://github.com/JAdpp/dsh-whale-galgame/issues)에 남겨 주세요.
 
