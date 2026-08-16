@@ -39,13 +39,13 @@ Galgame の返信モデルと CG 生成サービスに渡されるのは、固�
 <table>
   <tr>
     <td align="center"><img src="assets/default/maid-left.webp" width="180" alt="DeepSeek 鯨娘のデフォルト立ち絵"><br><strong>DeepSeek · 鯨娘</strong></td>
-    <td align="center"><img src="assets/default/claude-amber-manuscript-mediator-v5.png" width="180" alt="Claude モデル娘のデフォルト立ち絵"><br><strong>Claude</strong></td>
-    <td align="center"><img src="assets/default/gpt-recursive-weaver-v7.png" width="180" alt="GPT モデル娘のデフォルト立ち絵"><br><strong>GPT</strong></td>
+    <td align="center"><img src="assets/default/claude-amber-manuscript-mediator-v5.png" width="180" alt="Claude モデル娘・克洛德のデフォルト立ち絵"><br><strong>Claude · 克洛德</strong></td>
+    <td align="center"><img src="assets/default/gpt-recursive-weaver-v7.png" width="180" alt="GPT モデル娘・小吉のデフォルト立ち絵"><br><strong>GPT · 小吉</strong></td>
   </tr>
   <tr>
-    <td align="center"><img src="assets/default/gemini-dual-prism-translator-v4.png" width="180" alt="Gemini モデル娘のデフォルト立ち絵"><br><strong>Gemini</strong></td>
-    <td align="center"><img src="assets/default/kimi-lunar-scroll-navigator-v5.png" width="180" alt="Kimi モデル娘のデフォルト立ち絵"><br><strong>Kimi</strong></td>
-    <td align="center"><img src="assets/default/grok-cosmic-signal-ranger-v5.png" width="180" alt="Grok モデル娘のデフォルト立ち絵"><br><strong>Grok</strong></td>
+    <td align="center"><img src="assets/default/gemini-dual-prism-translator-v4.png" width="180" alt="Gemini モデル娘・双子のデフォルト立ち絵"><br><strong>Gemini · 双子</strong></td>
+    <td align="center"><img src="assets/default/kimi-lunar-scroll-navigator-v5.png" width="180" alt="Kimi モデル娘・月见のデフォルト立ち絵"><br><strong>Kimi · 月见</strong></td>
+    <td align="center"><img src="assets/default/grok-cosmic-signal-ranger-v5.png" width="180" alt="Grok モデル娘・洛可のデフォルト立ち絵"><br><strong>Grok · 洛可</strong></td>
   </tr>
 </table>
 

@@ -39,13 +39,13 @@ Galgame 답변 모델과 CG 생성 서비스에는 미리 정해진 작업 분�
 <table>
   <tr>
     <td align="center"><img src="assets/default/maid-left.webp" width="180" alt="DeepSeek 고래 소녀 기본 이미지"><br><strong>DeepSeek · 고래 소녀</strong></td>
-    <td align="center"><img src="assets/default/claude-amber-manuscript-mediator-v5.png" width="180" alt="Claude 모델 소녀 기본 이미지"><br><strong>Claude</strong></td>
-    <td align="center"><img src="assets/default/gpt-recursive-weaver-v7.png" width="180" alt="GPT 모델 소녀 기본 이미지"><br><strong>GPT</strong></td>
+    <td align="center"><img src="assets/default/claude-amber-manuscript-mediator-v5.png" width="180" alt="Claude 모델 소녀 克洛德 기본 이미지"><br><strong>Claude · 克洛德</strong></td>
+    <td align="center"><img src="assets/default/gpt-recursive-weaver-v7.png" width="180" alt="GPT 모델 소녀 小吉 기본 이미지"><br><strong>GPT · 小吉</strong></td>
   </tr>
   <tr>
-    <td align="center"><img src="assets/default/gemini-dual-prism-translator-v4.png" width="180" alt="Gemini 모델 소녀 기본 이미지"><br><strong>Gemini</strong></td>
-    <td align="center"><img src="assets/default/kimi-lunar-scroll-navigator-v5.png" width="180" alt="Kimi 모델 소녀 기본 이미지"><br><strong>Kimi</strong></td>
-    <td align="center"><img src="assets/default/grok-cosmic-signal-ranger-v5.png" width="180" alt="Grok 모델 소녀 기본 이미지"><br><strong>Grok</strong></td>
+    <td align="center"><img src="assets/default/gemini-dual-prism-translator-v4.png" width="180" alt="Gemini 모델 소녀 双子 기본 이미지"><br><strong>Gemini · 双子</strong></td>
+    <td align="center"><img src="assets/default/kimi-lunar-scroll-navigator-v5.png" width="180" alt="Kimi 모델 소녀 月见 기본 이미지"><br><strong>Kimi · 月见</strong></td>
+    <td align="center"><img src="assets/default/grok-cosmic-signal-ranger-v5.png" width="180" alt="Grok 모델 소녀 洛可 기본 이미지"><br><strong>Grok · 洛可</strong></td>
   </tr>
 </table>
 
