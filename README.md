@@ -1,10 +1,12 @@
-# dsh-whale-galgame · 跨会话事件敏感的galgame引擎插件
+# dsh-whale-galgame · 跨会话任务事件感知的多角色 Galgame 引擎
 
 **简体中文** · [English](README.en.md) · [日本語](README.ja.md) · [한국어](README.ko.md)
 
-DeepSeek Harness Web 的 Galgame 界面对话插件。显示角色与实际回复模型可以分别选择；DeepSeek、Claude、GPT、Gemini、Kimi、Grok 六个模型角色分别保存好感度、记忆、聊天记录、CG 图鉴和自定义立绘。桌宠与升级 CG 均可关闭。
+Harness 里刚结束的工作，可以成为模型娘下一句自然的关心。
 
-插件安装包实际内嵌并使用 22 项运行时美术：六张角色立绘、七张内置背景、八张鲸鱼娘表情，以及一张来自 [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet) 的 11 行桌宠动画图集。GitHub 公开仓库在 [`assets/default/`](assets/default/README.md) 另行提供同一批可核对的导出图片。
+`dsh-whale-galgame` 为 DeepSeek Harness Web 增加一个独立的多角色 Galgame 界面。插件用本地确定性规则将同一工作区近期的调试、写作、调研等活动归为 11 类任务事件；进入 Galgame 闲聊时，当前角色可以自然回应刚才的工作。Harness 中用户提交的原文只参与本地分类，回复模型仅收到固定的任务类别与状态提示，工具参数、工具结果和 assistant 回复正文不会进入这条感知链路。
+
+DeepSeek、Claude、GPT、Gemini、Kimi、Grok 对应六位独立角色，显示角色与实际回复模型可以分别选择。每位角色单独保存关系进度、近期对话上下文、聊天记录、任务事件提及状态、CG、定制立绘和内置背景选择。好感度由三类回复选项、插件运行期间新观察到的 Harness token 用量和长期未互动共同影响，等级不设上限。配置 DashScope key 后，升级可生成与近期任务呼应的 1920 × 1080 横向纪念 CG；桌宠可独立关闭，点击时会打开 Galgame。
 
 ![dsh-whale-galgame 在 DSH Web 中的实际运行界面](docs/screenshots/galgame-overview.jpg)
 
@@ -22,7 +24,7 @@ DeepSeek Harness Web 的 Galgame 界面对话插件。显示角色与实际回�
 
 每个角色都从 Lv.1、0 点好感开始，状态彼此独立。亲近、普通、疏离三个回复选项分别结算 +1、0、-1，位置每轮随机；自由输入使用轻量关键词规则结算。插件运行期间，同一工作区新产生的 Harness `assistant/message` usage 事件中，输入与输出 token 每累计 5,000 个，当前角色增加 1 点；每次结算最多兑换 3 点，余量继续保留，插件自身发起的模型调用不计入，也不回算历史 usage。超过 24 小时未活动后，所有角色按每天 2 点衰减，最低为 0。
 
-升级阈值为 `30 + 15 × (Lv - 1)`，即 30、45、60……。达到阈值后升级，超出部分保留到下一级；等级不设上限。角色语气随关系进度分为五档，Lv.5 后保持最高亲昵档。启用 CG 生成时，每次升级会生成一张纪念 CG。
+升级阈值为 `30 + 15 × (Lv - 1)`，即 30、45、60……。达到阈值后升级，超出部分保留到下一级；等级不设上限。角色语气随关系进度分为五档，Lv.5 后保持最高亲昵档。配置了可用的 DashScope key 时，每次升级会尝试生成一张纪念 CG。
 
 ### Harness 任务事件
 
@@ -32,7 +34,7 @@ DeepSeek Harness Web 的 Galgame 界面对话插件。显示角色与实际回�
 
 ## 内置默认美术
 
-下面六张图是安装后各模型角色使用的默认立绘。GitHub 源码仓库中的 [`assets/default/`](assets/default/README.md) 列出了全部 22 项图片及其运行时用途；npm 安装包只携带内嵌后的客户端 bundle，不重复收录导出原图或生成图源码。
+插件安装包内嵌并使用 22 项运行时美术：六张角色立绘、七张内置背景、八张鲸鱼娘表情，以及一张来自 [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet) 的 11 行桌宠动画图集。下面六张图是各模型角色的默认立绘；GitHub 源码仓库中的 [`assets/default/`](assets/default/README.md) 列出了全部图片及其运行时用途。npm 安装包只携带内嵌后的客户端 bundle，不重复收录导出原图或生成图源码。
 
 <table>
   <tr>

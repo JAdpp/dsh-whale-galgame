@@ -1,10 +1,12 @@
-# dsh-whale-galgame
+# dsh-whale-galgame · A multi-character Galgame engine aware of cross-session task events
 
 [简体中文](README.md) · **English** · [日本語](README.ja.md) · [한국어](README.ko.md)
 
-A Galgame conversation view for DeepSeek Harness Web. Choose the displayed character separately from the model that writes replies; DeepSeek, Claude, GPT, Gemini, Kimi, and Grok each keep separate affection, memory, dialogue history, CG gallery, and custom-sprite data. The desktop pet and generated CGs are optional.
+Recent Harness work can shape what a character says next.
 
-The installed plugin embeds 22 runtime visual assets: six character sprites, seven built-in backgrounds, eight whale-girl expressions, and one 11-row desktop-pet animation atlas from [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet). The public GitHub source repository also exposes matching exported files in [`assets/default/`](assets/default/README.md).
+`dsh-whale-galgame` adds a dedicated multi-character Galgame view to DeepSeek Harness Web. Local deterministic rules classify recent same-workspace activity into 11 task categories, including debugging, writing, and research. When you chat in the Galgame, the current character can naturally acknowledge that work. Raw Harness task text stays in the local classification step; the reply model receives only fixed category and status cues, while tool arguments, tool results, and assistant message bodies are excluded from this awareness path.
+
+DeepSeek, Claude, GPT, Gemini, Kimi, and Grok map to six independent roles. The displayed role is selected separately from the model that writes replies, and each role keeps its own relationship progress, recent dialogue context, dialogue archive, task-event mention state, CGs, custom sprite, and built-in background selection. Affection responds to three shuffled reply types, newly observed Harness token usage while the plugin is running, and long absences; levels have no cap. With a DashScope key, level-ups can generate 1920 × 1080 landscape CGs themed to recent work. The desktop pet can be disabled and opens the Galgame view when clicked.
 
 ![dsh-whale-galgame running in DSH Web](docs/screenshots/galgame-overview.jpg)
 
@@ -24,7 +26,7 @@ The installed plugin embeds 22 runtime visual assets: six character sprites, sev
 
 Each role begins at Lv.1 with 0 affection and keeps its own state. The close, neutral, and distant reply choices apply +1, 0, and -1 respectively, with their positions shuffled each turn; free text uses lightweight keyword rules. While the plugin is running, every 5,000 input and output tokens observed in newly emitted same-workspace Harness `assistant/message` usage events add 1 point to the current role. A settlement redeems at most 3 points and keeps the remaining balance; model calls initiated by the plugin itself are excluded, and historical usage is not recalculated. After a 24-hour grace period without activity, every role loses 2 points per day, with a floor of 0.
 
-The level threshold is `30 + 15 × (Lv - 1)`: 30, 45, 60, and so on. Reaching it raises the level and carries any surplus into the next one; there is no level cap. Relationship tone has five stages and remains at the closest stage from Lv.5 onward. When CG generation is enabled, each level-up creates a commemorative CG.
+The level threshold is `30 + 15 × (Lv - 1)`: 30, 45, 60, and so on. Reaching it raises the level and carries any surplus into the next one; there is no level cap. Relationship tone has five stages and remains at the closest stage from Lv.5 onward. With a valid DashScope key configured, each level-up attempts to generate a commemorative CG.
 
 ### Harness task events
 
@@ -34,7 +36,7 @@ Only fixed category and status cues are passed to the Galgame reply model and CG
 
 ## Bundled default art
 
-The six images below are the default role sprites used after installation. In the GitHub source repository, [`assets/default/`](assets/default/README.md) lists all 22 exported files and their runtime purposes. The npm installation carries only the client bundle with embedded art, rather than duplicating the raw exports or generated-art source.
+The installed plugin embeds 22 runtime visual assets: six character sprites, seven built-in backgrounds, eight whale-girl expressions, and one 11-row desktop-pet animation atlas from [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet). The six images below are the default role sprites; [`assets/default/`](assets/default/README.md) lists every exported file and its runtime purpose. The npm installation carries only the client bundle with embedded art, rather than duplicating the raw exports or generated-art source.
 
 <table>
   <tr>
