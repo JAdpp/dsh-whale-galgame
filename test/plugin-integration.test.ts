@@ -58,7 +58,10 @@ test('binds the active workspace, counts Harness usage, and consumes a safe acti
       writeText: async (_target: string, value: string) => { saved = value },
     },
     sandboxPolicy: { resolve: () => undefined },
-    sessions: { list: () => [] },
+    sessions: { list: () => [
+      { header, live: true, persisted: true, events },
+      { header: otherHeader, live: true, persisted: true, events: [] },
+    ] },
     workspaceRegistry: { list: () => [{ path: root }] },
     agentDefaultModel: { currentSelection: () => ({ provider: 'deepseek-official', model: 'deepseek-v4-flash' }) },
     sessionQuery: {
@@ -350,7 +353,7 @@ test('stores safe role-local profile overrides and applies the effective profile
       },
     },
     sandboxPolicy: { resolve: () => undefined },
-    sessions: { list: () => [] },
+    sessions: { list: () => [{ header: activityHeader, live: true, persisted: true, events: activityEvents }] },
     workspaceRegistry: { list: () => [{ path: root }] },
     agentDefaultModel: { currentSelection: () => ({ provider: 'deepseek-official', model: 'deepseek-v4-flash' }) },
     sessionQuery: {
@@ -443,8 +446,10 @@ test('stores safe role-local profile overrides and applies the effective profile
   assert.equal(resetWhaleGreeting.view.history[0].text, '「主人，又见面啦～今天也想听你说话呢。」')
 
   const enteredClaude = await post('settings-set', { characterMode: 'manual', characterId: 'claude' })
-  assert.equal(enteredClaude.view.history[0].text, builtIn.builtIn.greeting)
   assert.equal(enteredClaude.view.history.length, 2)
+  assert.equal(enteredClaude.view.history[0].who, 'narrator')
+  assert.equal(enteredClaude.view.history[1].text, builtIn.builtIn.greeting)
+  assert.deepEqual(new Set(enteredClaude.view.choices.map((choice: any) => choice.effect)), new Set([-1, 0, 1]))
   const beforeProfileHistory = JSON.parse(diskSave).characters.claude.chatLines
   const saveBeforeGreetingFailure = diskSave
   failNextWrite = true
@@ -486,8 +491,8 @@ test('stores safe role-local profile overrides and applies the effective profile
   assert.equal(savedProfile.view.profileCustomized, true)
   const historyAfterInitialProfile = JSON.parse(diskSave).characters.claude.chatLines
   assert.equal(historyAfterInitialProfile.length, 2)
-  assert.equal(historyAfterInitialProfile[0].text, '「晚 上好，来听雨吧。」')
-  assert.deepEqual(historyAfterInitialProfile[1], beforeProfileHistory[1])
+  assert.deepEqual(historyAfterInitialProfile[0], beforeProfileHistory[0])
+  assert.equal(historyAfterInitialProfile[1].text, '「晚 上好，来听雨吧。」')
   assert.equal(JSON.parse(diskSave).v, 9)
 
   const invalid = await post('profile-set', { characterId: 'claude', overrides: { persona: 42 } })
@@ -512,9 +517,10 @@ test('stores safe role-local profile overrides and applies the effective profile
   const switched = await post('settings-set', { characterMode: 'manual', characterId: 'claude' })
   assert.equal(switched.view.name, '阿澜')
   assert.equal(switched.view.profileCustomized, true)
-  assert.equal(switched.view.history[0].who, 'heroine')
-  assert.equal(switched.view.history[0].text, '「晚 上好，来听雨吧。」')
   assert.equal(switched.view.history.length, 2)
+  assert.equal(switched.view.history[0].who, 'narrator')
+  assert.equal(switched.view.history[1].who, 'heroine')
+  assert.equal(switched.view.history[1].text, '「晚 上好，来听雨吧。」')
   assert.equal(Object.prototype.hasOwnProperty.call(switched.view, 'persona'), false)
   assert.equal(Object.prototype.hasOwnProperty.call(switched.view, 'effective'), false)
 

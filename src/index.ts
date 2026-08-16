@@ -7,6 +7,18 @@ import {
   rememberActivity,
   type HarnessActivity,
 } from './activity-context.ts'
+import { AsyncLocalStorage } from 'node:async_hooks'
+import { randomUUID } from 'node:crypto'
+import {
+  link as nativeLink,
+  mkdir as nativeMkdir,
+  open as nativeOpen,
+  readFile as nativeReadFile,
+  rename as nativeRename,
+  rm as nativeRm,
+  stat as nativeStat,
+} from 'node:fs/promises'
+import { dirname, isAbsolute, join, resolve as resolveNativePath } from 'node:path'
 
 /**
  * dsh-whale-galgame — web-host half.
@@ -174,8 +186,20 @@ const ROSTER: Record<string, any> = {
 const ROSTER_IDS = Object.keys(ROSTER)
 const SAVE_NAME = '.whale-girl-save.json'
 const SAVE_VERSION = 9
+const GLOBAL_SAVE_KIND = 'dsh-whale-galgame-global'
+const GLOBAL_SAVE_VERSION = 2
+const LEGACY_GLOBAL_SAVE_VERSION = 1
+const WORKSPACE_SAVE_KIND = 'dsh-whale-galgame-workspace'
+const WORKSPACE_SAVE_VERSION = 2
+const LEGACY_WORKSPACE_SAVE_VERSION = 1
+const GLOBAL_SAVE_SEGMENTS = ['storages', 'dsh-whale-galgame', 'global.json'] as const
+const SESSION_LOOKUP_TIMEOUT_MS = 800
+const MODEL_LIST_TIMEOUT_MS = 1500
+const MODEL_CATALOG_CACHE_MS = 30 * 1000
+const MODEL_STREAM_TIMEOUT_MS = 110 * 1000
 const DECAY_GRACE_MS = 24 * 3600 * 1000
 const DECAY_PER_DAY = 2
+const RELATIONSHIP_TOUCH_INTERVAL_MS = 6 * 60 * 60 * 1000
 const AFFECTION_FLOOR = 0
 const TOKEN_PER_POINT = 5000
 const MAX_TOKEN_GAIN = 3
@@ -186,6 +210,8 @@ const MAX_API_BODY_BYTES = MAX_CUSTOM_BG_DATA_URL_CHARS + 64 * 1024
 const ACTIVITY_CACHE_MS = 60 * 1000
 const ACTIVITY_SESSION_LIMIT = 16
 const ACTIVITY_EVENT_LIMIT = 240
+const MAX_GLOBAL_ACTIVITIES = 64
+const MAX_USAGE_FINGERPRINTS = 2048
 const PROFILE_FIELDS = ['displayName', 'address', 'greeting', 'persona', 'tone', 'visual'] as const
 const PROFILE_LIMITS: Record<(typeof PROFILE_FIELDS)[number], number> = {
   displayName: 32,
@@ -194,6 +220,197 @@ const PROFILE_LIMITS: Record<(typeof PROFILE_FIELDS)[number], number> = {
   persona: 1200,
   tone: 600,
   visual: 800,
+}
+
+type NativeGlobalIo = {
+  link: typeof nativeLink
+  mkdir: typeof nativeMkdir
+  open: typeof nativeOpen
+  readFile: typeof nativeReadFile
+  rename: typeof nativeRename
+  rm: typeof nativeRm
+  stat: typeof nativeStat
+}
+
+type NativeWriteExpectation =
+  | { kind: 'createIfAbsent' }
+  | { kind: 'replaceIfVersion'; version: string }
+  | undefined
+
+const DEFAULT_NATIVE_GLOBAL_IO: NativeGlobalIo = {
+  link: nativeLink,
+  mkdir: nativeMkdir,
+  open: nativeOpen,
+  readFile: nativeReadFile,
+  rename: nativeRename,
+  rm: nativeRm,
+  stat: nativeStat,
+}
+
+function nativeGlobalError(code: string, message: string, cause?: unknown): Error {
+  const error: any = new Error(message, cause === undefined ? undefined : { cause })
+  error.code = code
+  return error
+}
+
+function nativeMissing(error: any): boolean {
+  return error && (error.code === 'ENOENT' || error.code === 'ENOTDIR')
+}
+
+function nativeVersion(info: any): string {
+  return `${info.dev}:${info.ino}:${info.size}:${info.mtimeNs}:${info.ctimeNs}`
+}
+
+async function syncNativeDirectory(io: NativeGlobalIo, directory: string): Promise<void> {
+  if (process.platform === 'win32') return
+  const handle = await io.open(directory, 'r')
+  try {
+    await handle.sync()
+  } finally {
+    await handle.close()
+  }
+}
+
+/**
+ * Host-owned persistence for the one fixed, non-workspace Galgame save.
+ *
+ * DSH's ctx.fs intentionally applies the active session's workspace-write
+ * fence, so it cannot be used to mutate DSH_HOME. This adapter never accepts a
+ * caller-supplied path: its sole target is the exact path produced by
+ * dshHomePath(...GLOBAL_SAVE_SEGMENTS). Workspace files continue to use ctx.fs.
+ */
+export function createNativeGlobalStorage(
+  targetPath: string,
+  io: NativeGlobalIo = DEFAULT_NATIVE_GLOBAL_IO,
+  options: { createParent?: boolean } = {},
+): any {
+  if (!isAbsolute(targetPath)) {
+    throw nativeGlobalError('GLOBAL_STORAGE_PATH_INVALID', 'Galgame global save path must be absolute')
+  }
+  const target = targetPath
+  const parent = dirname(target)
+  let writeTail: Promise<void> = Promise.resolve()
+
+  async function probe(): Promise<{ type: 'file'; version: string; size: number } | undefined> {
+    let info: any
+    try {
+      info = await io.stat(target, { bigint: true } as any)
+    } catch (error) {
+      if (nativeMissing(error)) return undefined
+      throw error
+    }
+    if (!info.isFile()) {
+      throw nativeGlobalError('FS_NOT_REGULAR_FILE', `Galgame global save is not a regular file: ${target}`)
+    }
+    return { type: 'file', version: nativeVersion(info), size: Number(info.size) }
+  }
+
+  async function readText(): Promise<string> {
+    return String(await io.readFile(target, 'utf8'))
+  }
+
+  async function publish(content: string, expected?: NativeWriteExpectation): Promise<any> {
+    if (options.createParent === false) {
+      const parentInfo = await io.stat(parent, { bigint: true } as any)
+      if (!parentInfo.isDirectory()) {
+        throw nativeGlobalError('FS_NOT_DIRECTORY', `Galgame save parent is not a directory: ${parent}`)
+      }
+    } else {
+      await io.mkdir(parent, { recursive: true, mode: 0o700 })
+    }
+    const existing = await probe()
+    if (expected?.kind === 'createIfAbsent' && existing) {
+      throw nativeGlobalError('FS_NOT_OBSERVED', 'Galgame global save appeared after it was observed absent')
+    }
+    if (expected?.kind === 'replaceIfVersion'
+      && (!existing || existing.version !== expected.version)) {
+      throw nativeGlobalError('FS_STALE_VERSION', 'Galgame global save changed since it was observed')
+    }
+
+    const temporary = join(parent, `.${randomUUID()}.tmp`)
+    let handle: any = null
+    try {
+      handle = await io.open(temporary, 'wx', 0o600)
+      await handle.writeFile(content, 'utf8')
+      await handle.sync()
+      await handle.close()
+      handle = null
+
+      // Re-check guarded replacements after the potentially long multi-MB
+      // temp write. The per-adapter queue serializes in-process writers; this
+      // second check also catches most external replacements before publish.
+      if (expected?.kind === 'replaceIfVersion') {
+        const current = await probe()
+        if (!current || current.version !== expected.version) {
+          throw nativeGlobalError('FS_STALE_VERSION', 'Galgame global save changed while its replacement was prepared')
+        }
+      }
+
+      if (expected?.kind === 'createIfAbsent') {
+        try {
+          // Node has no portable rename-no-replace primitive. A same-volume
+          // hard link gives create-if-absent atomicity without clobbering a
+          // racing creator; ordinary creates/replacements use atomic rename.
+          await io.link(temporary, target)
+        } catch (error: any) {
+          if (error && error.code === 'EEXIST') {
+            throw nativeGlobalError('FS_NOT_OBSERVED', 'Galgame global save appeared while it was being created', error)
+          }
+          throw error
+        }
+        await io.rm(temporary, { force: true })
+      } else {
+        await io.rename(temporary, target)
+      }
+      await syncNativeDirectory(io, parent)
+      const after = await probe()
+      if (!after) throw nativeGlobalError('FS_IO_ERROR', 'Galgame global save disappeared after publication')
+      return {
+        operation: existing ? 'update' : 'create',
+        version: after.version,
+        before: null,
+        after: content,
+      }
+    } finally {
+      if (handle) {
+        try { await handle.close() } catch { /* best effort */ }
+      }
+      try { await io.rm(temporary, { force: true }) } catch { /* best effort */ }
+    }
+  }
+
+  return Object.freeze({
+    target,
+    stat: probe,
+    readText,
+    writeText(content: string, expected?: NativeWriteExpectation): Promise<any> {
+      const run = writeTail.then(
+        () => publish(content, expected),
+        () => publish(content, expected),
+      )
+      writeTail = run.then(() => undefined, () => undefined)
+      return run
+    },
+  })
+}
+
+/**
+ * Native fallback for a registered workspace whose DSH ctx.fs write fence is
+ * still bound to another active workspace. The caller supplies only a trusted
+ * absolute workspace root; the basename is fixed here and cannot be escaped.
+ */
+export function createNativeWorkspaceStorage(rootPath: string, io: NativeGlobalIo = DEFAULT_NATIVE_GLOBAL_IO): any {
+  if (!isAbsolute(rootPath)) {
+    throw nativeGlobalError('WORKSPACE_STORAGE_PATH_INVALID', 'Galgame workspace root must be absolute')
+  }
+  const root = resolveNativePath(rootPath)
+  const target = join(root, SAVE_NAME)
+  const normalizedRoot = root.replace(/[\\/]+$/, '').toLowerCase()
+  const normalizedParent = dirname(target).replace(/[\\/]+$/, '').toLowerCase()
+  if (!normalizedRoot || normalizedParent !== normalizedRoot) {
+    throw nativeGlobalError('WORKSPACE_STORAGE_PATH_INVALID', 'Galgame workspace marker escaped its registered root')
+  }
+  return createNativeGlobalStorage(target, io, { createParent: false })
 }
 
 function sanitizeProfileText(raw: any, limit: number): string {
@@ -259,7 +476,11 @@ const CANNED_LINES = new Set([
 export const name = 'whale-galgame'
 export const inject = ['webServer', 'llm']
 
-export function apply(ctx: any, config: any = {}): void {
+export function apply(
+  ctx: any,
+  config: any = {},
+  internals: { nativeGlobalIo?: NativeGlobalIo; nativeWorkspaceIo?: NativeGlobalIo } = {},
+): void {
   const webServer = ctx.webServer
   const llm = ctx.llm
   const cfg = {
@@ -290,6 +511,9 @@ export function apply(ctx: any, config: any = {}): void {
   let workspaceRegistry: any
   let agentDefaultModel: any
   let sessionQuery: any
+  let dshHomePath: ((...segments: string[]) => string) | null = typeof ctx.dshHomePath === 'function'
+    ? ctx.dshHomePath.bind(ctx)
+    : null
 
   if (typeof ctx.inject === 'function') {
     ctx.inject(['fs', 'sandboxPolicy', 'sessions', 'workspaceRegistry', 'agentDefaultModel'], (scope: any) => {
@@ -304,7 +528,16 @@ export function apply(ctx: any, config: any = {}): void {
     })
   }
 
-  let s: any = null
+  const workspaceStateContext = new AsyncLocalStorage<any>()
+  let legacyState: any = null
+  let globalState: any = null
+  let globalReadyPromise: Promise<void> | null = null
+  let globalReadyError: any = null
+  let globalStorage: any = null
+  let activeWorkspaceRuntime: any = null
+  const workspaceRuntimes = new Map<string, any>()
+  const sessionWorkspaceCache = new Map<string, { root: string; key: string }>()
+  let lastWorkspaceKey = ''
   let tokensObserved = 0
   let tokensAppliedRuntime = 0
   let boundActivitySessionId = ''
@@ -317,6 +550,48 @@ export function apply(ctx: any, config: any = {}): void {
   let viewMaintenancePromise: Promise<void> | null = null
   let viewMaintenanceNeedsSave = false
   let stateMutationMutex: Promise<void> = Promise.resolve()
+  let legacyChatMutex: Promise<void> = Promise.resolve()
+  let modelCatalogCache: { at: number; providers: any[]; rows: any[][] } | null = null
+  let modelCatalogPending: Promise<{ providers: any[]; rows: any[][] }> | null = null
+  let globalEventFlushTimer: ReturnType<typeof setTimeout> | null = null
+  let globalEventDirty = false
+  const choiceGenerationPending = new Set<string>()
+
+  function currentWorkspaceRuntime(): any {
+    return splitStorageActive() ? (workspaceStateContext.getStore() || activeWorkspaceRuntime) : null
+  }
+
+  function currentStateBacking(): any {
+    const runtime = splitStorageActive() ? (workspaceStateContext.getStore() || activeWorkspaceRuntime) : null
+    return runtime ? runtime.facade : legacyState
+  }
+
+  const s: any = new Proxy({}, {
+    get(_target, property: string | symbol): any {
+      const state = currentStateBacking()
+      return state ? state[property as any] : undefined
+    },
+    set(_target, property: string | symbol, value: any): boolean {
+      const state = currentStateBacking()
+      if (!state) return false
+      state[property as any] = value
+      return true
+    },
+    ownKeys(): ArrayLike<string | symbol> {
+      const state = currentStateBacking()
+      return state ? Reflect.ownKeys(state) : []
+    },
+    getOwnPropertyDescriptor(): PropertyDescriptor {
+      return { configurable: true, enumerable: true, writable: true }
+    },
+  })
+
+  function ensureState(): any {
+    const state = currentStateBacking()
+    if (state) return state
+    legacyState = fresh()
+    return legacyState
+  }
 
   function emptyCharacter(): any {
     return {
@@ -352,6 +627,7 @@ export function apply(ctx: any, config: any = {}): void {
       characters,
       tokens: { bank: 0, lastActiveAt: 0 },
       bg: null,
+      backgroundRevision: 0,
       cg: null,
       preferences: {
         enabled: cfg.enabled,
@@ -379,8 +655,278 @@ export function apply(ctx: any, config: any = {}): void {
     }
   }
 
+  const GLOBAL_CHARACTER_FIELDS = new Set([
+    'affection',
+    'level',
+    'log',
+    'chatLines',
+    'choices',
+    'activity',
+    'cgs',
+    'customSprite',
+    'chosenBuiltinBackground',
+    'profileOverrides',
+  ])
+  const GLOBAL_ROOT_FIELDS = new Set([
+    'current',
+    'lastCurrent',
+    'tokens',
+    'preferences',
+    'bg',
+    'backgroundRevision',
+    'cg',
+    'relationshipLastActiveAt',
+    'activityFeed',
+    'modelOnline',
+    'characterModelLabel',
+    'chatModelLabel',
+    'modelLabel',
+    'lastModel',
+    'fallbackUsed',
+    'fallbackReason',
+  ])
+  const GLOBAL_PREFERENCE_FIELDS = [
+    'enabled',
+    'petEnabled',
+    'characterMode',
+    'characterId',
+    'characterProvider',
+    'characterModel',
+    'chatMode',
+    'chatProvider',
+    'chatModel',
+    'customBgName',
+  ] as const
+
+  function freshGlobalState(): any {
+    const combined = fresh()
+    return {
+      kind: GLOBAL_SAVE_KIND,
+      v: GLOBAL_SAVE_VERSION,
+      current: combined.current,
+      lastCurrent: combined.lastCurrent,
+      characters: combined.characters,
+      tokens: { bank: combined.tokens.bank, seenUsage: [] },
+      bg: combined.bg,
+      backgroundRevision: combined.backgroundRevision,
+      cg: combined.cg,
+      relationshipLastActiveAt: 0,
+      activityFeed: [],
+      preferences: combined.preferences,
+      modelOnline: combined.modelOnline,
+      characterModelLabel: combined.characterModelLabel,
+      chatModelLabel: combined.chatModelLabel,
+      modelLabel: combined.modelLabel,
+      lastModel: combined.lastModel,
+      fallbackUsed: combined.fallbackUsed,
+      fallbackReason: combined.fallbackReason,
+      // Claims record which global choices have already been established.
+      // Legacy workspace imports may fill an unclaimed field once, but can
+      // never overwrite a value chosen in the new global store.
+      migration: {
+        imports: [],
+        contextImports: [],
+        claims: {
+          preferences: [],
+          profiles: {},
+          sprites: [],
+          bg: false,
+          cg: false,
+          relationshipReset: false,
+        },
+      },
+    }
+  }
+
+  function freshWorkspaceState(workspaceKey = ''): any {
+    return {
+      kind: WORKSPACE_SAVE_KIND,
+      v: WORKSPACE_SAVE_VERSION,
+      // A workspace is only an event source. Game progress lives in global.json.
+      source: {
+        workspaceKey: typeof workspaceKey === 'string' ? workspaceKey : '',
+        migratedAt: 0,
+      },
+    }
+  }
+
+  function replaceGlobalStateInPlace(replacement: any): void {
+    if (!globalState || typeof globalState !== 'object') {
+      globalState = replacement
+      return
+    }
+    const existingCharacters = globalState.characters && typeof globalState.characters === 'object'
+      ? globalState.characters
+      : {}
+    for (const id of ROSTER_IDS) {
+      const target = existingCharacters[id] && typeof existingCharacters[id] === 'object'
+        ? existingCharacters[id]
+        : {}
+      for (const key of Reflect.ownKeys(target)) delete target[key as any]
+      Object.assign(target, replacement.characters[id])
+      existingCharacters[id] = target
+    }
+    for (const key of Reflect.ownKeys(globalState)) {
+      if (key !== 'characters') delete globalState[key as any]
+    }
+    Object.assign(globalState, { ...replacement, characters: existingCharacters })
+  }
+
+  function replaceWorkspaceStateInPlace(runtime: any, replacement: any): void {
+    if (!runtime || !replacement || typeof replacement !== 'object') return
+    if (!runtime.state || typeof runtime.state !== 'object') {
+      runtime.state = replacement
+      runtime.facade = composeState(globalState, runtime.state)
+      return
+    }
+    for (const key of Reflect.ownKeys(runtime.state)) delete runtime.state[key as any]
+    Object.assign(runtime.state, replacement)
+  }
+
+  function composeState(globalData: any, workspaceData: any): any {
+    const characters: Record<string, any> = {}
+    for (const id of ROSTER_IDS) {
+      const globalCharacter = globalData.characters[id]
+      const workspaceCharacter = workspaceData && workspaceData.characters
+        && workspaceData.characters[id] && typeof workspaceData.characters[id] === 'object'
+        ? workspaceData.characters[id]
+        : {}
+      characters[id] = new Proxy({}, {
+        get(_target, property: string | symbol): any {
+          if (typeof property === 'string' && GLOBAL_CHARACTER_FIELDS.has(property)) {
+            return globalCharacter[property]
+          }
+          return workspaceCharacter[property as any]
+        },
+        set(_target, property: string | symbol, value: any): boolean {
+          if (typeof property === 'string' && GLOBAL_CHARACTER_FIELDS.has(property)) {
+            globalCharacter[property] = value
+          } else {
+            workspaceCharacter[property as any] = value
+          }
+          return true
+        },
+        ownKeys(): ArrayLike<string | symbol> {
+          return Array.from(new Set([...Reflect.ownKeys(globalCharacter), ...Reflect.ownKeys(workspaceCharacter)]))
+        },
+        getOwnPropertyDescriptor(): PropertyDescriptor {
+          return { configurable: true, enumerable: true, writable: true }
+        },
+      })
+    }
+    return new Proxy({}, {
+      get(_target, property: string | symbol): any {
+        if (property === 'characters') return characters
+        if (typeof property === 'string' && GLOBAL_ROOT_FIELDS.has(property)) return globalData[property]
+        return workspaceData[property as any]
+      },
+      set(_target, property: string | symbol, value: any): boolean {
+        if (property === 'characters') return false
+        if (typeof property === 'string' && GLOBAL_ROOT_FIELDS.has(property)) globalData[property] = value
+        else workspaceData[property as any] = value
+        return true
+      },
+      ownKeys(): ArrayLike<string | symbol> {
+        return Array.from(new Set(['characters', ...Reflect.ownKeys(globalData), ...Reflect.ownKeys(workspaceData)]))
+      },
+      getOwnPropertyDescriptor(): PropertyDescriptor {
+        return { configurable: true, enumerable: true, writable: true }
+      },
+    })
+  }
+
+  function makeWorkspaceRuntime(root: string, key: string, state = freshWorkspaceState(key)): any {
+    return {
+      root,
+      key,
+      state,
+      facade: composeState(globalState, state),
+      readyPromise: null,
+      tokensObserved: 0,
+      tokensAppliedRuntime: 0,
+      boundActivitySessionId: '',
+      activityCache: [] as HarnessActivity[],
+      activityCacheRoot: root,
+      activityCacheAt: 0,
+      activityCacheGeneration: 0,
+      activityRefreshPromise: null,
+      activityWarmTimer: null,
+      viewMaintenancePromise: null,
+      viewMaintenanceNeedsSave: false,
+      chatMutex: Promise.resolve(),
+    }
+  }
+
+  function activateWorkspaceRuntime(runtime: any): void {
+    activeWorkspaceRuntime = runtime
+    lastWorkspaceKey = runtime && runtime.key ? runtime.key : lastWorkspaceKey
+  }
+
   function clamp(n: number): number {
     return Number.isFinite(n) ? Math.max(0, n) : 0
+  }
+
+  function validBackgroundRevision(value: any): boolean {
+    return Number.isSafeInteger(value) && value >= 0
+  }
+
+  function backgroundRevisionFor(value: any): number {
+    return validBackgroundRevision(value) ? value : 0
+  }
+
+  function nextBackgroundRevision(value: any): number {
+    const current = backgroundRevisionFor(value)
+    return current >= Number.MAX_SAFE_INTEGER ? 0 : current + 1
+  }
+
+  function bumpBackgroundRevision(): number {
+    ensureState()
+    const next = nextBackgroundRevision(s.backgroundRevision)
+    s.backgroundRevision = next
+    return next
+  }
+
+  function captureBackgroundMutationSnapshot(): any {
+    ensureState()
+    const currentCharacter = s.characters && s.characters[s.current]
+    const migration = splitStorageActive() && globalState ? globalState.migration : undefined
+    return {
+      bg: s.bg,
+      backgroundRevision: s.backgroundRevision,
+      preferences: { ...(s.preferences || {}) },
+      currentCharacter,
+      chosenBuiltinBackground: currentCharacter ? currentCharacter.chosenBuiltinBackground : null,
+      cgs: allCgs().map((cg: any) => ({
+        cg,
+        seen: cg.seen,
+        savedAsBg: cg.savedAsBg,
+      })),
+      migration: migration === undefined ? undefined : JSON.parse(JSON.stringify(migration)),
+    }
+  }
+
+  function restoreBackgroundMutationSnapshot(snapshot: any): void {
+    if (!snapshot) return
+    s.bg = snapshot.bg
+    s.backgroundRevision = snapshot.backgroundRevision
+    s.preferences = snapshot.preferences
+    if (snapshot.currentCharacter) {
+      snapshot.currentCharacter.chosenBuiltinBackground = snapshot.chosenBuiltinBackground
+    }
+    for (const entry of snapshot.cgs || []) {
+      entry.cg.seen = entry.seen
+      entry.cg.savedAsBg = entry.savedAsBg
+    }
+    if (splitStorageActive() && globalState) globalState.migration = snapshot.migration
+  }
+
+  async function persistBackgroundMutation(snapshot: any): Promise<void> {
+    try {
+      await save('global')
+    } catch (err) {
+      restoreBackgroundMutationSnapshot(snapshot)
+      throw err
+    }
   }
 
   function makeId(prefix: string): string {
@@ -451,8 +997,87 @@ export function apply(ctx: any, config: any = {}): void {
     }
   }
 
+  function opaqueFingerprint(prefix: string, value: string): string {
+    let hash = 2166136261
+    for (let index = 0; index < value.length; index++) {
+      hash ^= value.charCodeAt(index)
+      hash = Math.imul(hash, 16777619)
+    }
+    return prefix + (hash >>> 0).toString(36)
+  }
+
+  function normalizeGlobalTokens(raw: any): any {
+    const seenUsage = raw && Array.isArray(raw.seenUsage)
+      ? Array.from(new Set(raw.seenUsage.filter((value: any) => (
+        typeof value === 'string' && /^usage-[a-z0-9]+$/i.test(value)
+      )))).slice(-MAX_USAGE_FINGERPRINTS)
+      : []
+    return {
+      bank: raw && typeof raw.bank === 'number' ? Math.max(0, raw.bank) : 0,
+      seenUsage,
+    }
+  }
+
+  function normalizeSafeActivity(raw: any, sourceKey = ''): HarnessActivity & { sourceKey: string } | null {
+    if (!raw || typeof raw !== 'object'
+      || typeof raw.fingerprint !== 'string'
+      || !/^activity-[a-z0-9]+$/i.test(raw.fingerprint)
+      || typeof raw.category !== 'string'
+      || typeof raw.label !== 'string'
+      || !['active', 'completed', 'paused', 'blocked'].includes(raw.status)
+      || !Number.isFinite(raw.time)) return null
+    const clean = (value: any, limit: number): string => String(value || '')
+      .replace(/https?:\/\/\S+/gi, ' ')
+      .replace(/\b[A-Za-z]:[\\/][^\s，。；！？,;]+/g, ' ')
+      .replace(/\b(?:sk-[A-Za-z0-9_-]{8,}|Bearer\s+\S+)\b/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, limit)
+    return {
+      fingerprint: raw.fingerprint,
+      category: raw.category as any,
+      label: clean(raw.label, 40),
+      status: raw.status,
+      time: Math.max(0, Math.floor(raw.time)),
+      chatHint: clean(raw.chatHint, 500),
+      cgHint: clean(raw.cgHint, 360),
+      sourceKey: typeof raw.sourceKey === 'string' && /^ws-[a-f0-9]+$/i.test(raw.sourceKey)
+        ? raw.sourceKey
+        : sourceKey,
+    }
+  }
+
+  function normalizeActivityFeed(raw: any): Array<HarnessActivity & { sourceKey: string }> {
+    const rows = Array.isArray(raw) ? raw : []
+    const byFingerprint = new Map<string, HarnessActivity & { sourceKey: string }>()
+    for (const row of rows) {
+      const safe = normalizeSafeActivity(row)
+      if (!safe) continue
+      const previous = byFingerprint.get(safe.fingerprint)
+      if (!previous || safe.time >= previous.time) byFingerprint.set(safe.fingerprint, safe)
+    }
+    return [...byFingerprint.values()]
+      .sort((left, right) => right.time - left.time || left.fingerprint.localeCompare(right.fingerprint))
+      .slice(0, MAX_GLOBAL_ACTIVITIES)
+  }
+
+  function mergeGlobalActivityFeed(rows: readonly HarnessActivity[], sourceKey: string): boolean {
+    if (!splitStorageActive() || !globalState || !Array.isArray(rows) || rows.length === 0) return false
+    const before = JSON.stringify(globalState.activityFeed || [])
+    globalState.activityFeed = normalizeActivityFeed([
+      ...(globalState.activityFeed || []),
+      ...rows.map((row) => ({ ...row, sourceKey })),
+    ])
+    return JSON.stringify(globalState.activityFeed) !== before
+  }
+
+  function globalActivityCandidates(): HarnessActivity[] {
+    if (splitStorageActive() && globalState) return normalizeActivityFeed(globalState.activityFeed)
+    return activityCache
+  }
+
   function findCg(cgId: string): any {
-    if (!s || !cgId) return null
+    if (!currentStateBacking() || !cgId) return null
     for (const charId of ROSTER_IDS) {
       const cgs = s.characters && s.characters[charId] && Array.isArray(s.characters[charId].cgs)
         ? s.characters[charId].cgs
@@ -463,8 +1088,20 @@ export function apply(ctx: any, config: any = {}): void {
     return null
   }
 
+  function findGlobalCg(cgId: string): any {
+    if (!globalState || !globalState.characters || !cgId) return null
+    for (const charId of ROSTER_IDS) {
+      const rows = globalState.characters[charId] && Array.isArray(globalState.characters[charId].cgs)
+        ? globalState.characters[charId].cgs
+        : []
+      const match = rows.find((item: any) => item && item.id === cgId)
+      if (match) return match
+    }
+    return null
+  }
+
   function allCgs(): any[] {
-    if (!s) return []
+    if (!currentStateBacking()) return []
     const rows: any[] = []
     for (const charId of ROSTER_IDS) {
       const cgs = s.characters && s.characters[charId] && Array.isArray(s.characters[charId].cgs)
@@ -487,6 +1124,10 @@ export function apply(ctx: any, config: any = {}): void {
     return undefined
   }
 
+  function splitStorageActive(): boolean {
+    return typeof dshHomePath === 'function'
+  }
+
   function normalizedWorkspacePath(value: any): string {
     return typeof value === 'string'
       ? value.replace(/\\/g, '/').replace(/\/$/, '').toLowerCase()
@@ -500,8 +1141,10 @@ export function apply(ctx: any, config: any = {}): void {
   }
 
   function activityWorkspaceRoot(): string {
-    // State and its save file are currently one bucket per plugin instance.
-    // Another open workspace must never retarget this bucket.
+    const runtime = splitStorageActive() ? currentWorkspaceRuntime() : null
+    if (runtime && runtime.root) {
+      return runtime.root
+    }
     return workspaceRoot() || ''
   }
 
@@ -519,111 +1162,123 @@ export function apply(ctx: any, config: any = {}): void {
     }
   }
 
+  function headerFromSessionRow(row: any): any {
+    if (!row || typeof row !== 'object') return null
+    return row.header && typeof row.header === 'object' ? row.header : row
+  }
+
+  async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, fallback: T): Promise<T> {
+    let timer: ReturnType<typeof setTimeout> | null = null
+    try {
+      return await Promise.race([
+        promise,
+        new Promise<T>((resolve) => {
+          timer = setTimeout(() => resolve(fallback), timeoutMs)
+        }),
+      ])
+    } finally {
+      if (timer) clearTimeout(timer)
+    }
+  }
+
+  async function sessionHeader(rawSessionId: any): Promise<any> {
+    const sessionId = typeof rawSessionId === 'string' ? rawSessionId.trim().slice(0, 240) : ''
+    if (!sessionId) return null
+    try {
+      if (sessionsSvc && typeof sessionsSvc.list === 'function') {
+        const rows = sessionsSvc.list()
+        const live = Array.isArray(rows)
+          ? rows.map(headerFromSessionRow).find((header: any) => header && header.id === sessionId)
+          : null
+        if (live) return live
+      }
+    } catch (err) { /* fall through to the lightweight persistence listing */ }
+    try {
+      if (sessionQuery && typeof sessionQuery.listSessions === 'function') {
+        const rows = await withTimeout(Promise.resolve(sessionQuery.listSessions()), SESSION_LOOKUP_TIMEOUT_MS, [])
+        if (Array.isArray(rows)) {
+          const match = rows.map(headerFromSessionRow).find((header: any) => header && header.id === sessionId)
+          if (match) return match
+        }
+      }
+    } catch (err) { /* unresolved sessions receive an isolated fresh context */ }
+    return null
+  }
+
+  async function workspaceForSession(rawSessionId: any): Promise<{ root: string; key: string; sessionId: string }> {
+    const sessionId = typeof rawSessionId === 'string' ? rawSessionId.trim().slice(0, 240) : ''
+    if (sessionId) {
+      const cached = sessionWorkspaceCache.get(sessionId)
+      if (cached) return { ...cached, sessionId }
+      const header = await sessionHeader(sessionId)
+      if (header && typeof header.cwd === 'string' && header.cwd.trim()) {
+        const root = registeredWorkspaceRoot(header.cwd) || header.cwd
+        const key = normalizedWorkspacePath(root)
+        if (key) {
+          const resolved = { root, key }
+          sessionWorkspaceCache.set(sessionId, resolved)
+          return { ...resolved, sessionId }
+        }
+      }
+      // A temporarily unavailable header must never route a session-scoped
+      // mutation into workspaceRegistry[0]. Keep it isolated in memory and
+      // retry lightweight resolution on the next request/event.
+      return { root: '', key: 'unresolved:' + sessionId, sessionId }
+    }
+    // An unscoped overlay has no authority to borrow workspaceRegistry[0].
+    // It receives the shared global state plus a fresh, non-persisted local
+    // facade; workspace-bound mutations are rejected by handleAction.
+    return { root: '', key: 'ephemeral:unscoped', sessionId }
+  }
+
   async function bindActivitySession(rawSessionId: any): Promise<'unscoped' | 'matched' | 'mismatch'> {
     const sessionId = typeof rawSessionId === 'string' ? rawSessionId.trim().slice(0, 240) : ''
-    if (!sessionId) return 'unscoped'
-    if (sessionId === boundActivitySessionId) return 'matched'
-    let header: any = null
-    try {
-      if (sessionQuery && typeof sessionQuery.readSession === 'function') {
-        const snapshot = await sessionQuery.readSession(sessionId)
-        header = snapshot && snapshot.session
-      }
-    } catch (err) { /* fall through to the live service */ }
-    if (!header && sessionsSvc && typeof sessionsSvc.list === 'function') {
-      try {
-        const live = sessionsSvc.list()
-        const match = Array.isArray(live)
-          ? live.find((row: any) => row && row.header && row.header.id === sessionId)
-          : null
-        header = match && match.header
-      } catch (err) { /* ignore */ }
+    if (!splitStorageActive()) {
+      if (!sessionId) return 'unscoped'
+      if (sessionId === boundActivitySessionId) return 'matched'
+      const header = await sessionHeader(sessionId)
+      const verifiedRoot = registeredWorkspaceRoot(header && header.cwd)
+      const stateRoot = activityWorkspaceRoot()
+      if (!verifiedRoot || !sameWorkspace(header && header.cwd, stateRoot)) return 'mismatch'
+      boundActivitySessionId = sessionId
+      activityCacheGeneration += 1
+      activityCacheAt = 0
+      return 'matched'
     }
-    const verifiedRoot = registeredWorkspaceRoot(header && header.cwd)
-    const stateRoot = activityWorkspaceRoot()
-    if (!verifiedRoot || !sameWorkspace(header && header.cwd, stateRoot)) return 'mismatch'
-    boundActivitySessionId = sessionId
-    activityCacheGeneration += 1
-    activityCacheAt = 0
+
+    await ensureGlobalReady()
+    const scopedRuntime = workspaceStateContext.getStore()
+    if (scopedRuntime) {
+      if (!sessionId) return 'unscoped'
+      if (scopedRuntime.boundActivitySessionId === sessionId) return 'matched'
+      scopedRuntime.boundActivitySessionId = sessionId
+      scopedRuntime.activityCacheGeneration += 1
+      scopedRuntime.activityCacheAt = 0
+      return 'matched'
+    }
+    const descriptor = await workspaceForSession(sessionId)
+    const runtime = await ensureWorkspaceReady(descriptor.root, descriptor.key)
+    activateWorkspaceRuntime(runtime)
+    if (!sessionId) return 'unscoped'
+    if (runtime.boundActivitySessionId === sessionId) return 'matched'
+    runtime.boundActivitySessionId = sessionId
+    runtime.activityCacheGeneration += 1
+    runtime.activityCacheAt = 0
     return 'matched'
   }
 
   async function collectActivitySessions(root: string): Promise<any[]> {
     const snapshots: any[] = []
     const seen = new Set<string>()
-    if (sessionQuery && typeof sessionQuery.readSession === 'function'
-      && (typeof sessionQuery.listSessions === 'function' || typeof sessionQuery.filterSessions === 'function')) {
-      try {
-        const records = typeof sessionQuery.listSessions === 'function'
-          ? await sessionQuery.listSessions()
-          : await sessionQuery.filterSessions([{ kind: 'cwd', values: [root] }])
-        const usable = Array.isArray(records)
-          ? records.filter((row: any) => row && row.header
-            && row.header.origin !== 'subagent'
-            && sameWorkspace(row.header.cwd, root))
-          : []
-        const ranked = usable.map((row: any) => ({
-          row,
-          lastEventAt: Number(row.header.createdAt || 0),
-        }))
-        if (typeof sessionQuery.listEvents === 'function' && ranked.length > 0) {
-          let cursor = 0
-          const worker = async () => {
-            while (cursor < ranked.length) {
-              const index = cursor++
-              try {
-                const eventRows = await sessionQuery.listEvents(ranked[index].row.header.id)
-                const latest = Array.isArray(eventRows) && eventRows.length > 0
-                  ? eventRows[eventRows.length - 1]
-                  : null
-                if (latest && Number.isFinite(latest.time)) ranked[index].lastEventAt = Number(latest.time)
-              } catch (err) { /* createdAt remains the fallback rank */ }
-            }
-          }
-          await Promise.all(Array.from({ length: Math.min(6, ranked.length) }, () => worker()))
-        }
-        ranked.sort((a: any, b: any) => {
-          const aBound = a.row.header.id === boundActivitySessionId ? 1 : 0
-          const bBound = b.row.header.id === boundActivitySessionId ? 1 : 0
-          if (aBound !== bBound) return bBound - aBound
-          if (a.lastEventAt !== b.lastEventAt) return b.lastEventAt - a.lastEventAt
-          if (!!a.row.live !== !!b.row.live) return a.row.live ? -1 : 1
-          return String(a.row.header.id).localeCompare(String(b.row.header.id))
-        })
-        const selected = ranked.slice(0, ACTIVITY_SESSION_LIMIT).map((entry: any) => entry.row)
-        const settled = await Promise.allSettled(selected.map((row: any) => sessionQuery.readSession(row.header.id)))
-        for (const result of settled) {
-          if (result.status !== 'fulfilled') continue
-          const snapshot: any = result.value
-          const header = snapshot && snapshot.session
-          if (!header || !sameWorkspace(header.cwd, root) || header.origin === 'subagent') continue
-          const id = String(header.id || '')
-          if (!id || seen.has(id)) continue
-          seen.add(id)
-          const fullEvents = Array.isArray(snapshot.events) ? snapshot.events : []
-          const eventStart = Math.max(0, fullEvents.length - ACTIVITY_EVENT_LIMIT)
-          const inherited = Number.isSafeInteger(header.seedLength) && header.seedLength > 0
-            ? Math.max(0, Math.min(header.seedLength, fullEvents.length) - eventStart)
-            : 0
-          snapshots.push({
-            id,
-            header: { ...header, seedLength: inherited },
-            events: fullEvents.slice(eventStart),
-          })
-        }
-      } catch (err) {
-        console.warn('whale-galgame activity history unavailable:', err)
-      }
-    }
 
-    // Live sessions keep the feature useful on older Harness builds without
-    // sessionQuery, and supplement a transient persisted-read failure.
+    // Prefer the live store: it already carries the event bodies needed for
+    // safe task classification and never performs a whole-session disk read.
     if (sessionsSvc && typeof sessionsSvc.list === 'function') {
       try {
         const live = sessionsSvc.list()
         for (const session of Array.isArray(live) ? live : []) {
-          const header = session && session.header
-          const id = String(header && header.id || '')
+          const header = headerFromSessionRow(session)
+          const id = String(header.id || '')
           if (!id || seen.has(id) || !sameWorkspace(header.cwd, root) || header.origin === 'subagent') continue
           seen.add(id)
           const fullEvents = Array.isArray(session.events) ? session.events : []
@@ -637,12 +1292,108 @@ export function apply(ctx: any, config: any = {}): void {
             events: fullEvents.slice(eventStart),
           })
         }
-      } catch (err) { /* ignore */ }
+      } catch (err) { /* fall through to bounded event listings */ }
+    }
+
+    // Some SessionQuery implementations expose complete event rows from
+    // listEvents. Admit only those rows; metadata-only listings are useful for
+    // ranking but cannot be mistaken for message content.
+    if (sessionQuery && typeof sessionQuery.listSessions === 'function'
+      && typeof sessionQuery.listEvents === 'function') {
+      try {
+        const records = await withTimeout(Promise.resolve(sessionQuery.listSessions()), SESSION_LOOKUP_TIMEOUT_MS, [])
+        const boundId = currentWorkspaceRuntime()
+          ? currentWorkspaceRuntime().boundActivitySessionId
+          : boundActivitySessionId
+        const candidates = (Array.isArray(records) ? records : [])
+          .filter((row: any) => {
+            const header = headerFromSessionRow(row)
+            return header && header.origin !== 'subagent' && sameWorkspace(header.cwd, root)
+          })
+          .sort((left: any, right: any) => {
+            const a = headerFromSessionRow(left)
+            const b = headerFromSessionRow(right)
+            if ((a.id === boundId) !== (b.id === boundId)) return a.id === boundId ? -1 : 1
+            return Number(b.createdAt || 0) - Number(a.createdAt || 0)
+          })
+          .slice(0, ACTIVITY_SESSION_LIMIT)
+        const rows = await Promise.all(candidates.map(async (record: any) => {
+          const header = headerFromSessionRow(record)
+          try {
+            const events = await withTimeout(Promise.resolve(sessionQuery.listEvents(header.id)), SESSION_LOOKUP_TIMEOUT_MS, [])
+            return { header, events }
+          } catch (err) {
+            return { header, events: [] }
+          }
+        }))
+        for (const row of rows) {
+          const header = row.header
+          const id = String(header && header.id || '')
+          if (!id || seen.has(id)) continue
+          const completeEvents = Array.isArray(row.events)
+            ? row.events.filter((event: any) => event && event.data && typeof event.type === 'string')
+            : []
+          if (completeEvents.length === 0) continue
+          seen.add(id)
+          const eventStart = Math.max(0, completeEvents.length - ACTIVITY_EVENT_LIMIT)
+          const inherited = Number.isSafeInteger(header.seedLength) && header.seedLength > 0
+            ? Math.max(0, Math.min(header.seedLength, completeEvents.length) - eventStart)
+            : 0
+          snapshots.push({
+            id,
+            header: { ...header, seedLength: inherited },
+            events: completeEvents.slice(eventStart),
+          })
+        }
+      } catch (err) {
+        console.warn('whale-galgame activity history unavailable:', err)
+      }
     }
     return snapshots
   }
 
   async function refreshActivityCache(force = false): Promise<void> {
+    const runtime = currentWorkspaceRuntime()
+    if (runtime) {
+      const root = runtime.root
+      if (!root) {
+        runtime.activityCache = []
+        return
+      }
+      const now = Date.now()
+      if (!force && sameWorkspace(runtime.activityCacheRoot, root)
+        && now - runtime.activityCacheAt < ACTIVITY_CACHE_MS) return
+      if (runtime.activityRefreshPromise) {
+        await runtime.activityRefreshPromise
+        if (!force && sameWorkspace(runtime.activityCacheRoot, root)
+          && Date.now() - runtime.activityCacheAt < ACTIVITY_CACHE_MS) return
+      }
+      runtime.activityRefreshPromise = (async () => {
+        for (let attempt = 0; attempt < 2; attempt++) {
+          const requestedGeneration = runtime.activityCacheGeneration
+          const snapshots = await collectActivitySessions(root)
+          const next = collectHarnessActivities(snapshots, root)
+          if (runtime.activityCacheGeneration !== requestedGeneration) {
+            runtime.activityCacheAt = 0
+            if (attempt === 0) continue
+            runtime.activityCache = []
+            runtime.activityCacheRoot = root
+            return
+          }
+          runtime.activityCache = next
+          runtime.activityCacheRoot = root
+          runtime.activityCacheAt = Date.now()
+          if (mergeGlobalActivityFeed(next, workspaceImportKey(root))) scheduleGlobalEventFlush()
+          return
+        }
+      })()
+      try {
+        await runtime.activityRefreshPromise
+      } finally {
+        runtime.activityRefreshPromise = null
+      }
+      return
+    }
     const root = activityWorkspaceRoot()
     if (!root) {
       activityCache = []
@@ -683,6 +1434,17 @@ export function apply(ctx: any, config: any = {}): void {
   }
 
   function scheduleActivityWarmup(delayMs = 0): void {
+    const runtime = currentWorkspaceRuntime()
+    if (runtime) {
+      if (runtime.activityWarmTimer) clearTimeout(runtime.activityWarmTimer)
+      runtime.activityWarmTimer = setTimeout(() => {
+        runtime.activityWarmTimer = null
+        void workspaceStateContext.run(runtime, () => refreshActivityCache()).catch((err) => {
+          console.warn('whale-galgame activity warmup failed:', err)
+        })
+      }, Math.max(0, delayMs))
+      return
+    }
     if (activityWarmTimer) clearTimeout(activityWarmTimer)
     activityWarmTimer = setTimeout(() => {
       activityWarmTimer = null
@@ -696,7 +1458,7 @@ export function apply(ctx: any, config: any = {}): void {
     try {
       if (!sandboxPolicy) return undefined
       let session: any
-      const root = workspaceRoot()
+      const root = activityWorkspaceRoot()
       if (root && sessionsSvc && typeof sessionsSvc.list === 'function') {
         const list = sessionsSvc.list()
         if (Array.isArray(list)) {
@@ -709,17 +1471,108 @@ export function apply(ctx: any, config: any = {}): void {
     }
   }
 
+  function usageFromEvent(event: any): { total: number; input: number; output: number } {
+    const usage = event && event.data && event.data.usage
+    const rawInput = Number(usage && (usage.inputTokens ?? usage.input_tokens ?? usage.promptTokens ?? usage.prompt_tokens))
+    const rawOutput = Number(usage && (usage.outputTokens ?? usage.output_tokens ?? usage.completionTokens ?? usage.completion_tokens))
+    const input = Number.isFinite(rawInput) && rawInput > 0 ? Math.floor(rawInput) : 0
+    const output = Number.isFinite(rawOutput) && rawOutput > 0 ? Math.floor(rawOutput) : 0
+    return { total: input + output, input, output }
+  }
+
+  function usageFingerprint(session: any, event: any, usage: { input: number; output: number }): string {
+    const header = session && session.header && typeof session.header === 'object' ? session.header : {}
+    const data = event && event.data && typeof event.data === 'object' ? event.data : {}
+    const stableIdentity = [
+      String(header.id || ''),
+      String(event && event.seq !== undefined ? event.seq : ''),
+      String(event && event.time !== undefined ? event.time : ''),
+      String(data.id || (data.message && data.message.id) || ''),
+      String(data.turn ?? ''),
+      String(usage.input),
+      String(usage.output),
+    ].join('|')
+    return opaqueFingerprint('usage-', stableIdentity)
+  }
+
+  function recordGlobalUsage(session: any, event: any): boolean {
+    if (!globalState) return false
+    const usage = usageFromEvent(event)
+    if (usage.total <= 0) return false
+    globalState.tokens = normalizeGlobalTokens(globalState.tokens)
+    const fingerprint = usageFingerprint(session, event, usage)
+    if (globalState.tokens.seenUsage.includes(fingerprint)) return false
+    globalState.tokens.bank += usage.total
+    globalState.tokens.seenUsage.push(fingerprint)
+    if (globalState.tokens.seenUsage.length > MAX_USAGE_FINGERPRINTS) {
+      globalState.tokens.seenUsage = globalState.tokens.seenUsage.slice(-MAX_USAGE_FINGERPRINTS)
+    }
+    return true
+  }
+
+  function scheduleGlobalEventFlush(delayMs = 250): void {
+    if (!splitStorageActive() || !globalState) return
+    globalEventDirty = true
+    if (globalEventFlushTimer) return
+    globalEventFlushTimer = setTimeout(() => {
+      globalEventFlushTimer = null
+      void runSerializedStateTask(async () => {
+        if (!globalEventDirty || !globalState) return
+        globalEventDirty = false
+        try {
+          await writeGlobalState()
+        } catch (err) {
+          globalEventDirty = true
+          console.warn('whale-galgame deferred global event save failed:', err)
+          scheduleGlobalEventFlush(1_000)
+        }
+      })
+    }, Math.max(0, delayMs))
+  }
+
   ctx.on('session/event', (session: any, event: any) => {
     const header = session && session.header
+    if (splitStorageActive()) {
+      if (!header || typeof header.cwd !== 'string' || !header.cwd) return
+      const root = registeredWorkspaceRoot(header.cwd) || header.cwd
+      const key = normalizedWorkspacePath(root)
+      if (!key) return
+      if (typeof header.id === 'string' && header.id) {
+        sessionWorkspaceCache.set(header.id, { root, key })
+      }
+      const type = String(event && event.type || '')
+      if (type === 'assistant/message') {
+        void ensureGlobalReady().then(() => runSerializedStateTask(async () => {
+          if (globalState && globalState.preferences && globalState.preferences.enabled === false) return
+          if (recordGlobalUsage(session, event)) scheduleGlobalEventFlush()
+        })).catch(() => { /* retry from a future event or API request */ })
+      }
+      const applyToRuntime = (runtime: any) => workspaceStateContext.run(runtime, () => {
+        if (globalState && globalState.preferences && globalState.preferences.enabled === false) return
+        if (type === 'user/message' || type === 'tool/call' || type === 'todo/write' || type === 'turn/end') {
+          runtime.activityCacheGeneration += 1
+          runtime.activityCacheAt = 0
+          scheduleActivityWarmup(type === 'turn/end' ? 50 : 600)
+        }
+      })
+      const loaded = workspaceRuntimes.get(key)
+      if (loaded && !loaded.readyPromise) {
+        applyToRuntime(loaded)
+      } else {
+        void ensureWorkspaceReady(root, key).then(applyToRuntime).catch(() => { /* retry on the next event/view */ })
+      }
+      return
+    }
     if (!header || !sameWorkspace(header.cwd, activityWorkspaceRoot())) return
     if (s && s.preferences && s.preferences.enabled === false) return
     const type = String(event && event.type || '')
     if (type === 'assistant/message') {
-      const usage = event && event.data && event.data.usage
-      const input = Number(usage && (usage.inputTokens ?? usage.input_tokens ?? usage.promptTokens ?? usage.prompt_tokens))
-      const output = Number(usage && (usage.outputTokens ?? usage.output_tokens ?? usage.completionTokens ?? usage.completion_tokens))
-      if (Number.isFinite(input) && input > 0) tokensObserved += Math.floor(input)
-      if (Number.isFinite(output) && output > 0) tokensObserved += Math.floor(output)
+      const usage = usageFromEvent(event)
+      if (usage.total > 0) {
+        ensureState()
+        if (!s.tokens) s.tokens = { bank: 0, lastActiveAt: 0 }
+        s.tokens.bank = Math.max(0, Number(s.tokens.bank) || 0) + usage.total
+      }
     }
     if (type === 'user/message' || type === 'tool/call' || type === 'todo/write' || type === 'turn/end') {
       activityCacheGeneration += 1
@@ -744,10 +1597,8 @@ export function apply(ctx: any, config: any = {}): void {
     return typeof value === 'string' ? value.trim().slice(0, 240) : ''
   }
 
-  function ensurePreferences(): any {
-    if (!s) s = fresh()
-    if (!s.preferences || typeof s.preferences !== 'object') s.preferences = {}
-    const p = s.preferences
+  function normalizePreferences(p: any): any {
+    if (!p || typeof p !== 'object') p = {}
     if (typeof p.enabled !== 'boolean') p.enabled = cfg.enabled
     if (typeof p.petEnabled !== 'boolean') p.petEnabled = true
 
@@ -771,6 +1622,116 @@ export function apply(ctx: any, config: any = {}): void {
       p.chatMode = cfg.chatModel ? 'configured' : 'main'
     }
     return p
+  }
+
+  function normalizeGlobalMigration(raw: any, state: any): any {
+    const imports = raw && Array.isArray(raw.imports)
+      ? Array.from(new Set(raw.imports.filter((value: any) => typeof value === 'string' && value)))
+      : []
+    const contextImports = raw && Array.isArray(raw.contextImports)
+      ? Array.from(new Set(raw.contextImports.filter((value: any) => typeof value === 'string' && value)))
+      : []
+    const rawClaims = raw && raw.claims && typeof raw.claims === 'object' ? raw.claims : {}
+    let preferences: string[]
+    if (Array.isArray(rawClaims.preferences)) {
+      const allowed = new Set<string>(GLOBAL_PREFERENCE_FIELDS)
+      preferences = Array.from(new Set(rawClaims.preferences.filter((value: any) => (
+        typeof value === 'string' && allowed.has(value)
+      ))))
+    } else if (imports.length > 0) {
+      // Global v1 files written before claims existed already selected a
+      // legacy source. Treat every preference as claimed so a later workspace
+      // cannot silently replace that established choice.
+      preferences = [...GLOBAL_PREFERENCE_FIELDS]
+    } else {
+      const defaults = normalizePreferences({ ...fresh().preferences })
+      const saved = state && state.preferences && typeof state.preferences === 'object'
+        ? state.preferences
+        : {}
+      preferences = GLOBAL_PREFERENCE_FIELDS.filter((field) => {
+        if (!Object.prototype.hasOwnProperty.call(saved, field)) return false
+        return JSON.stringify(saved[field]) !== JSON.stringify(defaults[field])
+      })
+    }
+    const priorImport = imports.length > 0
+    const profiles: Record<string, string[]> = {}
+    if (rawClaims.profiles && !Array.isArray(rawClaims.profiles) && typeof rawClaims.profiles === 'object') {
+      const allowed = new Set<string>(PROFILE_FIELDS)
+      for (const id of ROSTER_IDS) {
+        const fields = Array.isArray(rawClaims.profiles[id]) ? rawClaims.profiles[id] : []
+        profiles[id] = Array.from(new Set(fields.filter((value: any) => typeof value === 'string' && allowed.has(value))))
+      }
+    } else if (Array.isArray(rawClaims.profiles)) {
+      for (const id of rawClaims.profiles) if (ROSTER[id]) profiles[id] = [...PROFILE_FIELDS]
+    } else {
+      for (const id of ROSTER_IDS) {
+        profiles[id] = Object.keys(normalizeProfileOverrides(
+          state && state.characters && state.characters[id] && state.characters[id].profileOverrides,
+        ))
+      }
+    }
+    const sprites = Array.isArray(rawClaims.sprites)
+      ? Array.from(new Set(rawClaims.sprites.filter((value: any) => typeof value === 'string' && ROSTER[value])))
+      : ROSTER_IDS.filter((id) => {
+        const character = state && state.characters && state.characters[id]
+        return !!character && (!!(customSpriteFor(character) && customSpriteFor(character).dataUrl)
+          || spriteRevisionFor(character) > 0)
+      })
+    return {
+      imports,
+      contextImports,
+      claims: {
+        preferences,
+        profiles,
+        sprites,
+        bg: typeof rawClaims.bg === 'boolean' ? rawClaims.bg : (priorImport || !!(state && state.bg)),
+        cg: typeof rawClaims.cg === 'boolean' ? rawClaims.cg : (priorImport || !!(state && state.cg)),
+        relationshipReset: rawClaims.relationshipReset === true,
+      },
+    }
+  }
+
+  function ensureGlobalMigrationState(): any {
+    if (!globalState || typeof globalState !== 'object') return null
+    globalState.migration = normalizeGlobalMigration(globalState.migration, globalState)
+    return globalState.migration
+  }
+
+  function claimGlobalPreferences(fields: Iterable<string>): void {
+    if (!splitStorageActive() || !globalState) return
+    const migration = ensureGlobalMigrationState()
+    if (!migration) return
+    const allowed = new Set<string>(GLOBAL_PREFERENCE_FIELDS)
+    const claimed = new Set<string>(migration.claims.preferences)
+    for (const field of fields) if (allowed.has(field)) claimed.add(field)
+    migration.claims.preferences = Array.from(claimed)
+  }
+
+  function claimGlobalValue(field: 'bg' | 'cg'): void {
+    if (!splitStorageActive() || !globalState) return
+    const migration = ensureGlobalMigrationState()
+    if (migration) migration.claims[field] = true
+  }
+
+  function claimGlobalCharacter(field: 'profiles' | 'sprites', charId: string, profileFields: Iterable<string> = PROFILE_FIELDS): void {
+    if (!splitStorageActive() || !globalState || !ROSTER[charId]) return
+    const migration = ensureGlobalMigrationState()
+    if (!migration) return
+    if (field === 'profiles') {
+      const allowed = new Set<string>(PROFILE_FIELDS)
+      const claimed = new Set<string>(migration.claims.profiles[charId] || [])
+      for (const profileField of profileFields) if (allowed.has(profileField)) claimed.add(profileField)
+      migration.claims.profiles[charId] = Array.from(claimed)
+    } else {
+      migration.claims.sprites = Array.from(new Set([...(migration.claims.sprites || []), charId]))
+    }
+  }
+
+  function ensurePreferences(): any {
+    ensureState()
+    const normalized = normalizePreferences(s.preferences)
+    if (s.preferences !== normalized) s.preferences = normalized
+    return normalized
   }
 
   function profileOverridesFor(charId: string): Record<string, string> {
@@ -893,8 +1854,36 @@ export function apply(ctx: any, config: any = {}): void {
     return ROSTER[fallback] ? fallback : 'deepseek'
   }
 
+  function validReplyChoiceTriplet(value: any): boolean {
+    if (!Array.isArray(value) || value.length !== 3) return false
+    const effects = new Set<number>()
+    const ids = new Set<string>()
+    for (const choice of value) {
+      if (!choice || typeof choice !== 'object'
+        || typeof choice.id !== 'string' || !choice.id
+        || typeof choice.text !== 'string' || !choice.text.trim()
+        || ![-1, 0, 1].includes(choice.effect)) return false
+      effects.add(choice.effect)
+      ids.add(choice.id)
+    }
+    return effects.size === 3 && ids.size === 3
+  }
+
+  function ensureReplyChoices(charId: string, character: any): boolean {
+    if (validReplyChoiceTriplet(character && character.choices)) return false
+    if (!character || choiceGenerationPending.has(charId)) return false
+    const lastLine = Array.isArray(character.chatLines)
+      ? character.chatLines[character.chatLines.length - 1]
+      : null
+    // A persisted user-only tail represents an unfinished reply. Do not
+    // present choices that could start another turn over it.
+    if (lastLine && lastLine.who === 'user') return false
+    character.choices = fallbackChoicesFor()
+    return true
+  }
+
   function syncHeroine(includeGreeting = true): boolean {
-    if (!s) s = fresh()
+    ensureState()
     const p = ensurePreferences()
     const sel = p.characterMode === 'follow' ? currentSelectionSync() : null
     const manualCharacter = p.characterMode === 'manual' && ROSTER[p.characterId]
@@ -915,29 +1904,40 @@ export function apply(ctx: any, config: any = {}): void {
     let mutated = changed
     if (includeGreeting && c.chatLines.length === 0) {
       const profile = effectiveProfileFor(next)
-      c.chatLines.push({ who: 'heroine', text: profile.greeting })
-      mutated = true
       if (changed && s.lastCurrent && s.lastCurrent !== next) {
         c.chatLines.push({
           who: 'narrator',
           text: '（' + profile.address + '把角色来源切换为 ' + (s.characterModelLabel || '工作区主模型') + '，' + profile.displayName + ' 登场了。）',
         })
       }
+      // Keep the heroine as the final speaker: the client may present reply
+      // choices only while her line is current.
+      c.chatLines.push({ who: 'heroine', text: profile.greeting })
+      mutated = true
     }
+    // Older global/workspace saves may already contain a timeline ending in
+    // one or more narrator lines but no choices. Repair that state once; a
+    // valid persisted triplet is never regenerated or reordered on view.
+    if (includeGreeting && ensureReplyChoices(next, c)) mutated = true
     return mutated
   }
 
   function settle(): { decay: number; gain: number; changed: boolean } {
-    if (!s) s = fresh()
-    if (!s.tokens) s.tokens = { bank: 0, lastActiveAt: 0 }
+    ensureState()
+    const runtime = splitStorageActive() ? currentWorkspaceRuntime() : null
+    if (!s.tokens) s.tokens = splitStorageActive()
+      ? { bank: 0, seenUsage: [] }
+      : { bank: 0, lastActiveAt: 0 }
     if (typeof s.tokens.bank !== 'number' || s.tokens.bank < 0) s.tokens.bank = 0
     let now = 0
     try { now = Date.now() } catch (err) { now = 0 }
-    if (tokensObserved < tokensAppliedRuntime) tokensAppliedRuntime = 0
     let changed = false
     let decay = 0
-    if (now > 0 && s.tokens.lastActiveAt > 0) {
-      const idleDays = Math.max(0, (now - s.tokens.lastActiveAt) / 86400000)
+    const relationshipLastActiveAt = runtime
+      ? Math.max(0, Number(globalState && globalState.relationshipLastActiveAt) || 0)
+      : Math.max(0, Number(s.tokens.lastActiveAt) || 0)
+    if (now > 0 && relationshipLastActiveAt > 0) {
+      const idleDays = Math.max(0, (now - relationshipLastActiveAt) / 86400000)
       if (idleDays > 1) decay = Math.floor((idleDays - 1) * DECAY_PER_DAY)
     }
     if (decay > 0) {
@@ -946,13 +1946,7 @@ export function apply(ctx: any, config: any = {}): void {
       }
       changed = true
     }
-    const delta = tokensObserved - tokensAppliedRuntime
     let gain = 0
-    if (delta > 0) {
-      s.tokens.bank += delta
-      tokensAppliedRuntime = tokensObserved
-      changed = true
-    }
     gain = Math.min(MAX_TOKEN_GAIN, Math.floor(s.tokens.bank / TOKEN_PER_POINT))
     if (gain > 0) {
       // Only redeemed tokens are consumed; any sub-point remainder and any
@@ -961,7 +1955,19 @@ export function apply(ctx: any, config: any = {}): void {
       s.characters[s.current].affection += gain
       changed = true
     }
-    s.tokens.lastActiveAt = now
+    if (runtime) {
+      if (now > 0 && (relationshipLastActiveAt <= 0
+        || now - relationshipLastActiveAt >= RELATIONSHIP_TOUCH_INTERVAL_MS
+        || decay > 0)) {
+        globalState.relationshipLastActiveAt = now
+        // Persist a lightweight relationship heartbeat at most once per
+        // interval, so another workspace cannot later apply the same idle
+        // period while ordinary panel reads still avoid repeated large writes.
+        changed = true
+      }
+    } else {
+      s.tokens.lastActiveAt = now
+    }
     if (decay > 0) {
       const profile = effectiveProfileFor(s.current)
       s.characters[s.current].chatLines.push({
@@ -998,6 +2004,7 @@ export function apply(ctx: any, config: any = {}): void {
         error: null,
       })
       s.cg = { cgId }
+      claimGlobalValue('cg')
       void generateCg(charId, c.level, cgId)
       return true
     }
@@ -1005,7 +2012,7 @@ export function apply(ctx: any, config: any = {}): void {
   }
 
   function view(includeGreeting = true): any {
-    if (!s) s = fresh()
+    ensureState()
     const preferences = ensurePreferences()
     if (preferences.enabled) syncHeroine(includeGreeting)
     const chatSelection = effectiveChatSelectionSync()
@@ -1043,6 +2050,7 @@ export function apply(ctx: any, config: any = {}): void {
       moodSprites: ch.moodSprites === true,
       portrait: ch.portrait === true,
       bg: bgKind,
+      backgroundRevision: backgroundRevisionFor(s.backgroundRevision),
       backgroundMode,
       builtinBackground,
       builtinBackgroundKey: builtinBackground,
@@ -1078,7 +2086,6 @@ export function apply(ctx: any, config: any = {}): void {
         name: ROSTER[cg.charId] ? effectiveProfileFor(cg.charId).displayName : cg.charId,
         level: cg.level,
         status: cg.status,
-        dataUrl: (cg.status === 'ready' && !cg.seen) ? cg.dataUrl : null,
         seen: cg.seen === true,
         savedAsBg: cg.savedAsBg === true,
         error: cg.error || null,
@@ -1091,6 +2098,47 @@ export function apply(ctx: any, config: any = {}): void {
       enabled: false,
       workspaceMismatch: true,
       petEnabled: false,
+    }
+  }
+
+  async function loadModelCatalog(force = false): Promise<{ providers: any[]; rows: any[][] }> {
+    const now = Date.now()
+    if (!force && modelCatalogCache && now - modelCatalogCache.at < MODEL_CATALOG_CACHE_MS) {
+      return { providers: modelCatalogCache.providers, rows: modelCatalogCache.rows }
+    }
+    if (modelCatalogPending) return modelCatalogPending
+
+    const pending = (async () => {
+      const providers: any[] = []
+      try {
+        const live = llm && typeof llm.listProviders === 'function' ? llm.listProviders() : []
+        if (Array.isArray(live)) {
+          for (const provider of live) {
+            if (!provider || typeof provider.id !== 'string' || !provider.id) continue
+            providers.push({
+              id: provider.id,
+              name: typeof provider.name === 'string' && provider.name ? provider.name : provider.id,
+            })
+          }
+        }
+      } catch (err) { /* an unavailable catalog is represented by an empty list */ }
+
+      const settled = await Promise.allSettled(providers.map((provider) => withTimeout(
+        Promise.resolve().then(() => llm.listModels(provider.id)),
+        MODEL_LIST_TIMEOUT_MS,
+        [],
+      )))
+      const rows = settled.map((result) => result.status === 'fulfilled' && Array.isArray(result.value)
+        ? result.value
+        : [])
+      modelCatalogCache = { at: Date.now(), providers, rows }
+      return { providers, rows }
+    })()
+    modelCatalogPending = pending
+    try {
+      return await pending
+    } finally {
+      if (modelCatalogPending === pending) modelCatalogPending = null
     }
   }
 
@@ -1115,45 +2163,20 @@ export function apply(ctx: any, config: any = {}): void {
       if (liveProviders === null || liveProviders.has(String(candidate.provider || ''))) return candidate
     }
     try {
-      if (llm && typeof llm.listProviders === 'function') {
-        const providers = llm.listProviders()
-        if (Array.isArray(providers) && providers.length > 0) {
-          let model: string | null = null
-          try {
-            const models = await llm.listModels(providers[0].id)
-            if (Array.isArray(models) && models.length > 0) model = models[0].id
-          } catch (err2) { /* ignore */ }
-          if (model) return { provider: providers[0].id, model }
-        }
+      const catalog = await loadModelCatalog()
+      if (catalog.providers.length > 0 && catalog.rows[0] && catalog.rows[0].length > 0) {
+        const model = catalog.rows[0].find((row: any) => row && typeof row.id === 'string' && row.id)
+        if (model) return { provider: catalog.providers[0].id, model: model.id }
       }
     } catch (err) { /* ignore */ }
     return null
   }
 
   async function modelOptions(): Promise<any> {
-    const providers: any[] = []
-    try {
-      const live = llm && typeof llm.listProviders === 'function' ? llm.listProviders() : []
-      if (Array.isArray(live)) {
-        for (const provider of live) {
-          if (!provider || typeof provider.id !== 'string' || !provider.id) continue
-          providers.push({
-            id: provider.id,
-            name: typeof provider.name === 'string' && provider.name ? provider.name : provider.id,
-          })
-        }
-      }
-    } catch (err) { /* ignore */ }
-
+    const catalog = await loadModelCatalog()
+    const providers = catalog.providers
     const models: any[] = []
-    const rows = await Promise.all(providers.map(async (provider) => {
-      try {
-        const listed = await llm.listModels(provider.id)
-        return Array.isArray(listed) ? listed : []
-      } catch (err) {
-        return []
-      }
-    }))
+    const rows = catalog.rows
     for (let providerIndex = 0; providerIndex < providers.length; providerIndex++) {
       const provider = providers[providerIndex]
       for (const model of rows[providerIndex]) {
@@ -1276,10 +2299,13 @@ export function apply(ctx: any, config: any = {}): void {
     return validCustomRaster(raw, MAX_CUSTOM_SPRITE_DATA_URL_CHARS)
   }
 
-  async function pickEffort(sel: any): Promise<any> {
+  async function pickEffort(sel: any, signal?: AbortSignal): Promise<any> {
     try {
       if (!llm || !sel || !sel.model || typeof llm.resolveModelInfo !== 'function') return undefined
-      const info = await llm.resolveModelInfo(sel.provider, sel.model)
+      const infoPromise = Promise.resolve(llm.resolveModelInfo(sel.provider, sel.model))
+      const info = signal
+        ? await waitWithAbort(infoPromise, signal, 'model metadata lookup aborted')
+        : await infoPromise
       const efforts = info && info.reasoning && Array.isArray(info.reasoning.efforts) ? info.reasoning.efforts : []
       if (efforts.length === 0) return undefined
       const low = efforts.find((e: any) => /low|minimal|none|light/i.test(String(e && e.id ? e.id : '')))
@@ -1290,18 +2316,69 @@ export function apply(ctx: any, config: any = {}): void {
     }
   }
 
-  async function streamText(options: any): Promise<string> {
+  function abortFailure(signal: AbortSignal, fallback: string): Error {
+    const reason = (signal as any).reason
+    if (reason instanceof Error) return reason
+    return new Error(typeof reason === 'string' && reason ? reason : fallback)
+  }
+
+  function waitWithAbort<T>(promise: Promise<T>, signal: AbortSignal, fallback: string): Promise<T> {
+    if (signal.aborted) return Promise.reject(abortFailure(signal, fallback))
+    return new Promise<T>((resolve, reject) => {
+      let settled = false
+      const finish = (callback: () => void) => {
+        if (settled) return
+        settled = true
+        signal.removeEventListener('abort', onAbort)
+        callback()
+      }
+      const onAbort = () => finish(() => reject(abortFailure(signal, fallback)))
+      signal.addEventListener('abort', onAbort, { once: true })
+      promise.then(
+        (value) => finish(() => resolve(value)),
+        (error) => finish(() => reject(error)),
+      )
+    })
+  }
+
+  async function streamText(options: any, externalSignal?: AbortSignal): Promise<string> {
+    const controller = externalSignal ? null : new AbortController()
+    const signal = externalSignal || controller!.signal
+    const timeout = controller
+      ? setTimeout(() => controller.abort(new Error('model stream timed out after 110 seconds')), MODEL_STREAM_TIMEOUT_MS)
+      : null
     let out = ''
     let finishError: string | null = null
-    for await (const chunk of llm.stream(options)) {
-      if (!chunk) continue
-      if (chunk.type === 'text-delta' && chunk.text) out += chunk.text
-      if (chunk.type === 'finish' && chunk.reason) {
-        const kind = chunk.reason && chunk.reason.kind
-        if (kind === 'error' || kind === 'aborted') {
-          const f = chunk.reason.failure
-          finishError = f && f.message ? f.message : (f && f.code ? f.code : String(kind))
+    let iterator: AsyncIterator<any> | null = null
+    let completed = false
+    try {
+      const iterable = llm.stream({ ...options, signal })
+      iterator = iterable[Symbol.asyncIterator]()
+      while (true) {
+        const next = await waitWithAbort(
+          Promise.resolve(iterator.next()),
+          signal,
+          'model stream aborted',
+        )
+        if (next.done) {
+          completed = true
+          break
         }
+        const chunk = next.value
+        if (!chunk) continue
+        if (chunk.type === 'text-delta' && chunk.text) out += chunk.text
+        if (chunk.type === 'finish' && chunk.reason) {
+          const kind = chunk.reason && chunk.reason.kind
+          if (kind === 'error' || kind === 'aborted') {
+            const f = chunk.reason.failure
+            finishError = f && f.message ? f.message : (f && f.code ? f.code : String(kind))
+          }
+        }
+      }
+    } finally {
+      if (timeout) clearTimeout(timeout)
+      if (!completed && iterator && typeof iterator.return === 'function') {
+        void Promise.resolve(iterator.return()).catch(() => { /* best-effort provider cancellation */ })
       }
     }
     if (finishError) throw new Error('model stream failed: ' + finishError)
@@ -1337,12 +2414,21 @@ export function apply(ctx: any, config: any = {}): void {
 
   const EMOTION_LABELS = ['cheerful', 'shy', 'serious', 'confused', 'angry', 'frightened', 'exasperated', 'starry']
 
-  async function classifyEmotion(text: string): Promise<string> {
+  async function classifyEmotion(text: string, signal?: AbortSignal): Promise<string> {
     if (!llm) return 'normal'
-    const sel = await pickModel()
+    if (signal && signal.aborted) return 'normal'
+    let sel: any = null
+    try {
+      const selection = Promise.resolve(pickModel())
+      sel = signal
+        ? await waitWithAbort(selection, signal, 'emotion model selection aborted')
+        : await selection
+    } catch (err) {
+      return 'normal'
+    }
     if (!sel || !sel.model) return 'normal'
     try {
-      const effort = await pickEffort(sel)
+      const effort = await pickEffort(sel, signal)
       const out = await streamText({
         provider: sel.provider,
         model: sel.model,
@@ -1355,7 +2441,7 @@ export function apply(ctx: any, config: any = {}): void {
         system: '你是情绪分类器。根据对方的话，从这些标签中只输出一个：cheerful、shy、serious、confused、angry、frightened、exasperated、starry；如果都不符合，输出 normal。只输出标签本身，不要任何其他文字。',
         temperature: 0.2,
         maxTokens: 30,
-      })
+      }, signal)
       const label = out.trim().toLowerCase()
       if (EMOTION_LABELS.indexOf(label) >= 0) return label
       return 'normal'
@@ -1365,12 +2451,21 @@ export function apply(ctx: any, config: any = {}): void {
     }
   }
 
-  async function generateChoices(c: any, lastUser: string, lastHeroine: string): Promise<any[]> {
+  async function generateChoices(c: any, lastUser: string, lastHeroine: string, signal?: AbortSignal): Promise<any[]> {
     if (!llm) return fallbackChoicesFor()
-    const sel = await pickModel()
+    if (signal && signal.aborted) return fallbackChoicesFor()
+    let sel: any = null
+    try {
+      const selection = Promise.resolve(pickModel())
+      sel = signal
+        ? await waitWithAbort(selection, signal, 'choice model selection aborted')
+        : await selection
+    } catch (err) {
+      return fallbackChoicesFor()
+    }
     if (!sel || !sel.model) return fallbackChoicesFor()
     try {
-      const effort = await pickEffort(sel)
+      const effort = await pickEffort(sel, signal)
       const out = await streamText({
         provider: sel.provider,
         model: sel.model,
@@ -1383,7 +2478,7 @@ export function apply(ctx: any, config: any = {}): void {
         system: '你是galgame对话选项生成器。只输出含 positive、neutral、negative 三个字符串字段的 JSON 对象；不得解释、不得使用 Markdown。',
         temperature: 0.8,
         maxTokens: 300,
-      })
+      }, signal)
       const m = out.match(/\{[\s\S]*\}/)
       if (m) {
         const parsed = JSON.parse(m[0])
@@ -1412,7 +2507,8 @@ export function apply(ctx: any, config: any = {}): void {
     try {
       const profile = effectiveProfileFor(charId)
       await refreshActivityCache()
-      const theme = activityCache.length > 0 ? activityCgTheme(activityCache[0]) : ''
+      const scopedActivity = globalActivityCandidates()
+      const theme = scopedActivity.length > 0 ? activityCgTheme(scopedActivity[0]) : ''
       const prompt = [
         '精美galgame风格特殊CG插画，横向16:9桌面壁纸构图，唯美光效，高清细节，无文字无边框',
         '角色：' + profile.visual + '，表情幸福温柔',
@@ -1479,16 +2575,233 @@ export function apply(ctx: any, config: any = {}): void {
       record.dataUrl = null
       record.error = err && err.message ? err.message : String(err)
     }
-    try { await save() } catch (err2) { /* ignore */ }
+    const capturedRuntime = splitStorageActive() ? currentWorkspaceRuntime() : null
+    try {
+      await runSerializedStateTask(() => capturedRuntime
+        ? workspaceStateContext.run(capturedRuntime, () => save('global'))
+        : save('both'))
+    } catch (err2) { /* ignore */ }
   }
 
-  async function save(): Promise<void> {
-    if (!fs) throw new Error('whale-galgame file service unavailable')
-    if (!s) throw new Error('whale-galgame state unavailable')
+  function resolveGlobalStorage(): any {
+    if (!globalStorage) {
+      if (typeof dshHomePath !== 'function') throw new Error('whale-galgame DSH home path unavailable')
+      const absolute = dshHomePath(...GLOBAL_SAVE_SEGMENTS)
+      globalStorage = createNativeGlobalStorage(absolute, internals.nativeGlobalIo || DEFAULT_NATIVE_GLOBAL_IO)
+    }
+    return globalStorage
+  }
+
+  async function resolveWorkspaceTarget(runtime: any): Promise<any> {
+    if (!runtime || !runtime.root) return null
+    const target = runtime.target || await fs.resolve(SAVE_NAME, { cwd: runtime.root })
+    runtime.target = target
+    return target
+  }
+
+  function workspaceWriteFenceDenied(err: any): boolean {
+    let current = err
+    for (let depth = 0; current && depth < 5; depth += 1) {
+      const message = String(current.message || current)
+      if (/file access denied under workspace-write mode/i.test(message)) return true
+      current = current.cause
+    }
+    return false
+  }
+
+  function resolveNativeWorkspaceStorage(runtime: any): any {
+    if (!runtime || !runtime.root) {
+      throw nativeGlobalError('WORKSPACE_STORAGE_PATH_INVALID', 'Galgame workspace runtime has no root')
+    }
+    if (runtime.nativeWorkspaceStorage) return runtime.nativeWorkspaceStorage
+    const registeredRoot = registeredWorkspaceRoot(runtime.root)
+    if (!registeredRoot || !sameWorkspace(registeredRoot, runtime.root)) {
+      throw nativeGlobalError(
+        'WORKSPACE_STORAGE_PATH_UNTRUSTED',
+        'Galgame native workspace marker write requires a registered workspace root',
+      )
+    }
+    runtime.nativeWorkspaceStorage = createNativeWorkspaceStorage(
+      registeredRoot,
+      internals.nativeWorkspaceIo || DEFAULT_NATIVE_GLOBAL_IO,
+    )
+    return runtime.nativeWorkspaceStorage
+  }
+
+  async function writeNativeWorkspaceState(runtime: any, content: string): Promise<any> {
+    const storage = resolveNativeWorkspaceStorage(runtime)
+    const info = await storage.stat()
+    const expected: NativeWriteExpectation = info
+      ? { kind: 'replaceIfVersion', version: info.version }
+      : { kind: 'createIfAbsent' }
+    return storage.writeText(content, expected)
+  }
+
+  async function observeWriteTarget(target: any): Promise<{ expected: any; before?: string | null }> {
+    if (fs && typeof fs.stat === 'function') {
+      const info = await fs.stat(target)
+      if (!info) return { expected: { kind: 'createIfAbsent' } }
+      if (info.version !== undefined && info.version !== null) {
+        return { expected: { kind: 'replaceIfVersion', version: info.version } }
+      }
+    }
+    // Compatibility with older DSH file services and the lightweight test
+    // doubles: without versions, retain the small workspace file for rollback.
     try {
+      return { expected: undefined, before: await fs.readText(target) }
+    } catch (err) {
+      if (isMissingFileError(err)) return { expected: undefined, before: null }
+      throw err
+    }
+  }
+
+  async function observeGlobalWrite(): Promise<{ expected: NativeWriteExpectation }> {
+    const info = await resolveGlobalStorage().stat()
+    return info
+      ? { expected: { kind: 'replaceIfVersion', version: info.version } }
+      : { expected: { kind: 'createIfAbsent' } }
+  }
+
+  function writeOutcomeBefore(outcome: any, observation: { before?: string | null }): string | null | undefined {
+    if (outcome && Object.prototype.hasOwnProperty.call(outcome, 'before')) return outcome.before
+    return observation.before
+  }
+
+  function rollbackWorkspaceText(previous: string | null | undefined): string {
+    // The file service has no delete primitive. Replacing a just-created file
+    // with the canonical empty state is semantically equivalent to restoring
+    // its prior absence and remains valid on the next load.
+    return previous === null || previous === undefined
+      ? JSON.stringify(freshWorkspaceState())
+      : previous
+  }
+
+  async function restoreSplitMemoryAfterFailedSave(runtime: any, previousWorkspace?: string | null): Promise<void> {
+    const storage = resolveGlobalStorage()
+    let restoredGlobal: any
+    try {
+      const parsed = JSON.parse(await storage.readText())
+      restoredGlobal = hydrateGlobalState(parsed)
+      if (!restoredGlobal) throw new Error('Galgame 全局存档版本或结构无法识别')
+    } catch (err) {
+      if (!isMissingFileError(err)) throw err
+      restoredGlobal = freshGlobalState()
+    }
+
+    let workspaceText = previousWorkspace
+    if (workspaceText === undefined && runtime && runtime.root) {
+      const workspaceTarget = await resolveWorkspaceTarget(runtime)
+      try {
+        workspaceText = await fs.readText(workspaceTarget)
+      } catch (err) {
+        if (!isMissingFileError(err)) throw err
+        workspaceText = null
+      }
+    }
+    const restoredWorkspace = workspaceText === null || workspaceText === undefined
+      ? freshWorkspaceState()
+      : hydrateWorkspaceState(JSON.parse(workspaceText))
+    if (!restoredWorkspace) throw new Error('Galgame 工作区存档版本或结构无法识别')
+
+    replaceGlobalStateInPlace(restoredGlobal)
+    replaceWorkspaceStateInPlace(runtime, restoredWorkspace)
+  }
+
+  async function writeGlobalState(content = JSON.stringify(globalState), expected?: any): Promise<any> {
+    if (!globalState || !splitStorageActive()) return
+    return resolveGlobalStorage().writeText(content, expected)
+  }
+
+  async function writeWorkspaceState(runtime: any, content = runtime ? JSON.stringify(runtime.state) : '', expected?: any): Promise<any> {
+    if (!fs || !runtime || !runtime.root) return
+    if (runtime.nativeWorkspaceStorage) return writeNativeWorkspaceState(runtime, content)
+    const target = await resolveWorkspaceTarget(runtime)
+    try {
+      return await fs.writeText(target, content, expected)
+    } catch (err) {
+      if (!workspaceWriteFenceDenied(err)) throw err
+      // ctx.fs is correctly refusing to use the launch workspace's write
+      // authority for another registered root. Retry only the fixed marker
+      // basename through the validated native adapter.
+      return writeNativeWorkspaceState(runtime, content)
+    }
+  }
+
+  async function writeSplitStateTransaction(runtime: any): Promise<void> {
+    // A session-less global control has no durable workspace projection. Its
+    // only commit is global, so there is no two-file transaction to perform.
+    if (!runtime || !runtime.root) {
+      await writeGlobalState()
+      return
+    }
+
+    const workspaceTarget = await resolveWorkspaceTarget(runtime)
+    const [workspaceObservation, globalObservation] = await Promise.all([
+      observeWriteTarget(workspaceTarget),
+      observeGlobalWrite(),
+    ])
+    const workspaceContent = JSON.stringify(runtime.state)
+    const globalContent = JSON.stringify(globalState)
+    let workspaceOutcome: any
+
+    try {
+      // Publish the small, workspace-local half first. If this fails, the
+      // large shared asset store has not been touched at all.
+      workspaceOutcome = await writeWorkspaceState(runtime, workspaceContent, workspaceObservation.expected)
+    } catch (primaryError) {
+      try {
+        await restoreSplitMemoryAfterFailedSave(runtime)
+      } catch (restoreError) {
+        throw new AggregateError([primaryError, restoreError], 'Galgame 双存档保存失败，内存状态恢复也失败')
+      }
+      throw primaryError
+    }
+
+    const previousWorkspace = writeOutcomeBefore(workspaceOutcome, workspaceObservation)
+    try {
+      await writeGlobalState(globalContent, globalObservation.expected)
+    } catch (primaryError) {
+      let rollbackError: any = null
+      try {
+        const rollbackExpected = workspaceOutcome && workspaceOutcome.version !== undefined
+          ? { kind: 'replaceIfVersion', version: workspaceOutcome.version }
+          : undefined
+        await fs.writeText(workspaceTarget, rollbackWorkspaceText(previousWorkspace), rollbackExpected)
+      } catch (err) {
+        rollbackError = err
+      }
+      let restoreError: any = null
+      try {
+        await restoreSplitMemoryAfterFailedSave(runtime, previousWorkspace)
+      } catch (err) {
+        restoreError = err
+      }
+      if (rollbackError || restoreError) {
+        throw new AggregateError(
+          [primaryError, rollbackError, restoreError].filter(Boolean),
+          'Galgame 双存档保存失败，补偿回写未能完整恢复',
+        )
+      }
+      throw primaryError
+    }
+  }
+
+  async function save(scope: 'global' | 'workspace' | 'both' = 'both'): Promise<void> {
+    if (!currentStateBacking()) throw new Error('whale-galgame state unavailable')
+    try {
+      if (splitStorageActive()) {
+        // Global v2 owns every mutable game field. The workspace file is only
+        // a migration/source marker and is written by ensureWorkspaceReady().
+        // Preserve the old scope API so action code remains compatible while
+        // ensuring a historical `save('workspace')` cannot lose global chat or
+        // reply choices.
+        await writeGlobalState()
+        return
+      }
+      if (!fs) throw new Error('whale-galgame file service unavailable')
       const root = workspaceRoot()
       const target = await fs.resolve(SAVE_NAME, root ? { cwd: root } : undefined)
-      await fs.writeText(target, JSON.stringify(s), undefined, undefined, resolvePolicy())
+      await fs.writeText(target, JSON.stringify(currentStateBacking()), undefined, undefined)
     } catch (err) {
       console.error('whale-galgame save failed:', err)
       throw err
@@ -1548,7 +2861,427 @@ export function apply(ctx: any, config: any = {}): void {
     return dst
   }
 
+  function hydrateCombinedData(data: any): { state: any; needsSave: boolean } | null {
+    if (!data || typeof data !== 'object' || Array.isArray(data) || !data.characters
+      || typeof data.characters !== 'object' || Array.isArray(data.characters)
+      || !ROSTER_IDS.every((id) => data.characters[id] === undefined
+        || (data.characters[id] && typeof data.characters[id] === 'object' && !Array.isArray(data.characters[id])))) return null
+    const legacyVersion = typeof data.v === 'number' ? data.v : 2
+    if (!Number.isInteger(legacyVersion) || legacyVersion < 2 || legacyVersion > SAVE_VERSION) return null
+    let needsSave = legacyVersion !== SAVE_VERSION
+    const state = fresh()
+    state.backgroundRevision = backgroundRevisionFor(data.backgroundRevision)
+    if (!validBackgroundRevision(data.backgroundRevision)) needsSave = true
+    state.current = ROSTER[data.current] ? data.current : 'deepseek'
+    state.lastCurrent = ROSTER[data.lastCurrent] ? data.lastCurrent : state.current
+    for (const id of ROSTER_IDS) {
+      state.characters[id] = hydrateCharacter(data.characters[id], legacyVersion, id)
+      const storedOverrides = data.characters[id] && typeof data.characters[id] === 'object'
+        ? data.characters[id].profileOverrides
+        : undefined
+      if (JSON.stringify(storedOverrides || {}) !== JSON.stringify(state.characters[id].profileOverrides)) {
+        needsSave = true
+      }
+      for (const cg of state.characters[id].cgs) cg.charId = id
+    }
+    if (data.tokens && typeof data.tokens.bank === 'number') state.tokens.bank = Math.max(0, data.tokens.bank)
+    if (data.tokens && typeof data.tokens.lastActiveAt === 'number') state.tokens.lastActiveAt = data.tokens.lastActiveAt
+    if (data.preferences && typeof data.preferences === 'object') {
+      state.preferences = normalizePreferences({ ...state.preferences, ...data.preferences })
+      if (typeof state.preferences.customBgName === 'string') {
+        state.preferences.customBgName = state.preferences.customBgName.slice(0, 180)
+      }
+    } else {
+      state.preferences = normalizePreferences(state.preferences)
+    }
+    if (!data.preferences
+      || typeof data.preferences.enabled !== 'boolean'
+      || typeof data.preferences.characterMode !== 'string'
+      || typeof data.preferences.chatMode !== 'string') needsSave = true
+    state.modelOnline = data.modelOnline === true
+    state.characterModelLabel = typeof data.characterModelLabel === 'string'
+      ? data.characterModelLabel
+      : typeof data.modelLabel === 'string' ? data.modelLabel : ''
+    state.chatModelLabel = typeof data.chatModelLabel === 'string'
+      ? data.chatModelLabel
+      : typeof data.lastModel === 'string' ? data.lastModel : ''
+    state.modelLabel = state.characterModelLabel
+    state.lastModel = state.chatModelLabel
+    state.fallbackUsed = data.fallbackUsed === true
+    state.fallbackReason = typeof data.fallbackReason === 'string' ? data.fallbackReason : ''
+
+    const findInState = (cgId: string): any => {
+      for (const id of ROSTER_IDS) {
+        const match = state.characters[id].cgs.find((cg: any) => cg && cg.id === cgId)
+        if (match) return match
+      }
+      return null
+    }
+    const allInState = (): any[] => ROSTER_IDS.flatMap((id) => state.characters[id].cgs)
+    if (data.cg && typeof data.cg === 'object' && typeof data.cg.cgId === 'string') {
+      if (findInState(data.cg.cgId)) state.cg = { cgId: data.cg.cgId }
+    } else if (data.cg && typeof data.cg === 'object') {
+      const charId = ROSTER[data.cg.charId] ? data.cg.charId : 'deepseek'
+      const legacyCg = normalizeCg(data.cg, charId, state.characters[charId].cgs.length)
+      if (legacyCg) {
+        if (!legacyCg.level) legacyCg.level = state.characters[charId].level
+        if (!state.characters[charId].cgs.some((cg: any) => cg.id === legacyCg.id)) {
+          state.characters[charId].cgs.push(legacyCg)
+        }
+        state.cg = { cgId: legacyCg.id }
+      }
+    }
+    if (typeof data.bg === 'string') {
+      if (data.bg.startsWith('cg:') && findInState(data.bg.slice(3))) {
+        state.bg = data.bg
+      } else if (data.bg.startsWith('data:')) {
+        const matching = allInState().find((cg: any) => cg.dataUrl === data.bg)
+        state.bg = matching ? 'cg:' + matching.id : validCustomBackground(data.bg)
+      }
+    }
+    for (const cg of allInState()) {
+      const safePrompt = sanitizeStoredCgPrompt(cg.prompt)
+      if (safePrompt !== cg.prompt) {
+        cg.prompt = safePrompt
+        needsSave = true
+      }
+      if (cg.status === 'generating') {
+        cg.status = 'failed'
+        cg.error = '生成被重启打断，请重新触发'
+        needsSave = true
+      }
+    }
+    return { state, needsSave }
+  }
+
+  function globalStateFromCombined(combined: any): any {
+    const next = freshGlobalState()
+    next.current = ROSTER[combined.current] ? combined.current : 'deepseek'
+    next.lastCurrent = ROSTER[combined.lastCurrent] ? combined.lastCurrent : next.current
+    for (const id of ROSTER_IDS) {
+      const source = combined.characters[id]
+      next.characters[id] = hydrateCharacter(source, SAVE_VERSION, id)
+    }
+    next.tokens = normalizeGlobalTokens(combined.tokens)
+    next.bg = combined.bg
+    next.backgroundRevision = backgroundRevisionFor(combined.backgroundRevision)
+    next.cg = combined.cg
+    next.relationshipLastActiveAt = Math.max(
+      0,
+      Number(combined.relationshipLastActiveAt) || 0,
+      Number(combined.tokens && combined.tokens.lastActiveAt) || 0,
+    )
+    next.activityFeed = normalizeActivityFeed(combined.activityFeed)
+    next.preferences = normalizePreferences({ ...combined.preferences })
+    next.modelOnline = combined.modelOnline === true
+    next.characterModelLabel = typeof combined.characterModelLabel === 'string' ? combined.characterModelLabel : ''
+    next.chatModelLabel = typeof combined.chatModelLabel === 'string' ? combined.chatModelLabel : ''
+    next.modelLabel = next.characterModelLabel
+    next.lastModel = next.chatModelLabel
+    next.fallbackUsed = combined.fallbackUsed === true
+    next.fallbackReason = typeof combined.fallbackReason === 'string' ? combined.fallbackReason : ''
+    return next
+  }
+
+  function workspaceStateFromCombined(_combined: any, workspaceKey = ''): any {
+    const next = freshWorkspaceState(workspaceKey)
+    next.source.migratedAt = Date.now()
+    return next
+  }
+
+  function hydrateGlobalState(data: any): any | null {
+    const version = data && data.v
+    if (!data || data.kind !== GLOBAL_SAVE_KIND
+      || (version !== LEGACY_GLOBAL_SAVE_VERSION && version !== GLOBAL_SAVE_VERSION)
+      || !data.characters || typeof data.characters !== 'object'
+      || !ROSTER_IDS.every((id) => data.characters[id] && typeof data.characters[id] === 'object')
+      || !data.preferences || typeof data.preferences !== 'object'
+      || !ROSTER_IDS.every((id) => {
+        const character = data.characters[id]
+        return typeof character.affection === 'number'
+          && typeof character.level === 'number'
+          && Array.isArray(character.cgs)
+          && character.customSprite && typeof character.customSprite === 'object'
+          && character.profileOverrides && typeof character.profileOverrides === 'object'
+      })
+      || !(data.bg === null || data.bg === undefined || typeof data.bg === 'string')
+      || !(data.cg === null || data.cg === undefined || typeof data.cg === 'object')) return null
+    if (version === GLOBAL_SAVE_VERSION && (
+      !ROSTER_IDS.every((id) => Array.isArray(data.characters[id].log)
+        && Array.isArray(data.characters[id].chatLines)
+        && Array.isArray(data.characters[id].choices)
+        && data.characters[id].activity && typeof data.characters[id].activity === 'object')
+      || !data.tokens || typeof data.tokens !== 'object' || typeof data.tokens.bank !== 'number'
+      || !Array.isArray(data.tokens.seenUsage)
+      || !Array.isArray(data.activityFeed)
+    )) return null
+    const combined = fresh()
+    combined.current = ROSTER[data.current] ? data.current : 'deepseek'
+    combined.lastCurrent = ROSTER[data.lastCurrent] ? data.lastCurrent : combined.current
+    for (const id of ROSTER_IDS) {
+      combined.characters[id] = hydrateCharacter(data.characters[id], SAVE_VERSION, id)
+      for (const cg of combined.characters[id].cgs) {
+        cg.charId = id
+        cg.prompt = sanitizeStoredCgPrompt(cg.prompt)
+        if (cg.status === 'generating') {
+          cg.status = 'failed'
+          cg.error = '生成被重启打断，请重新触发'
+        }
+      }
+    }
+    combined.preferences = normalizePreferences({ ...combined.preferences, ...(data.preferences || {}) })
+    combined.tokens = version === GLOBAL_SAVE_VERSION
+      ? normalizeGlobalTokens(data.tokens)
+      : normalizeGlobalTokens(null)
+    combined.bg = typeof data.bg === 'string' ? data.bg : null
+    combined.backgroundRevision = validBackgroundRevision(data.backgroundRevision)
+      ? data.backgroundRevision
+      : 1
+    combined.cg = data.cg && typeof data.cg === 'object' && typeof data.cg.cgId === 'string'
+      ? { cgId: data.cg.cgId }
+      : null
+    combined.activityFeed = version === GLOBAL_SAVE_VERSION ? normalizeActivityFeed(data.activityFeed) : []
+    combined.modelOnline = data.modelOnline === true
+    combined.characterModelLabel = typeof data.characterModelLabel === 'string' ? data.characterModelLabel : ''
+    combined.chatModelLabel = typeof data.chatModelLabel === 'string' ? data.chatModelLabel : ''
+    combined.fallbackUsed = data.fallbackUsed === true
+    combined.fallbackReason = typeof data.fallbackReason === 'string' ? data.fallbackReason : ''
+    const next = globalStateFromCombined(combined)
+    next.relationshipLastActiveAt = Math.max(0, Number(data.relationshipLastActiveAt) || 0)
+    next.migration = normalizeGlobalMigration(data.migration, next)
+    return next
+  }
+
+  function hydrateWorkspaceState(data: any): any | null {
+    if (!data || data.kind !== WORKSPACE_SAVE_KIND || data.v !== WORKSPACE_SAVE_VERSION
+      || !data.source || typeof data.source !== 'object'
+      || typeof data.source.workspaceKey !== 'string'
+      || !Number.isFinite(data.source.migratedAt)) return null
+    const next = freshWorkspaceState(data.source.workspaceKey)
+    next.source.migratedAt = Math.max(0, Math.floor(data.source.migratedAt))
+    return next
+  }
+
+  function hydrateLegacyWorkspaceState(data: any): any | null {
+    if (!data || data.kind !== WORKSPACE_SAVE_KIND || data.v !== LEGACY_WORKSPACE_SAVE_VERSION
+      || !data.characters || typeof data.characters !== 'object'
+      || !ROSTER_IDS.every((id) => {
+        const character = data.characters[id]
+        return character && typeof character === 'object'
+          && Array.isArray(character.log)
+          && Array.isArray(character.chatLines)
+          && Array.isArray(character.choices)
+          && character.activity && typeof character.activity === 'object'
+      })
+      || !data.tokens || typeof data.tokens !== 'object' || typeof data.tokens.bank !== 'number') return null
+    const next = fresh()
+    next.current = ROSTER[data.current] ? data.current : 'deepseek'
+    next.lastCurrent = ROSTER[data.lastCurrent] ? data.lastCurrent : next.current
+    if (data.tokens && typeof data.tokens.bank === 'number') next.tokens.bank = Math.max(0, data.tokens.bank)
+    for (const id of ROSTER_IDS) {
+      const hydrated = hydrateCharacter(data.characters[id], SAVE_VERSION, id)
+      next.characters[id] = hydrated
+    }
+    next.modelOnline = data.modelOnline === true
+    next.characterModelLabel = typeof data.characterModelLabel === 'string' ? data.characterModelLabel : ''
+    next.chatModelLabel = typeof data.chatModelLabel === 'string' ? data.chatModelLabel : ''
+    next.modelLabel = next.characterModelLabel
+    next.lastModel = next.chatModelLabel
+    next.fallbackUsed = data.fallbackUsed === true
+    next.fallbackReason = typeof data.fallbackReason === 'string' ? data.fallbackReason : ''
+    return next
+  }
+
+  function workspaceImportKey(root: string): string {
+    const input = normalizedWorkspacePath(root)
+    let hash = 2166136261
+    for (let index = 0; index < input.length; index++) {
+      hash ^= input.charCodeAt(index)
+      hash = Math.imul(hash, 16777619)
+    }
+    return 'ws-' + (hash >>> 0).toString(16).padStart(8, '0')
+  }
+
+  function relationshipScore(character: any): number {
+    const level = Math.max(1, Math.floor(Number(character && character.level) || 1))
+    let score = Math.max(0, Number(character && character.affection) || 0)
+    for (let current = 1; current < level; current++) score += affectionCap(current)
+    return score
+  }
+
+  function mergeLegacyGlobal(combined: any, importKey: string): void {
+    const migration = ensureGlobalMigrationState()
+    const cgIdMap = new Map<string, string>()
+    let backgroundChanged = false
+    const profileClaims: Record<string, string[]> = migration.claims.profiles || {}
+    const spriteClaims = new Set<string>(migration.claims.sprites || [])
+    for (const id of ROSTER_IDS) {
+      const source = combined.characters[id]
+      const target = globalState.characters[id]
+      if (!migration.claims.relationshipReset && relationshipScore(source) > relationshipScore(target)) {
+        target.level = source.level
+        target.affection = source.affection
+      }
+      const targetOverrides = normalizeProfileOverrides(target.profileOverrides)
+      const sourceOverrides = normalizeProfileOverrides(source.profileOverrides)
+      const claimedProfileFields = new Set<string>(profileClaims[id] || [])
+      const nextOverrides = { ...targetOverrides }
+      for (const field of PROFILE_FIELDS) {
+        if (Object.prototype.hasOwnProperty.call(targetOverrides, field)) claimedProfileFields.add(field)
+        if (claimedProfileFields.has(field) || !Object.prototype.hasOwnProperty.call(sourceOverrides, field)) continue
+        nextOverrides[field] = sourceOverrides[field]
+        claimedProfileFields.add(field)
+      }
+      target.profileOverrides = nextOverrides
+      profileClaims[id] = Array.from(claimedProfileFields)
+      const sourceSprite = customSpriteFor(source)
+      const targetSprite = customSpriteFor(target)
+      // Sprite revisions were generated independently inside each old
+      // workspace and therefore cannot be ordered across workspaces. An
+      // established global sprite always wins; legacy art only fills a blank.
+      if (!spriteClaims.has(id) && spriteRevisionFor(target) <= 0
+        && sourceSprite && sourceSprite.dataUrl && (!targetSprite || !targetSprite.dataUrl)) {
+        target.customSprite = sourceSprite
+        spriteClaims.add(id)
+      }
+      if (!target.chosenBuiltinBackground && source.chosenBuiltinBackground) {
+        target.chosenBuiltinBackground = source.chosenBuiltinBackground
+        backgroundChanged = true
+      }
+      const existingIds = new Set(target.cgs.map((cg: any) => cg.id))
+      for (const sourceCg of source.cgs) {
+        let nextCg = sourceCg
+        if (existingIds.has(sourceCg.id)) {
+          const existing = target.cgs.find((cg: any) => cg.id === sourceCg.id)
+          if (existing && existing.dataUrl === sourceCg.dataUrl) {
+            existing.seen = existing.seen === true || sourceCg.seen === true
+            cgIdMap.set(sourceCg.id, existing.id)
+            continue
+          }
+          nextCg = { ...sourceCg, id: sourceCg.id + '-' + importKey }
+        }
+        existingIds.add(nextCg.id)
+        target.cgs.push(nextCg)
+        cgIdMap.set(sourceCg.id, nextCg.id)
+      }
+    }
+
+    migration.claims.profiles = profileClaims
+    migration.claims.sprites = Array.from(spriteClaims)
+
+    const preferenceClaims = new Set<string>(migration.claims.preferences)
+    const legacyPreferences = combined.preferences && typeof combined.preferences === 'object'
+      ? combined.preferences
+      : {}
+    for (const field of GLOBAL_PREFERENCE_FIELDS) {
+      if (preferenceClaims.has(field) || !Object.prototype.hasOwnProperty.call(legacyPreferences, field)) continue
+      globalState.preferences[field] = legacyPreferences[field]
+      preferenceClaims.add(field)
+    }
+    globalState.preferences = normalizePreferences(globalState.preferences)
+    migration.claims.preferences = Array.from(preferenceClaims)
+
+    const mappedLegacyCgId = combined.cg && typeof combined.cg.cgId === 'string'
+      ? (cgIdMap.get(combined.cg.cgId) || combined.cg.cgId)
+      : ''
+    if (!migration.claims.cg && !globalState.cg && mappedLegacyCgId && findGlobalCg(mappedLegacyCgId)) {
+      globalState.cg = { cgId: mappedLegacyCgId }
+      migration.claims.cg = true
+    }
+    let legacyBg = typeof combined.bg === 'string' ? combined.bg : null
+    if (legacyBg && legacyBg.startsWith('cg:')) {
+      const sourceId = legacyBg.slice(3)
+      const mappedId = cgIdMap.get(sourceId) || sourceId
+      legacyBg = findGlobalCg(mappedId) ? 'cg:' + mappedId : null
+    }
+    if (!migration.claims.bg && !globalState.bg && legacyBg) {
+      globalState.bg = legacyBg
+      migration.claims.bg = true
+      backgroundChanged = true
+    }
+    if (backgroundChanged) {
+      const importedRevision = backgroundRevisionFor(combined.backgroundRevision)
+      const baseline = Math.max(backgroundRevisionFor(globalState.backgroundRevision), importedRevision)
+      globalState.backgroundRevision = nextBackgroundRevision(baseline)
+    }
+    globalState.relationshipLastActiveAt = Math.max(
+      0,
+      Number(globalState.relationshipLastActiveAt) || 0,
+      Number(combined.tokens && combined.tokens.lastActiveAt) || 0,
+    )
+    if (!migration.imports.includes(importKey)) migration.imports.push(importKey)
+  }
+
+  function conversationEntryKey(value: any): string {
+    if (!value || typeof value !== 'object') return JSON.stringify(value)
+    const copy: any = {}
+    for (const key of Object.keys(value).sort()) copy[key] = value[key]
+    return JSON.stringify(copy)
+  }
+
+  function mergeConversationSequence(target: any[], source: any[], limit = 0): any[] {
+    const left = Array.isArray(target) ? target : []
+    const right = Array.isArray(source) ? source : []
+    let commonPrefix = 0
+    while (commonPrefix < left.length && commonPrefix < right.length
+      && conversationEntryKey(left[commonPrefix]) === conversationEntryKey(right[commonPrefix])) {
+      commonPrefix += 1
+    }
+    const merged = commonPrefix === right.length
+      ? left.slice()
+      : [...left, ...right.slice(commonPrefix)]
+    return limit > 0 && merged.length > limit ? merged.slice(-limit) : merged
+  }
+
+  function mergeLegacyContext(combined: any, importKey: string): boolean {
+    const migration = ensureGlobalMigrationState()
+    if (!migration || migration.contextImports.includes(importKey)) return false
+    const firstContext = migration.contextImports.length === 0
+    if (firstContext) {
+      globalState.current = ROSTER[combined.current] ? combined.current : globalState.current
+      globalState.lastCurrent = ROSTER[combined.lastCurrent] ? combined.lastCurrent : globalState.current
+      globalState.modelOnline = combined.modelOnline === true
+      globalState.characterModelLabel = typeof combined.characterModelLabel === 'string' ? combined.characterModelLabel : ''
+      globalState.chatModelLabel = typeof combined.chatModelLabel === 'string' ? combined.chatModelLabel : ''
+      globalState.modelLabel = globalState.characterModelLabel
+      globalState.lastModel = globalState.chatModelLabel
+      globalState.fallbackUsed = combined.fallbackUsed === true
+      globalState.fallbackReason = typeof combined.fallbackReason === 'string' ? combined.fallbackReason : ''
+    }
+    globalState.tokens = normalizeGlobalTokens(globalState.tokens)
+    const importedBank = combined.tokens && typeof combined.tokens.bank === 'number'
+      ? Math.max(0, combined.tokens.bank)
+      : 0
+    globalState.tokens.bank += importedBank
+    for (const id of ROSTER_IDS) {
+      const source = combined.characters && combined.characters[id]
+      const target = globalState.characters && globalState.characters[id]
+      if (!source || !target) continue
+      target.log = mergeConversationSequence(target.log, source.log, 24)
+      target.chatLines = mergeConversationSequence(target.chatLines, source.chatLines)
+      if ((!Array.isArray(target.choices) || target.choices.length === 0)
+        && Array.isArray(source.choices) && source.choices.length > 0) {
+        target.choices = source.choices
+          .slice(0, 3)
+          .map((choice: any, index: number) => normalizeChoice(choice, index))
+          .filter(Boolean)
+      }
+      const targetActivity = normalizeActivityMemory(target.activity)
+      const sourceActivity = normalizeActivityMemory(source.activity)
+      target.activity = {
+        seen: Array.from(new Set([...targetActivity.seen, ...sourceActivity.seen])).slice(-256),
+        lastMentionedAt: Math.max(targetActivity.lastMentionedAt, sourceActivity.lastMentionedAt),
+      }
+    }
+    migration.contextImports.push(importKey)
+    return true
+  }
+
   async function load(): Promise<string | null> {
+    if (splitStorageActive()) {
+      await ensureGlobalReady()
+      return null
+    }
     if (!fs) return null
     try {
       const root = workspaceRoot()
@@ -1558,7 +3291,11 @@ export function apply(ctx: any, config: any = {}): void {
       if (!data || !data.characters) return null
       const legacyVersion = typeof data.v === 'number' ? data.v : 2
       let needsSave = legacyVersion !== SAVE_VERSION
-      s = fresh()
+      legacyState = fresh()
+      s.backgroundRevision = validBackgroundRevision(data.backgroundRevision)
+        ? data.backgroundRevision
+        : 1
+      if (!validBackgroundRevision(data.backgroundRevision)) needsSave = true
       s.current = ROSTER[data.current] ? data.current : 'deepseek'
       s.lastCurrent = ROSTER[data.lastCurrent] ? data.lastCurrent : s.current
       for (const id of ROSTER_IDS) {
@@ -1647,18 +3384,204 @@ export function apply(ctx: any, config: any = {}): void {
     } catch (err) { return null }
   }
 
+  function isMissingFileError(err: any): boolean {
+    let current = err
+    for (let depth = 0; current && depth < 5; depth += 1) {
+      const code = String(current.code || '').toUpperCase()
+      if (code === 'ENOENT' || code === 'ENOTDIR'
+        || code === 'FS_NOT_FOUND' || code === 'FS_NOT_DIRECTORY') return true
+      current = current.cause
+    }
+    const message = String(err && err.message || err || '')
+    return /\bENOENT\b|\bENOTDIR\b|(?:cannot (?:read|stat|resolve) .*:\s*)?not found\b|找不到指定的文件/i.test(message)
+  }
+
+  async function readOptionalSaveText(target: any): Promise<string | null> {
+    if (!fs) throw new Error('whale-galgame file service unavailable')
+    if (typeof fs.stat === 'function') {
+      try {
+        const info = await fs.stat(target)
+        if (!info) return null
+      } catch (err) {
+        if (isMissingFileError(err)) return null
+        throw err
+      }
+    }
+    try {
+      return await fs.readText(target)
+    } catch (err) {
+      if (isMissingFileError(err)) return null
+      throw err
+    }
+  }
+
+  async function ensureGlobalReady(): Promise<void> {
+    if (!splitStorageActive()) return
+    if (globalReadyError) throw globalReadyError
+    if (!globalReadyPromise) {
+      globalReadyPromise = (async () => {
+        let storage: any
+        try {
+          storage = resolveGlobalStorage()
+        } catch (err) {
+          throw new Error('Galgame 全局存档路径解析失败；为避免覆盖原文件，已停止加载。', { cause: err })
+        }
+        let text: string | null
+        try {
+          const info = await storage.stat()
+          text = info ? await storage.readText() : null
+        } catch (err) {
+          throw new Error('Galgame 全局存档读取失败；为避免覆盖原文件，已停止加载。', { cause: err })
+        }
+        if (text === null) {
+          globalState = freshGlobalState()
+          return
+        }
+        let parsed: any
+        try {
+          parsed = JSON.parse(text)
+        } catch (err) {
+          throw new Error('Galgame 全局存档 JSON 已损坏；为避免覆盖原文件，已停止加载。', { cause: err })
+        }
+        const hydrated = hydrateGlobalState(parsed)
+        if (!hydrated) {
+          throw new Error('Galgame 全局存档版本或结构无法识别；为避免覆盖原文件，已停止加载。')
+        }
+        globalState = hydrated
+        if (parsed.v !== GLOBAL_SAVE_VERSION || !validBackgroundRevision(parsed.backgroundRevision)) {
+          // Global v2 moves the complete game timeline and token ledger into
+          // one durable save. Persist the in-memory upgrade before any
+          // workspace projection is rewritten.
+          await writeGlobalState()
+        }
+      })().catch((err) => {
+        // Fatal load errors stay latched for this plugin lifetime. Retrying a
+        // corrupt/unknown file as a fresh install could overwrite evidence.
+        globalReadyError = err
+        throw err
+      })
+    }
+    await globalReadyPromise
+  }
+
+  async function ensureWorkspaceReady(root: string, key: string): Promise<any> {
+    await ensureGlobalReady()
+    const existing = workspaceRuntimes.get(key)
+    if (existing) {
+      if (existing.readyPromise) await existing.readyPromise
+      return existing
+    }
+    const runtime = makeWorkspaceRuntime(root, key)
+    workspaceRuntimes.set(key, runtime)
+    runtime.readyPromise = (async () => {
+      if (!root || !fs) return
+      let target: any
+      try {
+        target = await fs.resolve(SAVE_NAME, { cwd: root })
+      } catch (err) {
+        if (isMissingFileError(err)) return
+        throw new Error('Galgame 工作区存档路径解析失败；此次请求未修改任何存档。', { cause: err })
+      }
+      runtime.target = target
+      let text: string | null
+      try {
+        text = await readOptionalSaveText(target)
+      } catch (err) {
+        throw new Error('Galgame 工作区存档读取失败；此次请求未修改任何存档。', { cause: err })
+      }
+      if (text === null) return
+      let data: any
+      try {
+        data = JSON.parse(text)
+      } catch (err) {
+        throw new Error('Galgame 工作区存档 JSON 已损坏；此次请求未修改任何存档。', { cause: err })
+      }
+      if (!data || typeof data !== 'object' || Array.isArray(data)) {
+        throw new Error('Galgame 工作区存档结构无法识别；此次请求未修改任何存档。')
+      }
+      if (Object.prototype.hasOwnProperty.call(data, 'kind')) {
+        if (data.kind !== WORKSPACE_SAVE_KIND
+          || (data.v !== LEGACY_WORKSPACE_SAVE_VERSION && data.v !== WORKSPACE_SAVE_VERSION)) {
+          throw new Error('Galgame 工作区存档 kind 或版本无法识别；此次请求未修改任何存档。')
+        }
+        if (data.v === WORKSPACE_SAVE_VERSION) {
+          const local = hydrateWorkspaceState(data)
+          if (!local) {
+            throw new Error('Galgame 工作区存档结构无法识别；此次请求未修改任何存档。')
+          }
+          runtime.state = local
+          runtime.facade = composeState(globalState, local)
+          return
+        }
+        const legacyLocal = hydrateLegacyWorkspaceState(data)
+        if (!legacyLocal) {
+          throw new Error('Galgame 工作区存档结构无法识别；此次请求未修改任何存档。')
+        }
+        const importKey = workspaceImportKey(root)
+        await runSerializedStateTask(async () => {
+          const rollback = JSON.parse(JSON.stringify(globalState))
+          try {
+            if (mergeLegacyContext(legacyLocal, importKey)) await writeGlobalState()
+          } catch (err) {
+            replaceGlobalStateInPlace(rollback)
+            throw err
+          }
+        })
+        runtime.state = workspaceStateFromCombined(legacyLocal, importKey)
+        runtime.facade = composeState(globalState, runtime.state)
+        await writeWorkspaceState(runtime)
+        return
+      }
+      const legacy = hydrateCombinedData(data)
+      if (!legacy) {
+        throw new Error('Galgame 旧版工作区存档版本或结构无法识别；此次请求未修改任何存档。')
+      }
+      const importKey = workspaceImportKey(root)
+      await runSerializedStateTask(async () => {
+        const migration = ensureGlobalMigrationState()
+        const needsAssets = !migration.imports.includes(importKey)
+        const needsContext = !migration.contextImports.includes(importKey)
+        if (!needsAssets && !needsContext) return
+        const rollback = JSON.parse(JSON.stringify(globalState))
+        try {
+          if (needsAssets) {
+            mergeLegacyGlobal(legacy.state, importKey)
+          }
+          if (needsContext) mergeLegacyContext(legacy.state, importKey)
+          // Commit the complete global game before replacing the only legacy
+          // copy. Both import markers make a retry idempotent.
+          await writeGlobalState()
+        } catch (err) {
+          replaceGlobalStateInPlace(rollback)
+          throw err
+        }
+      })
+      runtime.state = workspaceStateFromCombined(legacy.state, importKey)
+      runtime.facade = composeState(globalState, runtime.state)
+      await writeWorkspaceState(runtime)
+    })().catch((err: any) => {
+      workspaceRuntimes.delete(key)
+      throw err
+    }).finally(() => {
+      runtime.readyPromise = null
+    })
+    await runtime.readyPromise
+    return runtime
+  }
+
   let readyPromise: Promise<void> | null = null
 
   function ensureReady(): Promise<void> {
+    if (splitStorageActive()) return ensureGlobalReady()
     if (!readyPromise) {
       readyPromise = (async () => {
         for (let i = 0; i < 60 && !fs; i++) {
           await new Promise((r) => setTimeout(r, 100))
         }
         await load()
-        if (!s) s = fresh()
+        ensureState()
         const sel = await pickModel()
-        if (s) {
+        if (currentStateBacking()) {
           s.modelOnline = !!sel
           s.chatModelLabel = sel ? String(sel.model) : ''
           s.lastModel = s.chatModelLabel
@@ -1682,7 +3605,60 @@ export function apply(ctx: any, config: any = {}): void {
     }
   }
 
+  async function runSerializedChatTask<T>(runtime: any, task: () => Promise<T>): Promise<T> {
+    // Global v2 has one story timeline, so chats from two workspace panels
+    // must enter one queue. Provider work may be slow, but interleaving two
+    // commits would otherwise attach replies and choices to the wrong turn.
+    const globalQueue = splitStorageActive()
+    const previous = globalQueue ? legacyChatMutex : runtime ? runtime.chatMutex : legacyChatMutex
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => { release = resolve })
+    const next = previous.catch(() => { /* keep the workspace chat queue alive */ }).then(() => gate)
+    if (globalQueue || !runtime) legacyChatMutex = next
+    else runtime.chatMutex = next
+    await previous.catch(() => { /* the prior chat returned its own error */ })
+    try {
+      return await task()
+    } finally {
+      release()
+    }
+  }
+
   function scheduleViewMaintenance(persistHint = false): void {
+    const runtime = splitStorageActive() ? currentWorkspaceRuntime() : null
+    if (runtime) {
+      runtime.viewMaintenanceNeedsSave = runtime.viewMaintenanceNeedsSave || persistHint
+      scheduleActivityWarmup(0)
+      if (runtime.viewMaintenancePromise) return
+      const capturedRuntime = runtime
+      const work = new Promise<void>((resolve) => setTimeout(resolve, 0)).then(() => runSerializedStateTask(
+        () => workspaceStateContext.run(capturedRuntime, async () => {
+          let shouldSaveWorkspace = capturedRuntime.viewMaintenanceNeedsSave
+          capturedRuntime.viewMaintenanceNeedsSave = false
+          const actualSelection = await pickModel()
+          if (currentStateBacking()) {
+            s.modelOnline = !!actualSelection
+            s.chatModelLabel = actualSelection && actualSelection.model ? String(actualSelection.model) : ''
+            s.lastModel = s.chatModelLabel
+          }
+          const heroineChanged = syncHeroine()
+          const settled = settle()
+          const leveled = !!(s && checkLevelUp(s.current, s.characters[s.current]))
+          shouldSaveWorkspace = shouldSaveWorkspace || heroineChanged
+          if (settled.changed || leveled) await save('both')
+          else if (shouldSaveWorkspace) await save('workspace')
+        }),
+      )).catch((err) => {
+        console.warn('whale-galgame background maintenance failed:', err)
+      }).finally(() => {
+        capturedRuntime.viewMaintenancePromise = null
+        if (capturedRuntime.viewMaintenanceNeedsSave) {
+          workspaceStateContext.run(capturedRuntime, () => scheduleViewMaintenance(false))
+        }
+      })
+      runtime.viewMaintenancePromise = work
+      return
+    }
     viewMaintenanceNeedsSave = viewMaintenanceNeedsSave || persistHint
     scheduleActivityWarmup(0)
     if (viewMaintenancePromise) return
@@ -1692,7 +3668,7 @@ export function apply(ctx: any, config: any = {}): void {
       let shouldSave = viewMaintenanceNeedsSave
       viewMaintenanceNeedsSave = false
       const actualSelection = await pickModel()
-      if (s) {
+      if (currentStateBacking()) {
         s.modelOnline = !!actualSelection
         s.chatModelLabel = actualSelection && actualSelection.model ? String(actualSelection.model) : ''
         s.lastModel = s.chatModelLabel
@@ -1711,11 +3687,13 @@ export function apply(ctx: any, config: any = {}): void {
   }
 
   async function dispatchAction(action: string, args: any): Promise<any> {
-    await ensureReady().catch(() => { /* ignore */ })
+    await ensureReady()
     const hasSessionId = !!(args && typeof args.sessionId === 'string' && args.sessionId.trim())
-    const binding = await bindActivitySession(args && args.sessionId)
-      .catch(() => hasSessionId ? 'mismatch' as const : 'unscoped' as const)
-    if (binding === 'mismatch') return workspaceMismatchView()
+    const binding = splitStorageActive()
+      ? await bindActivitySession(args && args.sessionId)
+      : await bindActivitySession(args && args.sessionId)
+        .catch(() => hasSessionId ? 'mismatch' as const : 'unscoped' as const)
+    if (!splitStorageActive() && binding === 'mismatch') return workspaceMismatchView()
     switch (action) {
       case 'model-options': {
         return modelOptions()
@@ -1724,7 +3702,7 @@ export function apply(ctx: any, config: any = {}): void {
         return settingsSnapshot()
       }
       case 'settings-set': {
-        if (!s) s = fresh()
+        ensureState()
         const p = ensurePreferences()
         const originalPreferences = { ...p }
         const input = args && args.settings && typeof args.settings === 'object'
@@ -1827,23 +3805,38 @@ export function apply(ctx: any, config: any = {}): void {
           return { ok: false, errors, settings: settingsSnapshot(), view: view() }
         }
 
+        const claimedPreferenceFields = new Set<string>()
+        if (has('enabled')) claimedPreferenceFields.add('enabled')
+        if (has('petEnabled')) claimedPreferenceFields.add('petEnabled')
+        if (has('characterMode')) claimedPreferenceFields.add('characterMode')
+        if (has('characterId') || (input.characterSelection && typeof input.characterSelection === 'object')) {
+          for (const field of ['characterMode', 'characterId', 'characterProvider', 'characterModel']) {
+            claimedPreferenceFields.add(field)
+          }
+        }
+        if (has('chatMode')) claimedPreferenceFields.add('chatMode')
+        if ((input.chatSelection && typeof input.chatSelection === 'object') || has('chatProvider') || has('chatModel')) {
+          for (const field of ['chatMode', 'chatProvider', 'chatModel']) claimedPreferenceFields.add(field)
+        }
+        claimGlobalPreferences(claimedPreferenceFields)
+
         if (p.enabled !== false) syncHeroine()
         const selected = await pickModel()
         s.chatModelLabel = selected && selected.model ? String(selected.model) : ''
         s.lastModel = s.chatModelLabel
         s.modelOnline = !!selected
-        await save()
+        await save('both')
         return { ok: errors.length === 0, errors, settings: settingsSnapshot(), view: view() }
       }
       case 'profile-get': {
-        if (!s) s = fresh()
+        ensureState()
         if (ensurePreferences().enabled !== false) syncHeroine(false)
         const charId = requestedProfileCharId(args)
         if (!charId) return { ok: false, error: '未知角色' }
         return profileResult(charId)
       }
       case 'profile-set': {
-        if (!s) s = fresh()
+        ensureState()
         if (ensurePreferences().enabled !== false) syncHeroine(false)
         const charId = requestedProfileCharId(args)
         if (!charId) return { ok: false, error: '未知角色', view: view(false) }
@@ -1872,11 +3865,16 @@ export function apply(ctx: any, config: any = {}): void {
         const character = s.characters[charId]
         const previousProfile = effectiveProfileFor(charId)
         const previousOverrides = { ...profileOverridesFor(charId) }
-        const replaceInitialGreeting = character.log.length === 0
-          && character.chatLines[0]
-          && character.chatLines[0].who === 'heroine'
-          && character.chatLines[0].text === previousProfile.greeting
-        const previousGreetingText = replaceInitialGreeting ? character.chatLines[0].text : null
+        const previousProfileClaims = splitStorageActive() && globalState
+          ? [...(ensureGlobalMigrationState().claims.profiles[charId] || [])]
+          : null
+        const initialGreetingIndex = character.log.length === 0
+          ? character.chatLines.findIndex((line: any) => line && line.who === 'heroine'
+            && line.text === previousProfile.greeting)
+          : -1
+        const previousGreetingText = initialGreetingIndex >= 0
+          ? character.chatLines[initialGreetingIndex].text
+          : null
         const nextOverrides = { ...previousOverrides }
         for (const field of PROFILE_FIELDS) {
           if (!Object.prototype.hasOwnProperty.call(supplied, field)) continue
@@ -1887,14 +3885,20 @@ export function apply(ctx: any, config: any = {}): void {
           else delete nextOverrides[field]
         }
         character.profileOverrides = nextOverrides
-        if (replaceInitialGreeting) {
-          character.chatLines[0].text = effectiveProfileFor(charId).greeting
+        claimGlobalCharacter(
+          'profiles',
+          charId,
+          PROFILE_FIELDS.filter((field) => Object.prototype.hasOwnProperty.call(supplied, field)),
+        )
+        if (initialGreetingIndex >= 0) {
+          character.chatLines[initialGreetingIndex].text = effectiveProfileFor(charId).greeting
         }
         try {
-          await save()
+          await save('both')
         } catch (err) {
           character.profileOverrides = previousOverrides
-          if (previousGreetingText !== null) character.chatLines[0].text = previousGreetingText
+          if (previousProfileClaims) ensureGlobalMigrationState().claims.profiles[charId] = previousProfileClaims
+          if (previousGreetingText !== null) character.chatLines[initialGreetingIndex].text = previousGreetingText
           return {
             ...profileResult(charId),
             ok: false,
@@ -1905,25 +3909,32 @@ export function apply(ctx: any, config: any = {}): void {
         return { ...profileResult(charId), view: view(false) }
       }
       case 'profile-reset': {
-        if (!s) s = fresh()
+        ensureState()
         if (ensurePreferences().enabled !== false) syncHeroine(false)
         const charId = requestedProfileCharId(args)
         if (!charId) return { ok: false, error: '未知角色', view: view(false) }
         const character = s.characters[charId]
         const previousProfile = effectiveProfileFor(charId)
         const previousOverrides = { ...profileOverridesFor(charId) }
-        const replaceInitialGreeting = character.log.length === 0
-          && character.chatLines[0]
-          && character.chatLines[0].who === 'heroine'
-          && character.chatLines[0].text === previousProfile.greeting
-        const previousGreetingText = replaceInitialGreeting ? character.chatLines[0].text : null
+        const previousProfileClaims = splitStorageActive() && globalState
+          ? [...(ensureGlobalMigrationState().claims.profiles[charId] || [])]
+          : null
+        const initialGreetingIndex = character.log.length === 0
+          ? character.chatLines.findIndex((line: any) => line && line.who === 'heroine'
+            && line.text === previousProfile.greeting)
+          : -1
+        const previousGreetingText = initialGreetingIndex >= 0
+          ? character.chatLines[initialGreetingIndex].text
+          : null
         character.profileOverrides = {}
-        if (replaceInitialGreeting) character.chatLines[0].text = builtInProfile(charId).greeting
+        claimGlobalCharacter('profiles', charId)
+        if (initialGreetingIndex >= 0) character.chatLines[initialGreetingIndex].text = builtInProfile(charId).greeting
         try {
-          await save()
+          await save('both')
         } catch (err) {
           character.profileOverrides = previousOverrides
-          if (previousGreetingText !== null) character.chatLines[0].text = previousGreetingText
+          if (previousProfileClaims) ensureGlobalMigrationState().claims.profiles[charId] = previousProfileClaims
+          if (previousGreetingText !== null) character.chatLines[initialGreetingIndex].text = previousGreetingText
           return {
             ...profileResult(charId),
             ok: false,
@@ -1942,91 +3953,159 @@ export function apply(ctx: any, config: any = {}): void {
         return immediate
       }
       case 'chat': {
-        if (ensurePreferences().enabled === false) return view()
-        settle()
-        if (!s) s = fresh()
-        syncHeroine()
         const text = args && args.text ? String(args.text).trim().slice(0, 500) : ''
         if (!text) return view()
-        const c = s.characters[s.current]
-        const profile = effectiveProfileFor(s.current)
-        await refreshActivityCache()
-        const pendingActivity = nextUnseenActivity(activityCache, c.activity)
-        const selectedChoice = args && typeof args.choiceId === 'string'
-          ? c.choices.find((choice: any) => choice && typeof choice === 'object' && choice.id === args.choiceId)
-          : null
-        c.log.push({ role: 'user', text })
-        const emotion = await classifyEmotion(text)
-        c.chatLines.push({ who: 'user', text, emotion, choiceId: selectedChoice ? selectedChoice.id : null })
-        c.choices = []
-        let reply = ''
-        let usedFallback = false
-        let fallbackReason = ''
-        const sel = await pickModel()
-        s.chatModelLabel = sel && sel.model ? String(sel.model) : ''
-        s.lastModel = s.chatModelLabel
-        const effort = await pickEffort(sel)
-        if (llm && sel && sel.model) {
+        if (ensurePreferences().enabled === false) return view()
+        const runtime = splitStorageActive() ? currentWorkspaceRuntime() : null
+        const controller = new AbortController()
+        const signal = controller.signal
+        const timer = setTimeout(() => {
+          controller.abort(new Error('chat model work timed out after 110 seconds'))
+        }, MODEL_STREAM_TIMEOUT_MS)
+        let pendingChoiceCharId = ''
+        try {
           try {
-            reply = await streamText({
-              provider: sel.provider,
-              model: sel.model,
-              reasoningEffort: effort,
-              messages: (() => {
-                const msgs: any[] = [{
-                  role: 'user',
-                  content: [{ type: 'text', text: '（场景：深海女仆工坊的会客厅，暖黄的灯光。当前角色正在和用户聊天。你只扮演当前角色，不要提到其他角色。）' }],
-                  source: { kind: 'user' },
-                }]
-                for (const m of c.log.slice(-12)) {
-                  if (m.role === 'assistant' && typeof m.text === 'string' && CANNED_LINES.has(m.text.trim())) continue
-                  msgs.push({
-                    role: m.role === 'assistant' ? 'assistant' : 'user',
-                    content: [{ type: 'text', text: m.text }],
-                    source: m.role === 'assistant'
-                      ? { kind: 'model', provider: sel.provider, model: sel.model }
-                      : { kind: 'user' },
-                  })
-                }
-                return msgs
-              })(),
-              system: systemPrompt(profile, c, pendingActivity),
-              temperature: 0.9,
-              maxTokens: 1200,
-            })
-          } catch (err: any) {
-            console.error('whale-galgame llm call failed:', err && err.message ? err.message : String(err))
-            fallbackReason = err && err.message ? err.message : String(err)
+            await waitWithAbort(Promise.resolve(refreshActivityCache()), signal, 'chat activity lookup aborted')
+          } catch (err) {
+            if (!signal.aborted) console.warn('whale-galgame activity refresh failed before chat:', err)
           }
-        } else {
-          fallbackReason = 'no model available'
+
+          const prepared = await runSerializedStateTask(async () => {
+            ensureState()
+            if (ensurePreferences().enabled === false) return { disabled: true, response: view() }
+            syncHeroine()
+            const charId = String(s.current)
+            const character = s.characters[charId]
+            const profile = { ...effectiveProfileFor(charId) }
+            const scopedActivity = globalActivityCandidates()
+            const pendingActivity = nextUnseenActivity(scopedActivity, character.activity)
+            const selectedChoice = args && typeof args.choiceId === 'string'
+              ? character.choices.find((choice: any) => choice && typeof choice === 'object' && choice.id === args.choiceId)
+              : null
+            return {
+              disabled: false,
+              charId,
+              profile,
+              pendingActivity,
+              selectedChoice: selectedChoice ? { ...selectedChoice } : null,
+              promptCharacter: { level: character.level, affection: character.affection },
+              log: character.log.slice(-12).map((entry: any) => ({ ...entry })),
+            }
+          })
+          if (prepared.disabled) return prepared.response
+
+          let sel: any = null
+          try {
+            sel = await waitWithAbort(Promise.resolve(pickModel()), signal, 'chat model selection aborted')
+          } catch (err) { /* the fallback line remains available */ }
+          const effort = await pickEffort(sel, signal)
+          const emotionPromise = classifyEmotion(text, signal)
+          let reply = ''
+          let usedFallback = false
+          let fallbackReason = ''
+          if (llm && sel && sel.model) {
+            try {
+              reply = await streamText({
+                provider: sel.provider,
+                model: sel.model,
+                reasoningEffort: effort,
+                messages: (() => {
+                  const msgs: any[] = [{
+                    role: 'user',
+                    content: [{ type: 'text', text: '（场景：深海女仆工坊的会客厅，暖黄的灯光。当前角色正在和用户聊天。你只扮演当前角色，不要提到其他角色。）' }],
+                    source: { kind: 'user' },
+                  }]
+                  for (const m of [...prepared.log, { role: 'user', text }].slice(-12)) {
+                    if (m.role === 'assistant' && typeof m.text === 'string' && CANNED_LINES.has(m.text.trim())) continue
+                    msgs.push({
+                      role: m.role === 'assistant' ? 'assistant' : 'user',
+                      content: [{ type: 'text', text: m.text }],
+                      source: m.role === 'assistant'
+                        ? { kind: 'model', provider: sel.provider, model: sel.model }
+                        : { kind: 'user' },
+                    })
+                  }
+                  return msgs
+                })(),
+                system: systemPrompt(prepared.profile, prepared.promptCharacter, prepared.pendingActivity),
+                temperature: 0.9,
+                maxTokens: 1200,
+              }, signal)
+            } catch (err: any) {
+              console.error('whale-galgame llm call failed:', err && err.message ? err.message : String(err))
+              fallbackReason = err && err.message ? err.message : String(err)
+            }
+          } else {
+            fallbackReason = signal.aborted
+              ? abortFailure(signal, 'chat model work aborted').message
+              : 'no model available'
+          }
+          if (!reply) {
+            reply = prepared.profile.address + '说的话，我听到啦～（今天的深海信号有点弱，但心意传达到了哦）'
+            usedFallback = true
+          }
+          const emotion = await emotionPromise
+          pendingChoiceCharId = prepared.charId
+          choiceGenerationPending.add(pendingChoiceCharId)
+          const committed = await runSerializedStateTask(async () => {
+            ensureState()
+            const settledBeforeChat = settle()
+            const c = s.characters[prepared.charId]
+            if (!c) throw new Error('chat character became unavailable before commit')
+            c.log.push({ role: 'user', text })
+            c.chatLines.push({
+              who: 'user',
+              text,
+              emotion,
+              choiceId: prepared.selectedChoice ? prepared.selectedChoice.id : null,
+            })
+            c.choices = []
+            s.chatModelLabel = sel && sel.model ? String(sel.model) : ''
+            s.lastModel = s.chatModelLabel
+            s.fallbackUsed = usedFallback
+            s.fallbackReason = fallbackReason
+            if (prepared.pendingActivity && !usedFallback) {
+              c.activity = rememberActivity(c.activity, prepared.pendingActivity)
+            }
+            c.log.push({ role: 'assistant', text: reply })
+            if (c.log.length > 24) c.log = c.log.slice(-24)
+            c.chatLines.push({ who: 'heroine', text: reply })
+            const before = c.affection
+            const delta = prepared.selectedChoice
+              ? (prepared.selectedChoice.effect === 1 ? 1 : prepared.selectedChoice.effect === -1 ? -1 : 0)
+              : (/喜欢|爱|可爱|想你|陪你|晚安|早安|抱抱|亲亲|约会|月圆/.test(text) ? 1 : (/讨厌|烦|滚|走开|无聊|再见/.test(text) ? -1 : 0))
+            c.affection = Math.max(0, before + delta)
+            const leveled = checkLevelUp(prepared.charId, c)
+            await save(settledBeforeChat.changed || c.affection !== before || leveled ? 'both' : 'workspace')
+            return { leveled, response: view() }
+          })
+          if (committed.leveled) {
+            choiceGenerationPending.delete(pendingChoiceCharId)
+            pendingChoiceCharId = ''
+            return await runSerializedStateTask(async () => {
+              const c = s.characters[prepared.charId]
+              if (ensureReplyChoices(prepared.charId, c)) await save('global')
+              return view()
+            })
+          }
+
+          const choices = await generateChoices(prepared.promptCharacter, text, reply, signal)
+          return await runSerializedStateTask(async () => {
+            const c = s.characters[prepared.charId]
+            if (!c) throw new Error('chat character became unavailable before choice commit')
+            c.choices = choices
+            choiceGenerationPending.delete(prepared.charId)
+            pendingChoiceCharId = ''
+            await save('workspace')
+            return view()
+          })
+        } finally {
+          if (pendingChoiceCharId) choiceGenerationPending.delete(pendingChoiceCharId)
+          clearTimeout(timer)
         }
-        if (!reply) {
-          reply = profile.address + '说的话，我听到啦～（今天的深海信号有点弱，但心意传达到了哦）'
-          usedFallback = true
-        }
-        s.fallbackUsed = usedFallback
-        s.fallbackReason = fallbackReason
-        if (pendingActivity && !usedFallback) {
-          c.activity = rememberActivity(c.activity, pendingActivity)
-        }
-        c.log.push({ role: 'assistant', text: reply })
-        if (c.log.length > 24) c.log = c.log.slice(-24)
-        c.chatLines.push({ who: 'heroine', text: reply })
-        const before = c.affection
-        const delta = selectedChoice
-          ? (selectedChoice.effect === 1 ? 1 : selectedChoice.effect === -1 ? -1 : 0)
-          : (/喜欢|爱|可爱|想你|陪你|晚安|早安|抱抱|亲亲|约会|月圆/.test(text) ? 1 : (/讨厌|烦|滚|走开|无聊|再见/.test(text) ? -1 : 0))
-        c.affection = Math.max(0, before + delta)
-        const leveled = checkLevelUp(s.current, c)
-        if (!leveled) {
-          c.choices = await generateChoices(c, text, reply)
-        }
-        await save()
-        return view()
       }
       case 'sprite-data': {
-        if (!s) s = fresh()
+        ensureState()
         if (ensurePreferences().enabled !== false) syncHeroine()
         const requestedCharId = shortSetting(args && (args.characterId || args.charId))
         const charId = requestedCharId ? (ROSTER[requestedCharId] ? requestedCharId : null) : s.current
@@ -2046,7 +4125,7 @@ export function apply(ctx: any, config: any = {}): void {
         }
       }
       case 'sprite-upload': {
-        if (!s) s = fresh()
+        ensureState()
         if (ensurePreferences().enabled !== false) syncHeroine()
         const dataUrl = validCustomSprite(args && args.dataUrl)
         if (!dataUrl) {
@@ -2061,7 +4140,8 @@ export function apply(ctx: any, config: any = {}): void {
           fileName: shortSetting(args && args.fileName).slice(0, 180),
           revision: nextSpriteRevision(character),
         }
-        await save()
+        claimGlobalCharacter('sprites', charId)
+        await save('global')
         return {
           ok: true,
           charId,
@@ -2070,7 +4150,7 @@ export function apply(ctx: any, config: any = {}): void {
         }
       }
       case 'sprite-clear': {
-        if (!s) s = fresh()
+        ensureState()
         if (ensurePreferences().enabled !== false) syncHeroine()
         const requestedCharId = shortSetting(args && (args.characterId || args.charId))
         const charId = requestedCharId ? (ROSTER[requestedCharId] ? requestedCharId : null) : s.current
@@ -2078,11 +4158,12 @@ export function apply(ctx: any, config: any = {}): void {
         const character = s.characters[charId]
         const revision = nextSpriteRevision(character)
         character.customSprite = { dataUrl: null, fileName: '', revision }
-        await save()
+        claimGlobalCharacter('sprites', charId)
+        await save('global')
         return { ok: true, charId, revision, view: view() }
       }
       case 'bg-set-builtin': {
-        if (!s) s = fresh()
+        ensureState()
         if (ensurePreferences().enabled !== false) syncHeroine()
         const key = shortSetting(args && (args.key || args.backgroundKey))
         const option = builtinBackgroundOptions(s.current).find((row: any) => row.key === key)
@@ -2093,13 +4174,17 @@ export function apply(ctx: any, config: any = {}): void {
             view: view(),
           }
         }
+        const snapshot = captureBackgroundMutationSnapshot()
         s.characters[s.current].chosenBuiltinBackground = option.key
         // Selecting a built-in background is an explicit request to leave any
         // global upload/CG override and return to character-aware switching.
         s.bg = null
         for (const cg of allCgs()) cg.savedAsBg = false
         ensurePreferences().customBgName = ''
-        await save()
+        bumpBackgroundRevision()
+        claimGlobalValue('bg')
+        claimGlobalPreferences(['customBgName'])
+        await persistBackgroundMutation(snapshot)
         return {
           ok: true,
           charId: s.current,
@@ -2118,29 +4203,38 @@ export function apply(ctx: any, config: any = {}): void {
         return {
           dataUrl,
           kind: custom ? 'custom' : (dataUrl ? 'cg' : null),
+          backgroundRevision: backgroundRevisionFor(s && s.backgroundRevision),
           fileName: custom && s && s.preferences && typeof s.preferences.customBgName === 'string'
             ? s.preferences.customBgName
             : '',
         }
       }
       case 'bg-upload': {
-        if (!s) s = fresh()
+        ensureState()
         const dataUrl = validCustomBackground(args && args.dataUrl)
         if (!dataUrl) {
           return { ok: false, error: '仅支持 18MB 以内的 PNG、JPEG、WebP 或 AVIF 图片', view: view() }
         }
+        const snapshot = captureBackgroundMutationSnapshot()
         s.bg = dataUrl
         for (const cg of allCgs()) cg.savedAsBg = false
         const p = ensurePreferences()
         p.customBgName = shortSetting(args && args.fileName).slice(0, 180)
-        await save()
+        bumpBackgroundRevision()
+        claimGlobalValue('bg')
+        claimGlobalPreferences(['customBgName'])
+        await persistBackgroundMutation(snapshot)
         return { ok: true, view: view() }
       }
       case 'bg-clear-custom': {
+        const snapshot = captureBackgroundMutationSnapshot()
         if (s && typeof s.bg === 'string' && s.bg.startsWith('data:')) s.bg = null
         const p = ensurePreferences()
         p.customBgName = ''
-        await save()
+        bumpBackgroundRevision()
+        claimGlobalValue('bg')
+        claimGlobalPreferences(['customBgName'])
+        await persistBackgroundMutation(snapshot)
         return { ok: true, view: view() }
       }
       case 'cg-gallery': {
@@ -2148,7 +4242,6 @@ export function apply(ctx: any, config: any = {}): void {
           items: allCgs().filter((cg: any) => cg.status === 'ready' && cg.dataUrl).map((cg: any) => ({
             id: cg.id,
             status: cg.status,
-            dataUrl: cg.dataUrl,
             prompt: cg.prompt,
             charId: cg.charId,
             name: ROSTER[cg.charId] ? effectiveProfileFor(cg.charId).displayName : cg.charId,
@@ -2160,44 +4253,87 @@ export function apply(ctx: any, config: any = {}): void {
           })),
         }
       }
+      case 'cg-data': {
+        const id = shortSetting(args && args.id)
+        const cg = id ? findCg(id) : null
+        if (!cg || cg.status !== 'ready' || typeof cg.dataUrl !== 'string' || !cg.dataUrl.startsWith('data:')) {
+          return { ok: false, error: 'CG 不存在或尚未生成完成' }
+        }
+        // The gallery list stays lightweight; multi-megabyte image payloads
+        // are returned only when the client explicitly opens one CG.
+        return {
+          ok: true,
+          id: cg.id,
+          status: cg.status,
+          dataUrl: cg.dataUrl,
+          prompt: cg.prompt,
+          charId: cg.charId,
+          name: ROSTER[cg.charId] ? effectiveProfileFor(cg.charId).displayName : cg.charId,
+          level: cg.level,
+          at: cg.at,
+          seen: cg.seen === true,
+          savedAsBg: cg.savedAsBg === true,
+        }
+      }
       case 'cg-ack': {
         const cg = args && typeof args.id === 'string' ? findCg(args.id) : currentCg()
         if (cg) cg.seen = true
-        await save()
+        await save('global')
         return view()
       }
       case 'cg-save-bg': {
         const cg = args && typeof args.id === 'string' ? findCg(args.id) : currentCg()
+        let snapshot: any = null
         if (s && cg && cg.status === 'ready' && cg.dataUrl) {
+          snapshot = captureBackgroundMutationSnapshot()
           for (const item of allCgs()) item.savedAsBg = item.id === cg.id
           cg.seen = true
           s.bg = 'cg:' + cg.id
           ensurePreferences().customBgName = ''
+          bumpBackgroundRevision()
+          claimGlobalValue('bg')
+          claimGlobalPreferences(['customBgName'])
         }
-        await save()
+        if (snapshot) await persistBackgroundMutation(snapshot)
+        else await save('global')
         return view()
       }
       case 'cg-clear-bg': {
-        if (s) {
+        let snapshot: any = null
+        if (currentStateBacking()) {
+          snapshot = captureBackgroundMutationSnapshot()
           s.bg = null
           for (const cg of allCgs()) cg.savedAsBg = false
           ensurePreferences().customBgName = ''
+          bumpBackgroundRevision()
+          claimGlobalValue('bg')
+          claimGlobalPreferences(['customBgName'])
         }
-        await save()
+        if (snapshot) await persistBackgroundMutation(snapshot)
+        else await save('global')
         return view()
       }
       case 'pet-set': {
-        if (!s) s = fresh()
+        ensureState()
         const p = ensurePreferences()
         if (args && typeof args.enabled === 'boolean') p.petEnabled = args.enabled
-        await save()
+        if (args && typeof args.enabled === 'boolean') claimGlobalPreferences(['petEnabled'])
+        await save('global')
         return view()
       }
       case 'reset': {
-        const preferences = { ...ensurePreferences() }
-        s = fresh()
-        s.preferences = preferences
-        await save()
+        ensureState()
+        for (const id of ROSTER_IDS) {
+          s.characters[id].level = 1
+          s.characters[id].affection = 0
+        }
+        const now = Date.now()
+        if (splitStorageActive()) globalState.relationshipLastActiveAt = now
+        else if (s.tokens) s.tokens.lastActiveAt = now
+        // “重新开始”只重置关系进度。CG、立绘、角色设定、背景、
+        // preferences，以及各工作区的聊天/任务上下文全部保留。
+        if (splitStorageActive()) ensureGlobalMigrationState().claims.relationshipReset = true
+        await save(splitStorageActive() ? 'global' : 'both')
         return view()
       }
       default:
@@ -2206,8 +4342,109 @@ export function apply(ctx: any, config: any = {}): void {
   }
 
   async function handleAction(action: string, args: any): Promise<any> {
-    if (action !== 'chat') return dispatchAction(action, args)
-    return runSerializedStateTask(() => dispatchAction(action, args))
+    if (!splitStorageActive()) {
+      if (action !== 'chat') return dispatchAction(action, args)
+      return runSerializedChatTask(null, () => dispatchAction(action, args))
+    }
+
+    await ensureGlobalReady()
+    const sessionId = args && typeof args.sessionId === 'string' ? args.sessionId.trim() : ''
+    const explicitCharacterId = shortSetting(args && (args.characterId || args.charId))
+    const hasExplicitCharacter = !!ROSTER[explicitCharacterId]
+    const globalReadOnly = new Set([
+      'view',
+      'model-options',
+      'settings-get',
+      'profile-get',
+      'sprite-data',
+      'bg-data',
+      'cg-gallery',
+      'cg-data',
+    ])
+    const globalWithoutWorkspace = new Set([
+      'settings-set',
+      'profile-set',
+      'profile-reset',
+      'sprite-upload',
+      'sprite-clear',
+      'bg-upload',
+      'bg-clear-custom',
+      'cg-ack',
+      'cg-save-bg',
+      'cg-clear-bg',
+      'pet-set',
+      'reset',
+    ])
+    const explicitCharacterGlobal = hasExplicitCharacter && new Set([
+      'profile-set',
+      'profile-reset',
+      'sprite-upload',
+      'sprite-clear',
+    ]).has(action)
+    let runtime: any
+    let unresolvedSession = false
+    if (!sessionId && (globalReadOnly.has(action) || globalWithoutWorkspace.has(action) || explicitCharacterGlobal)) {
+      runtime = makeWorkspaceRuntime('', 'global-read')
+    } else {
+      const descriptor = await workspaceForSession(sessionId)
+      runtime = await ensureWorkspaceReady(descriptor.root, descriptor.key)
+      unresolvedSession = !!descriptor.sessionId && !descriptor.root
+      if (!unresolvedSession) activateWorkspaceRuntime(runtime)
+    }
+
+    const requiresResolvedWorkspace = new Set(['chat', 'bg-set-builtin']).has(action)
+      || ((!hasExplicitCharacter) && new Set([
+        'profile-set',
+        'profile-reset',
+        'sprite-upload',
+        'sprite-clear',
+      ]).has(action))
+    if (!sessionId && !hasExplicitCharacter && new Set([
+      'profile-set',
+      'profile-reset',
+      'sprite-upload',
+      'sprite-clear',
+    ]).has(action)) {
+      const isolatedView = workspaceStateContext.run(runtime, () => view(false))
+      return {
+        ok: false,
+        retryable: true,
+        workspaceResolving: false,
+        error: '缺少 characterId 或工作区会话；未修改任何角色数据。',
+        view: isolatedView,
+      }
+    }
+    if ((!sessionId || unresolvedSession) && requiresResolvedWorkspace) {
+      const isolatedView = workspaceStateContext.run(runtime, () => view(false))
+      return {
+        ...isolatedView,
+        ok: false,
+        retryable: true,
+        workspaceResolving: !!sessionId,
+        error: sessionId
+          ? '正在确认当前工作区，请稍后重试。此次操作未写入任何存档。'
+          : '此操作需要明确的工作区会话；此次操作未写入任何存档。',
+        view: isolatedView,
+      }
+    }
+    const execute = () => workspaceStateContext.run(runtime, () => dispatchAction(action, args))
+    const mutating = new Set([
+      'settings-set',
+      'profile-set',
+      'profile-reset',
+      'sprite-upload',
+      'sprite-clear',
+      'bg-set-builtin',
+      'bg-upload',
+      'bg-clear-custom',
+      'cg-ack',
+      'cg-save-bg',
+      'cg-clear-bg',
+      'pet-set',
+      'reset',
+    ])
+    if (action === 'chat') return runSerializedChatTask(runtime, execute)
+    return mutating.has(action) ? runSerializedStateTask(execute) : execute()
   }
 
   if (webServer && typeof webServer.register === 'function') {
@@ -2248,6 +4485,8 @@ export function apply(ctx: any, config: any = {}): void {
   }
 
   ctx.effect(() => {
-    void ensureReady()
+    void ensureReady().catch((err: any) => {
+      console.error('whale-galgame initial state load failed:', err && err.message ? err.message : String(err))
+    })
   })
 }

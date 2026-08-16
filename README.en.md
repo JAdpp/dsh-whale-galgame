@@ -4,9 +4,9 @@
 
 Recent Harness work can shape what a character says next.
 
-`dsh-whale-galgame` adds a dedicated multi-character Galgame view to DeepSeek Harness Web. Local deterministic rules classify recent same-workspace activity into 11 task categories, including debugging, writing, and research. When you chat in the Galgame, the current character can naturally acknowledge that work. Raw Harness task text stays in the local classification step; the reply model receives only fixed category and status cues, while tool arguments, tool results, and assistant message bodies are excluded from this awareness path.
+`dsh-whale-galgame` adds a dedicated multi-character Galgame view to DeepSeek Harness Web. For each originating workspace, local deterministic rules classify recent activity into 11 task categories, including debugging, writing, and research, then merge a safe result that contains no source text into one global event feed. When you chat in the Galgame, the current character can naturally acknowledge that work. Raw Harness task text stays in the local classification step; the reply model receives only fixed category and status cues, while tool arguments, tool results, and assistant message bodies are excluded from this awareness path.
 
-DeepSeek, Claude, GPT, Gemini, Kimi, and Grok map to six independent roles. The displayed role is selected separately from the model that writes replies, and each role keeps its own relationship progress, recent dialogue context, dialogue archive, task-event mention state, CGs, custom sprite, and built-in background selection. Affection responds to three shuffled reply types, newly observed Harness token usage while the plugin is running, and long absences; levels have no cap. With a DashScope key, level-ups can generate 1920 × 1080 landscape CGs themed to recent work. The desktop pet can be disabled and opens the Galgame view when clicked.
+DeepSeek, Claude, GPT, Gemini, Kimi, and Grok map to six independent roles. The displayed role is selected separately from the model that writes replies. The current role; each role's relationship progress, profile, dialogue history, reply choices, consumed-task memory, custom sprite, CG gallery, and background; and the token-settlement balance and plugin preferences all form one continuous state shared across workspaces. Workspaces and sessions identify only where Harness events came from and provide collection/deduplication keys: switching workspaces neither restarts the story nor makes the same role mention the same event again. Affection responds to three shuffled reply types, newly observed Harness token usage while the plugin is running, and long absences; levels have no cap. With a DashScope key, level-ups can generate 1920 × 1080 landscape CGs themed to recent work. The desktop pet can be disabled and opens the Galgame view when clicked.
 
 ![dsh-whale-galgame running in DSH Web](docs/screenshots/galgame-overview.jpg)
 
@@ -15,7 +15,7 @@ DeepSeek, Claude, GPT, Gemini, Kimi, and Grok map to six independent roles. The 
 ## What it does
 
 - Choose the displayed character separately from the reply model. A role can follow the workspace model or be pinned; replies can use the default `deepseek-v4-flash`, follow the workspace, or use a model listed by DSH.
-- The six roles keep separate affection, level, memory, dialogue history, CG gallery, and custom-sprite data.
+- The six roles keep separate affection, level, profile, dialogue history, reply choices, consumed-task memory, custom sprite, CG gallery, and background data, all shared globally across workspaces; the current role, token balance, and plugin preferences remain continuous too.
 - Each turn offers close, neutral, and distant reply options in shuffled positions. Free-text input remains available.
 - Switching roles also switches to that role's built-in background. The whale-girl still defaults to the deep-sea palace; her new seaside study is an optional built-in alternative. A user upload or saved CG overrides role defaults until a built-in background is restored.
 - Manage the background, per-role sprite, dialogue archive, CG gallery, and desktop pet from the interface. Clicking the pet opens the `galgame` tab.
@@ -24,15 +24,15 @@ DeepSeek, Claude, GPT, Gemini, Kimi, and Grok map to six independent roles. The 
 
 ### Relationship progression
 
-Each role begins at Lv.1 with 0 affection and keeps its own state. The close, neutral, and distant reply choices apply +1, 0, and -1 respectively, with their positions shuffled each turn; free text uses lightweight keyword rules. While the plugin is running, every 5,000 input and output tokens observed in newly emitted same-workspace Harness `assistant/message` usage events add 1 point to the current role. A settlement redeems at most 3 points and keeps the remaining balance; model calls initiated by the plugin itself are excluded, and historical usage is not recalculated. After a 24-hour grace period without activity, every role loses 2 points per day, with a floor of 0.
+Each role begins at Lv.1 with 0 affection and keeps its own state. The close, neutral, and distant reply choices apply +1, 0, and -1 respectively, with their positions shuffled each turn; free text uses lightweight keyword rules. While the plugin is running, newly observed Harness `assistant/message` usage events from every workspace enter one global token balance. Every 5,000 accumulated input and output tokens add 1 point to whichever role is current when settlement runs. A settlement redeems at most 3 points and keeps the remaining balance; model calls initiated by the plugin itself are excluded, and usage from before the plugin started is not recalculated. After a 24-hour grace period without activity, every role loses 2 points per day, with a floor of 0.
 
 The level threshold is `30 + 15 × (Lv - 1)`: 30, 45, 60, and so on. Reaching it raises the level and carries any surplus into the next one; there is no level cap. Relationship tone has five stages and remains at the closest stage from Lv.5 onward. With a valid DashScope key configured, each level-up attempts to generate a commemorative CG.
 
 ### Harness task events
 
-The plugin examines at most 16 top-level live and persisted Harness sessions from the same workspace, limited to the past 72 hours and the final 240 events in each session. Local deterministic rules classify activity as code debugging, code development, document summarization, document writing, literary creation, research, data analysis, visual design, presentation work, translation and proofreading, or task planning. Text classification uses only explicit user text submitted by a person; tool names and turn-end status may also contribute. Tool arguments, tool results, and assistant body text are neither read nor sent.
+For each event source, the plugin examines at most 16 top-level live and persisted Harness sessions from that workspace, limited to the past 72 hours and the final 240 events in each session. Local deterministic rules classify activity as code debugging, code development, document summarization, document writing, literary creation, research, data analysis, visual design, presentation work, translation and proofreading, or task planning, then merge the safe result into the global event feed. Text classification uses only explicit user text submitted by a person; tool names and turn-end status may also contribute. Tool arguments, tool results, and assistant body text are neither read nor sent.
 
-Only fixed category and status cues are passed to the Galgame reply model and CG generation service. While answering the current topic, the character naturally adds one brief acknowledgement—for example, reminding the player to rest after a debugging task. Each role stores its own event fingerprints and last-mention time: an event is proactively mentioned only once to that role, with at least 30 minutes between different events. Task events affect the topic, not affection directly.
+Only fixed category and status cues are passed to the Galgame reply model and CG generation service. While answering the current topic, the character naturally adds one brief acknowledgement—for example, reminding the player to rest after a debugging task. Each role's consumed-event fingerprints and last-mention time live in the global state: switching workspaces will not cause that role to proactively mention the same event again, and different events remain at least 30 minutes apart. Task events affect the topic, not affection directly.
 
 ## Bundled default art
 
@@ -114,7 +114,7 @@ Select **Character profile**, next to **Character sprite** in the Galgame top ba
 - Speaking style
 - CG appearance description
 
-Custom profiles are stored separately for all six roles. **Save profile** and **Restore defaults** change only these six fields for the current role; neither resets that role's affection or level, long-term memory, or custom sprite. Before any real user/role exchange, changing or restoring **First greeting** updates the opening greeting in place while leaving any automatic entrance narration untouched. Once a real exchange exists, the plugin will not insert, replace, or replay it in the history. The CG appearance description guides future level-up CGs and does not rewrite images already saved in the gallery.
+Custom profiles are stored separately for all six roles and shared across every workspace. **Save profile** and **Restore defaults** change only these six fields for the current role; neither resets that role's affection or level, long-term memory, or custom sprite. Before any real user/role exchange, changing or restoring **First greeting** updates the opening greeting in place while leaving any automatic entrance narration untouched. Once a real exchange exists, the plugin will not insert, replace, or replay it in the history. The CG appearance description guides future level-up CGs and does not rewrite images already saved in the gallery.
 
 Custom profile text cannot override the plugin's safety constraints or its one-sentence reply limit.
 
@@ -141,13 +141,17 @@ Do not write a real key into repository files or commit one to Git.
 
 ## Data and privacy
 
-Runtime data is stored in `.whale-girl-save.json` at the active workspace root. It may contain role state, dialogue history, CGs, user backgrounds, and user sprites, so treat it as private data.
+Runtime data is split into two layers; treat both as private data:
+
+- `DSH_HOME/storages/dsh-whale-galgame/global.json` stores the complete continuous Galgame state: the current role; each role's relationship progress, profile, dialogue history, current reply choices, consumed-task memory, custom sprite, CG gallery, and background; the global task-event feed, token-settlement balance, deduplication fingerprints, and plugin preferences.
+- `.whale-girl-save.json` at the active workspace root now contains only a lightweight event-source and legacy-migration marker. It no longer keeps a separate story, dialogue, task-memory, or token ledger.
+- A new workspace immediately continues the same current role, dialogue history, reply choices, and relationship progress. Workspace and session identities are used only to locate Harness event sources and deduplicate collection; they do not restart the story or show the former cross-workspace refusal page.
+- The first time an old v9 workspace save is opened, the plugin merges its migratable story and role data into the global file above, then rewrites that workspace's `.whale-girl-save.json` as a source/migration marker.
 
 - Ordinary dialogue is sent to the model provider selected in DSH.
 - Generating a level-up CG sends a text prompt to DashScope.
-- User-uploaded backgrounds and sprites remain in the workspace save and are not included in either external request.
-- Harness context writes only event fingerprints that contain no source text and the last-mention time to the save; it does not store the original Harness text. External requests receive only fixed category and status cues.
-- If the active session and the plugin save do not belong to the same workspace, the Galgame view refuses to read role state or task cues instead of reusing data across workspaces.
+- User-uploaded backgrounds and sprites remain in the global save and are not included in either external request.
+- Raw Harness text is never written to a Galgame save. Global state keeps only fixed category and status cues, opaque deduplication fingerprints, and last-mention times; external requests likewise receive only fixed category and status cues.
 
 This plugin repository's `.gitignore` cannot protect a different workspace automatically. If the active workspace is itself a Git repository, add these entries to that workspace's `.gitignore`:
 

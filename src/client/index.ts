@@ -252,14 +252,162 @@ function formatCgDate(value: any): string {
   }
 }
 
+function galleryMetadataItem(value: any): any | null {
+  if (!value || typeof value !== 'object') return null
+  const metadata = { ...value }
+  // cg-gallery is a catalogue endpoint. Even if an older service still sends
+  // the image payload, do not retain it as part of the initial gallery load.
+  delete metadata.dataUrl
+  return metadata
+}
+
+function galleryDetailItem(result: any, fallback: any): any | null {
+  if (!result || typeof result !== 'object') return null
+  const payload = result.item && typeof result.item === 'object'
+    ? result.item
+    : result.cg && typeof result.cg === 'object'
+      ? result.cg
+      : result
+  const dataUrl = typeof payload.dataUrl === 'string' && payload.dataUrl
+    ? payload.dataUrl
+    : typeof result.dataUrl === 'string' && result.dataUrl
+      ? result.dataUrl
+      : ''
+  if (!dataUrl) return null
+  return {
+    ...(fallback && typeof fallback === 'object' ? fallback : {}),
+    ...payload,
+    dataUrl,
+  }
+}
+
+const API_READ_TIMEOUT_MS = 10_000
+const API_WRITE_TIMEOUT_MS = 30_000
+const API_LONG_TIMEOUT_MS = 120_000
+const API_WRITE_ACTIONS = new Set([
+  'settings-set',
+  'profile-set',
+  'profile-reset',
+  'sprite-clear',
+  'bg-set-builtin',
+  'bg-clear-custom',
+  'cg-ack',
+  'cg-save-bg',
+  'cg-clear-bg',
+  'pet-set',
+  'reset',
+])
+
+function apiTimeoutMs(action: string): number {
+  if (action === 'chat' || action === 'bg-upload' || action === 'sprite-upload') return API_LONG_TIMEOUT_MS
+  if (API_WRITE_ACTIONS.has(action)) return API_WRITE_TIMEOUT_MS
+  return API_READ_TIMEOUT_MS
+}
+
 async function api(action: string, args?: any): Promise<any> {
-  const res = await fetch('/whale-galgame-api', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ action, args: args || {} }),
+  const controller = new AbortController()
+  const timeoutMs = apiTimeoutMs(action)
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    const res = await fetch('/whale-galgame-api', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ action, args: args || {} }),
+      signal: controller.signal,
+    })
+    if (!res.ok) throw new Error('galgame api ' + res.status)
+    return await res.json()
+  } catch (err: any) {
+    if (controller.signal.aborted) {
+      throw new Error('请求超时，请稍后重试（' + action + '）')
+    }
+    throw err
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+const MODEL_OPTIONS_CACHE_MS = 15_000
+const MODEL_OPTIONS_CACHE_LIMIT = 8
+const MODEL_OPTIONS_CACHE = new Map<string, { at: number; value: any }>()
+const MODEL_OPTIONS_PENDING = new Map<string, Promise<any>>()
+const CG_DATA_CACHE_LIMIT = 4
+const CG_DATA_CACHE = new Map<string, any>()
+const CG_DATA_PENDING = new Map<string, Promise<any>>()
+
+function modelOptionsCacheKey(args?: any): string {
+  const sessionId = args && typeof args.sessionId === 'string' ? args.sessionId.trim() : ''
+  return sessionId ? 'session:' + sessionId : 'unscoped'
+}
+
+function rememberModelOptions(key: string, value: any): void {
+  MODEL_OPTIONS_CACHE.delete(key)
+  MODEL_OPTIONS_CACHE.set(key, { at: Date.now(), value })
+  while (MODEL_OPTIONS_CACHE.size > MODEL_OPTIONS_CACHE_LIMIT) {
+    const oldest = MODEL_OPTIONS_CACHE.keys().next().value
+    if (typeof oldest !== 'string') break
+    MODEL_OPTIONS_CACHE.delete(oldest)
+  }
+}
+
+function requestModelOptions(args?: any, force = false): Promise<any> {
+  const key = modelOptionsCacheKey(args)
+  const cached = MODEL_OPTIONS_CACHE.get(key)
+  if (!force && cached && Date.now() - cached.at < MODEL_OPTIONS_CACHE_MS) return Promise.resolve(cached.value)
+  const pending = MODEL_OPTIONS_PENDING.get(key)
+  if (pending) return pending
+  const request = api('model-options', args).then((value) => {
+    rememberModelOptions(key, value)
+    return value
+  }).finally(() => {
+    MODEL_OPTIONS_PENDING.delete(key)
   })
-  if (!res.ok) throw new Error('galgame api ' + res.status)
-  return res.json()
+  MODEL_OPTIONS_PENDING.set(key, request)
+  return request
+}
+
+function cachedCgData(id: string): any | null {
+  const key = String(id || '').trim()
+  if (!key) return null
+  const value = CG_DATA_CACHE.get(key)
+  if (!value) return null
+  CG_DATA_CACHE.delete(key)
+  CG_DATA_CACHE.set(key, value)
+  return value
+}
+
+function rememberCgData(id: string, value: any): void {
+  CG_DATA_CACHE.delete(id)
+  CG_DATA_CACHE.set(id, value)
+  while (CG_DATA_CACHE.size > CG_DATA_CACHE_LIMIT) {
+    const oldest = CG_DATA_CACHE.keys().next().value
+    if (typeof oldest !== 'string') break
+    CG_DATA_CACHE.delete(oldest)
+  }
+}
+
+function requestCgData(id: string, sessionId?: string): Promise<any> {
+  const key = String(id || '').trim()
+  if (!key) return Promise.reject(new Error('缺少 CG 图鉴编号'))
+  const cached = cachedCgData(key)
+  if (cached) return Promise.resolve(cached)
+  const pending = CG_DATA_PENDING.get(key)
+  if (pending) return pending
+  const args = normalizedEventSessionId(sessionId) ? { id: key, sessionId: normalizedEventSessionId(sessionId) } : { id: key }
+  const request = api('cg-data', args).then((result) => {
+    assertApiResult(result, 'CG 图片读取失败')
+    const detail = galleryDetailItem(result, { id: key })
+    if (!detail) throw new Error('服务未返回这张 CG 的图片数据')
+    const returnedId = String(detail.id || key).trim()
+    if (returnedId !== key) throw new Error('CG 图片与所选图鉴条目不一致')
+    const normalized = { ...detail, id: key }
+    rememberCgData(key, normalized)
+    return normalized
+  }).finally(() => {
+    CG_DATA_PENDING.delete(key)
+  })
+  CG_DATA_PENDING.set(key, request)
+  return request
 }
 
 function selectMode(state: any): string {
@@ -429,6 +577,27 @@ function viewFromResult(result: any): any | null {
   return null
 }
 
+function normalizedEventSessionId(value: any): string {
+  return typeof value === 'string' ? value.trim() : ''
+}
+
+function eventSourceSessionId(sessionId?: string): string | null {
+  return normalizedEventSessionId(sessionId) || null
+}
+
+function backgroundRevisionValue(value: any): number | null {
+  return Number.isSafeInteger(value) && value >= 0 ? value : null
+}
+
+function scopedEventView(detail: any, targetSessionId?: string): any | null {
+  if (!detail || typeof detail !== 'object' || !detail.view || typeof detail.view !== 'object') return null
+  const source = normalizedEventSessionId(detail.sourceSessionId)
+  const target = normalizedEventSessionId(targetSessionId)
+  // Missing scope means an older or settings-card broadcast. It may carry
+  // global settings/assets, but its full view must never cross a session.
+  return source && target && source === target ? detail.view : null
+}
+
 const VIEW_CACHE_LIMIT = 8
 const VIEW_CACHE_BY_SESSION = new Map<string, any>()
 
@@ -525,18 +694,25 @@ function PluginSettingsCard(): React.ReactElement {
   const [options, setOptions] = useState<any>({ characters: [], models: [] })
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const [catalogError, setCatalogError] = useState('')
 
   useEffect(() => {
     let alive = true
-    Promise.all([api('settings-get'), api('model-options')]).then(([nextSettings, nextOptions]) => {
+    api('settings-get').then((nextSettings) => {
       if (!alive) return
       setSettings(settingsFromResult(nextSettings) || nextSettings)
-      setOptions(nextOptions && typeof nextOptions === 'object' ? nextOptions : { characters: [], models: [] })
       setError('')
     }).catch((err) => {
       if (alive) setError('插件设置读取失败：' + String(err && err.message ? err.message : err))
-    }).then(() => {
+    }).finally(() => {
       if (alive) setLoading(false)
+    })
+    requestModelOptions().then((nextOptions) => {
+      if (!alive) return
+      setOptions(nextOptions && typeof nextOptions === 'object' ? nextOptions : { characters: [], models: [] })
+      setCatalogError('')
+    }).catch((err) => {
+      if (alive) setCatalogError('模型目录暂时不可用：' + String(err && err.message ? err.message : err))
     })
     return () => { alive = false }
   }, [])
@@ -545,8 +721,11 @@ function PluginSettingsCard(): React.ReactElement {
     const onSettingsChanged = (event: Event) => {
       const detail = (event as CustomEvent).detail
       if (detail && detail.settings) setSettings(detail.settings)
-      api('model-options').then((nextOptions) => {
-        if (nextOptions && typeof nextOptions === 'object') setOptions(nextOptions)
+      requestModelOptions(undefined, true).then((nextOptions) => {
+        if (nextOptions && typeof nextOptions === 'object') {
+          setOptions(nextOptions)
+          setCatalogError('')
+        }
       }).catch(() => { /* keep the last usable catalog */ })
     }
     window.addEventListener('whg:settings-changed', onSettingsChanged)
@@ -556,11 +735,18 @@ function PluginSettingsCard(): React.ReactElement {
   useEffect(() => {
     if (!open) return undefined
     let alive = true
-    Promise.all([api('settings-get'), api('model-options')]).then(([nextSettings, nextOptions]) => {
+    api('settings-get').then((nextSettings) => {
       if (!alive) return
       setSettings(settingsFromResult(nextSettings) || nextSettings)
-      if (nextOptions && typeof nextOptions === 'object') setOptions(nextOptions)
-    }).catch(() => { /* the card already shows the last readable state */ })
+      setError('')
+    }).catch(() => { /* keep the last readable settings */ })
+    requestModelOptions().then((nextOptions) => {
+      if (!alive) return
+      if (nextOptions && typeof nextOptions === 'object') {
+        setOptions(nextOptions)
+        setCatalogError('')
+      }
+    }).catch(() => { /* the card already shows the last usable catalog */ })
     return () => { alive = false }
   }, [open])
 
@@ -579,12 +765,12 @@ function PluginSettingsCard(): React.ReactElement {
       setSettings(nextSettings)
       setMessage('已保存')
       window.dispatchEvent(new CustomEvent('whg:settings-changed', {
-        detail: { settings: nextSettings, view: viewFromResult(result) },
+        detail: { settings: nextSettings, view: viewFromResult(result), sourceSessionId: null },
       }))
     }).catch((err) => {
       setMessage('')
       setError('保存失败：' + String(err && err.message ? err.message : err))
-    }).then(() => setSaving(false))
+    }).finally(() => setSaving(false))
   }
 
   const characters: any[] = Array.isArray(options && options.characters) ? options.characters : []
@@ -684,7 +870,7 @@ function PluginSettingsCard(): React.ReactElement {
         React.createElement('p', {
           className: 'whg-settings-message' + (error ? ' error' : ''),
           role: error ? 'alert' : 'status',
-        }, error || message || '设置会保存到当前工作区，顶部标签也可以随时快捷切换。'),
+        }, error || message || catalogError || '角色、模型和素材设置会在所有工作区共享，顶部标签也可以随时快捷切换。'),
       )
       : null,
   )
@@ -694,6 +880,11 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
   const callApi = (action: string, args?: any) => api(action, props.sessionId
     ? { ...(args && typeof args === 'object' ? args : {}), sessionId: props.sessionId }
     : args)
+  const callModelOptions = (force = false) => requestModelOptions(
+    props.sessionId ? { sessionId: props.sessionId } : undefined,
+    force,
+  )
+  const broadcastSessionId = eventSourceSessionId(props.sessionId)
   const appScope = props.variant === 'tab' ? 'tab' : 'overlay'
   const cacheKey = viewCacheKey(props.sessionId)
   const [viewState, setViewState] = useState<any>(() => ({ key: cacheKey, value: cachedView(cacheKey) }))
@@ -718,10 +909,16 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
   const [galleryLoading, setGalleryLoading] = useState(false)
   const [galleryError, setGalleryError] = useState<string | null>(null)
   const [gallerySelected, setGallerySelected] = useState<any>(null)
+  const [galleryDetailLoading, setGalleryDetailLoading] = useState(false)
+  const [galleryDetailError, setGalleryDetailError] = useState<string | null>(null)
+  const [rewardCgDetail, setRewardCgDetail] = useState<any>(null)
+  const [rewardCgLoading, setRewardCgLoading] = useState(false)
+  const [rewardCgError, setRewardCgError] = useState<string | null>(null)
   const [pickerPanel, setPickerPanel] = useState<'character' | 'chat' | 'background' | 'sprite' | null>(null)
   const [modelOptions, setModelOptions] = useState<any>(null)
   const [pluginSettings, setPluginSettings] = useState<any>(null)
   const [pickerLoading, setPickerLoading] = useState(false)
+  const [pickerCatalogLoading, setPickerCatalogLoading] = useState(false)
   const [pickerError, setPickerError] = useState('')
   const [backgroundPreview, setBackgroundPreview] = useState<string | null>(null)
   const [backgroundFileName, setBackgroundFileName] = useState('')
@@ -739,6 +936,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
   const [profileError, setProfileError] = useState('')
   const [profileMessage, setProfileMessage] = useState('')
   const bgCache = useRef<string | null>(null)
+  const bgCacheRevision = useRef<number | null>(null)
   const spriteCache = useRef<Record<string, string | null>>({})
   const spriteRevisionCache = useRef<Record<string, number>>({})
   const archiveRef = useRef<HTMLElement | null>(null)
@@ -751,12 +949,38 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
   const spriteFileRef = useRef<HTMLInputElement | null>(null)
   const profileFirstFieldRef = useRef<HTMLInputElement | null>(null)
   const profileRequestSeq = useRef(0)
+  const pickerRequestSeq = useRef(0)
+  const galleryListRequestSeq = useRef(0)
+  const galleryDetailRequestSeq = useRef(0)
+  const rewardCgRequestSeq = useRef(0)
 
   useEffect(() => {
     let alive = true
     callApi('view').then((v) => { if (alive) { setS(v); setApiError(null) } }).catch((e) => { if (alive) setApiError('galgame 服务未就绪：' + String(e && e.message ? e.message : e)) })
     return () => { alive = false }
   }, [props.sessionId])
+
+  useEffect(() => () => {
+    galleryListRequestSeq.current += 1
+    galleryDetailRequestSeq.current += 1
+    rewardCgRequestSeq.current += 1
+  }, [props.sessionId])
+
+  const rewardCgId = s && s.cg && s.cg.status === 'ready' && s.cg.seen !== true
+    ? String(s.cg.cgId || '').trim()
+    : ''
+
+  useEffect(() => {
+    if (!rewardCgId) {
+      rewardCgRequestSeq.current += 1
+      setRewardCgDetail(null)
+      setRewardCgLoading(false)
+      setRewardCgError(null)
+      return undefined
+    }
+    loadRewardCg(rewardCgId)
+    return () => { rewardCgRequestSeq.current += 1 }
+  }, [props.sessionId, rewardCgId])
 
   useEffect(() => {
     const t = setTimeout(() => setSettled(true), 4000)
@@ -794,30 +1018,35 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
   }, [props.variant])
 
   useEffect(() => {
-    if (s && s.enabled === false && s.workspaceMismatch !== true) return undefined
+    if (s && s.enabled === false) return undefined
     const id = setInterval(() => {
       callApi('view').then((v) => {
         if (v && typeof v === 'object') setS(v)
       }).catch(() => { /* server transient */ })
     }, 6000)
     return () => clearInterval(id)
-  }, [s && s.enabled, s && s.workspaceMismatch, props.sessionId])
+  }, [s && s.enabled, props.sessionId])
 
   useEffect(() => {
-    if (!s) return
+    if (!s) return undefined
+    const expectedRevision = backgroundRevisionValue(s.backgroundRevision) ?? 0
     if (s.bg === 'cg' || s.bg === 'custom') {
-      if (!bgCache.current) {
-        callApi('bg-data').then((r) => {
-          if (r && typeof r.dataUrl === 'string' && r.dataUrl) {
-            bgCache.current = r.dataUrl
-            setS((prev: any) => prev ? { ...prev } : prev)
-          }
-        }).catch(() => { /* ignore */ })
-      }
+      if (bgCacheRevision.current === expectedRevision) return undefined
+      let alive = true
+      callApi('bg-data').then((r) => {
+        if (!alive) return
+        const returnedRevision = backgroundRevisionValue(r && r.backgroundRevision) ?? expectedRevision
+        bgCache.current = r && typeof r.dataUrl === 'string' && r.dataUrl ? r.dataUrl : null
+        bgCacheRevision.current = returnedRevision
+        setS((prev: any) => prev ? { ...prev, backgroundRevision: returnedRevision } : prev)
+      }).catch(() => { /* keep the last rendered background until the next poll */ })
+      return () => { alive = false }
     } else {
       bgCache.current = null
+      bgCacheRevision.current = expectedRevision
     }
-  }, [s && s.bg, props.sessionId])
+    return undefined
+  }, [s && s.bg, s && s.backgroundRevision, props.sessionId])
 
   useEffect(() => {
     if (!s || s.enabled === false) {
@@ -858,8 +1087,9 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     const onSettingsChanged = (event: Event) => {
       const detail = (event as CustomEvent).detail
       if (detail && detail.settings) setPluginSettings(detail.settings)
-      if (detail && detail.view) {
-        setS(detail.view)
+      const eventView = scopedEventView(detail, props.sessionId)
+      if (eventView) {
+        setS(eventView)
       } else {
         callApi('view').then((view) => {
           if (view && typeof view === 'object') setS(view)
@@ -875,8 +1105,11 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
       const detail = (event as CustomEvent).detail
       if (!detail || typeof detail !== 'object') return
       bgCache.current = typeof detail.dataUrl === 'string' && detail.dataUrl ? detail.dataUrl : null
-      if (detail.view && typeof detail.view === 'object') {
-        setS(detail.view)
+      bgCacheRevision.current = backgroundRevisionValue(detail.backgroundRevision)
+        ?? backgroundRevisionValue(detail.view && detail.view.backgroundRevision)
+      const eventView = scopedEventView(detail, props.sessionId)
+      if (eventView) {
+        setS(eventView)
       } else {
         callApi('view').then((nextView) => {
           if (nextView && typeof nextView === 'object') setS(nextView)
@@ -892,17 +1125,22 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     const onSpriteChanged = (event: Event) => {
       const detail = (event as CustomEvent).detail
       if (!detail || typeof detail !== 'object') return
-      const characterId = String(detail.characterId || detail.charId || (detail.view && detail.view.current) || currentId)
+      const eventView = scopedEventView(detail, props.sessionId)
+      const characterId = String(detail.characterId || detail.charId || (eventView && eventView.current) || currentId)
       const dataUrl = typeof detail.dataUrl === 'string' && detail.dataUrl ? detail.dataUrl : null
       if (characterId) spriteCache.current[characterId] = dataUrl
-      const revision = Number(detail.revision !== undefined ? detail.revision : detail.view && detail.view.spriteRevision)
+      const revision = Number(detail.revision !== undefined ? detail.revision : eventView && eventView.spriteRevision)
       if (characterId && Number.isFinite(revision)) spriteRevisionCache.current[characterId] = revision
       if (!characterId || characterId === currentId) {
         setCustomSprite(dataUrl)
         setImgFail(false)
       }
-      if (detail.view && typeof detail.view === 'object') {
-        setS(detail.view)
+      if (eventView) {
+        setS(eventView)
+      } else {
+        callApi('view').then((nextView) => {
+          if (nextView && typeof nextView === 'object') setS(nextView)
+        }).catch(() => { /* server transient */ })
       }
     }
     window.addEventListener('whg:sprite-changed', onSpriteChanged)
@@ -914,7 +1152,8 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     const onProfileChanged = (event: Event) => {
       const detail = (event as CustomEvent).detail
       if (!detail || typeof detail !== 'object') return
-      const characterId = String(detail.characterId || detail.charId || (detail.view && detail.view.current) || currentId)
+      const eventView = scopedEventView(detail, props.sessionId)
+      const characterId = String(detail.characterId || detail.charId || (eventView && eventView.current) || currentId)
       const nextProfile = profileFromResult(detail)
       if (archivePanel === 'profile' && characterId && characterId === (profileCharacterId || currentId)) {
         if (nextProfile) {
@@ -930,8 +1169,8 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
           loadCharacterProfile(characterId)
         }
       }
-      if (detail.view && typeof detail.view === 'object') {
-        setS(detail.view)
+      if (eventView) {
+        setS(eventView)
       } else {
         callApi('view').then((nextView) => {
           if (nextView && typeof nextView === 'object') setS(nextView)
@@ -967,7 +1206,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault()
-        if (gallerySelected) setGallerySelected(null)
+        if (gallerySelected) closeGalleryDetail()
         else closeArchive()
         return
       }
@@ -1084,22 +1323,29 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
           window.dispatchEvent(new CustomEvent('whg:pet-setting', { detail: v.petEnabled }))
         }
         if (action === 'cg-save-bg') {
-          window.dispatchEvent(new CustomEvent('whg:bg-changed', { detail: { dataUrl: bgCache.current, view: v } }))
+          window.dispatchEvent(new CustomEvent('whg:bg-changed', {
+            detail: { dataUrl: bgCache.current, backgroundRevision: v.backgroundRevision, view: v, sourceSessionId: broadcastSessionId },
+          }))
         } else if (action === 'cg-clear-bg') {
-          window.dispatchEvent(new CustomEvent('whg:bg-changed', { detail: { dataUrl: null, view: v } }))
+          window.dispatchEvent(new CustomEvent('whg:bg-changed', {
+            detail: { dataUrl: null, backgroundRevision: v.backgroundRevision, view: v, sourceSessionId: broadcastSessionId },
+          }))
         }
       }
     }).catch((e) => {
       setApiError(String(e && e.message ? e.message : e))
-    }).then(() => {
+    }).finally(() => {
       setBusy(false)
     })
   }
 
   function closePicker(restoreFocus = true): void {
+    pickerRequestSeq.current += 1
     const target = pickerReturnFocus.current
     pickerReturnFocus.current = null
     setPickerPanel(null)
+    setPickerLoading(false)
+    setPickerCatalogLoading(false)
     setPickerError('')
     setBackgroundPreview(null)
     setBackgroundFileName('')
@@ -1109,14 +1355,27 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
   }
 
   function loadPickerData(): void {
-    setPickerLoading(true)
+    const requestId = ++pickerRequestSeq.current
+    setPickerCatalogLoading(true)
     setPickerError('')
-    Promise.all([callApi('model-options'), callApi('settings-get')]).then(([options, settingsResult]) => {
-      setModelOptions(options && typeof options === 'object' ? options : { characters: [], models: [] })
+    callApi('settings-get').then((settingsResult) => {
+      if (requestId !== pickerRequestSeq.current) return
       setPluginSettings(settingsFromResult(settingsResult) || settingsResult)
     }).catch((err) => {
-      setPickerError('模型列表读取失败：' + String(err && err.message ? err.message : err))
-    }).then(() => setPickerLoading(false))
+      if (requestId === pickerRequestSeq.current) {
+        setPickerError('插件设置读取失败：' + String(err && err.message ? err.message : err))
+      }
+    })
+    callModelOptions().then((options) => {
+      if (requestId !== pickerRequestSeq.current) return
+      setModelOptions(options && typeof options === 'object' ? options : { characters: [], models: [] })
+    }).catch((err) => {
+      if (requestId === pickerRequestSeq.current) {
+        setPickerError('模型列表读取失败：' + String(err && err.message ? err.message : err))
+      }
+    }).finally(() => {
+      if (requestId === pickerRequestSeq.current) setPickerCatalogLoading(false)
+    })
   }
 
   function openPicker(kind: 'character' | 'chat' | 'background' | 'sprite', trigger: HTMLElement): void {
@@ -1138,24 +1397,44 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     if (pickerLoading) return
     setPickerLoading(true)
     setPickerError('')
-    callApi('settings-set', patch).then(async (result) => {
+    callApi('settings-set', patch).then((result) => {
       assertApiResult(result, '切换未被接受')
-      let nextSettings = settingsFromResult(result)
-      if (!nextSettings) {
-        const refreshed = await callApi('settings-get')
-        nextSettings = settingsFromResult(refreshed) || refreshed
+      const nextSettings = settingsFromResult(result) || {
+        ...(pluginSettings && typeof pluginSettings === 'object' ? pluginSettings : {
+          enabled: s && s.enabled !== false,
+          petEnabled: s && s.petEnabled !== false,
+          characterMode: s && s.characterMode,
+          characterId: s && s.characterId,
+          chatMode: s && s.chatMode,
+          chatSelection: s && s.chatSelection,
+        }),
+        ...patch,
       }
-      let nextView = viewFromResult(result)
-      if (!nextView) nextView = await callApi('view')
+      const nextView = viewFromResult(result)
       if (nextSettings) setPluginSettings(nextSettings)
       if (nextView && typeof nextView === 'object') setS(nextView)
       window.dispatchEvent(new CustomEvent('whg:settings-changed', {
-        detail: { settings: nextSettings, view: nextView },
+        detail: { settings: nextSettings, view: nextView, sourceSessionId: broadcastSessionId },
       }))
       closePicker()
+      // settings-set is the persistence boundary. If an older service omits
+      // the view payload, do not leave the menu looking stuck while a second
+      // read is pending; refresh the scene independently after closing it.
+      if (!nextView) {
+        callApi('view').then((refreshedView) => {
+          if (refreshedView && typeof refreshedView === 'object') {
+            setS(refreshedView)
+            setApiError(null)
+          }
+        }).catch((err) => {
+          setApiError('切换已保存，但画面刷新失败：' + String(err && err.message ? err.message : err))
+        })
+      } else {
+        setApiError(null)
+      }
     }).catch((err) => {
       setPickerError('切换失败：' + String(err && err.message ? err.message : err))
-    }).then(() => setPickerLoading(false))
+    }).finally(() => setPickerLoading(false))
   }
 
   function chooseBackgroundFile(event: any): void {
@@ -1196,12 +1475,12 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
       if (!nextView) nextView = await callApi('view')
       if (nextView && typeof nextView === 'object') setS(nextView)
       window.dispatchEvent(new CustomEvent('whg:bg-changed', {
-        detail: { dataUrl: backgroundPreview, view: nextView },
+        detail: { dataUrl: backgroundPreview, backgroundRevision: nextView && nextView.backgroundRevision, view: nextView, sourceSessionId: broadcastSessionId },
       }))
       closePicker()
     }).catch((err) => {
       setPickerError('背景保存失败：' + String(err && err.message ? err.message : err))
-    }).then(() => setPickerLoading(false))
+    }).finally(() => setPickerLoading(false))
   }
 
   function restoreDefaultBackground(): void {
@@ -1216,12 +1495,12 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
       if (!nextView) nextView = await callApi('view')
       if (nextView && typeof nextView === 'object') setS(nextView)
       window.dispatchEvent(new CustomEvent('whg:bg-changed', {
-        detail: { dataUrl: null, view: nextView },
+        detail: { dataUrl: null, backgroundRevision: nextView && nextView.backgroundRevision, view: nextView, sourceSessionId: broadcastSessionId },
       }))
       closePicker()
     }).catch((err) => {
       setPickerError('恢复默认背景失败：' + String(err && err.message ? err.message : err))
-    }).then(() => setPickerLoading(false))
+    }).finally(() => setPickerLoading(false))
   }
 
   function applyBuiltinBackground(key: string): void {
@@ -1235,12 +1514,12 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
       if (!nextView) nextView = await callApi('view')
       if (nextView && typeof nextView === 'object') setS(nextView)
       window.dispatchEvent(new CustomEvent('whg:bg-changed', {
-        detail: { dataUrl: null, view: nextView },
+        detail: { dataUrl: null, backgroundRevision: nextView && nextView.backgroundRevision, view: nextView, sourceSessionId: broadcastSessionId },
       }))
       closePicker()
     }).catch((err) => {
       setPickerError('内置背景切换失败：' + String(err && err.message ? err.message : err))
-    }).then(() => setPickerLoading(false))
+    }).finally(() => setPickerLoading(false))
   }
 
   function chooseSpriteFile(event: any): void {
@@ -1286,12 +1565,12 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
       if (!nextView) nextView = await callApi('view')
       if (nextView && typeof nextView === 'object') setS(nextView)
       window.dispatchEvent(new CustomEvent('whg:sprite-changed', {
-        detail: { characterId: savedCharacterId, dataUrl, revision, view: nextView },
+        detail: { characterId: savedCharacterId, dataUrl, revision, view: nextView, sourceSessionId: broadcastSessionId },
       }))
       closePicker()
     }).catch((err) => {
       setPickerError('立绘保存失败：' + String(err && err.message ? err.message : err))
-    }).then(() => setPickerLoading(false))
+    }).finally(() => setPickerLoading(false))
   }
 
   function restoreDefaultSprite(): void {
@@ -1309,12 +1588,12 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
       if (!nextView) nextView = await callApi('view')
       if (nextView && typeof nextView === 'object') setS(nextView)
       window.dispatchEvent(new CustomEvent('whg:sprite-changed', {
-        detail: { characterId: savedCharacterId, dataUrl: null, revision, view: nextView },
+        detail: { characterId: savedCharacterId, dataUrl: null, revision, view: nextView, sourceSessionId: broadcastSessionId },
       }))
       closePicker()
     }).catch((err) => {
       setPickerError('恢复默认立绘失败：' + String(err && err.message ? err.message : err))
-    }).then(() => setPickerLoading(false))
+    }).finally(() => setPickerLoading(false))
   }
 
   function loadCharacterProfile(characterId: string): void {
@@ -1346,7 +1625,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     }).catch((err) => {
       if (requestId !== profileRequestSeq.current) return
       setProfileError('角色设定读取失败：' + String(err && err.message ? err.message : err))
-    }).then(() => {
+    }).finally(() => {
       if (requestId === profileRequestSeq.current) setProfileLoading(false)
     })
   }
@@ -1401,13 +1680,14 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
             PROFILE_KEYS.filter((key) => overrides[key] !== null).map((key) => [key, overrides[key]]),
           ),
           view: nextView,
+          sourceSessionId: broadcastSessionId,
         },
       }))
       setProfileMessage(refreshError ? '设定已保存；画面会在服务恢复后自动同步。' : '角色设定已保存。')
       setProfileError(refreshError)
     }).catch((err) => {
       setProfileError('角色设定保存失败：' + String(err && err.message ? err.message : err))
-    }).then(() => setProfileSaving(false))
+    }).finally(() => setProfileSaving(false))
   }
 
   function resetCharacterProfile(): void {
@@ -1450,13 +1730,20 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
       setProfileHasOverrides(false)
       if (nextView && typeof nextView === 'object') setS(nextView)
       window.dispatchEvent(new CustomEvent('whg:profile-changed', {
-        detail: { characterId: returnedId, builtIn: builtIn || effective, effective, overrides: {}, view: nextView },
+        detail: {
+          characterId: returnedId,
+          builtIn: builtIn || effective,
+          effective,
+          overrides: {},
+          view: nextView,
+          sourceSessionId: broadcastSessionId,
+        },
       }))
       setProfileMessage(refreshError ? '默认设定已恢复；内容会在服务恢复后自动同步。' : '已恢复该角色的默认设定。')
       setProfileError(refreshError)
     }).catch((err) => {
       setProfileError('恢复默认设定失败：' + String(err && err.message ? err.message : err))
-    }).then(() => setProfileSaving(false))
+    }).finally(() => setProfileSaving(false))
   }
 
   function send(): void {
@@ -1518,9 +1805,55 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     return lines.length > 0 ? lines[lines.length - 1] : null
   }
 
+  function loadRewardCg(cgId: string): void {
+    const id = String(cgId || '').trim()
+    if (!id) return
+    const requestId = ++rewardCgRequestSeq.current
+    const cached = cachedCgData(id)
+    setRewardCgError(null)
+    if (cached) {
+      setRewardCgDetail(cached)
+      setRewardCgLoading(false)
+      return
+    }
+    setRewardCgDetail(null)
+    setRewardCgLoading(true)
+    requestCgData(id, props.sessionId).then((detail) => {
+      if (requestId !== rewardCgRequestSeq.current) return
+      setRewardCgDetail(detail)
+      setGalleryItems((items) => items.map((entry) => String(entry && entry.id) === id
+        ? { ...entry, ...detail, savedAsBg: entry.savedAsBg }
+        : entry))
+    }).catch((error) => {
+      if (requestId === rewardCgRequestSeq.current) {
+        setRewardCgError(String(error && error.message ? error.message : error))
+      }
+    }).finally(() => {
+      if (requestId === rewardCgRequestSeq.current) setRewardCgLoading(false)
+    })
+  }
+
+  function acknowledgeRewardCg(): void {
+    const id = rewardCgId
+    if (!id) return
+    rewardCgRequestSeq.current += 1
+    act('cg-ack', { id })
+  }
+
+  function saveRewardCgBackground(): void {
+    const id = rewardCgId
+    if (!id || !rewardCgDetail || String(rewardCgDetail.id) !== id) return
+    if (typeof rewardCgDetail.dataUrl === 'string' && rewardCgDetail.dataUrl) {
+      bgCache.current = rewardCgDetail.dataUrl
+    }
+    act('cg-save-bg', { id })
+  }
+
   function closeArchive(): void {
+    galleryListRequestSeq.current += 1
+    setGalleryLoading(false)
     setArchivePanel(null)
-    setGallerySelected(null)
+    closeGalleryDetail()
     setProfileMessage('')
     setProfileError('')
     const target = archiveReturnFocus.current
@@ -1530,23 +1863,79 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     }
   }
 
+  function closeGalleryDetail(): void {
+    galleryDetailRequestSeq.current += 1
+    setGallerySelected(null)
+    setGalleryDetailLoading(false)
+    setGalleryDetailError(null)
+  }
+
   function loadGallery(): void {
+    const requestId = ++galleryListRequestSeq.current
     setGalleryLoading(true)
     setGalleryError(null)
     callApi('cg-gallery').then((result) => {
-      const items = result && Array.isArray(result.items) ? result.items : []
-      setGalleryItems(items)
+      if (requestId !== galleryListRequestSeq.current) return
+      assertApiResult(result, 'CG 图鉴读取失败')
+      const metadataItems = (result && Array.isArray(result.items) ? result.items : [])
+        .map(galleryMetadataItem)
+        .filter((item: any) => item && item.id)
+      setGalleryItems((currentItems) => {
+        const cachedById = new Map(currentItems.map((item: any) => [String(item && item.id), item]))
+        return metadataItems.map((metadata: any) => {
+          const cached = cachedById.get(String(metadata.id)) || cachedCgData(String(metadata.id))
+          return cached && typeof cached.dataUrl === 'string' && cached.dataUrl
+            ? { ...metadata, dataUrl: cached.dataUrl }
+            : metadata
+        })
+      })
     }).catch((error) => {
-      setGalleryError(String(error && error.message ? error.message : error))
-    }).then(() => {
-      setGalleryLoading(false)
+      if (requestId === galleryListRequestSeq.current) {
+        setGalleryError(String(error && error.message ? error.message : error))
+      }
+    }).finally(() => {
+      if (requestId === galleryListRequestSeq.current) setGalleryLoading(false)
+    })
+  }
+
+  function openGalleryDetail(item: any): void {
+    const id = String(item && item.id ? item.id : '').trim()
+    if (!id) return
+    const requestId = ++galleryDetailRequestSeq.current
+    setGallerySelected(item)
+    setGalleryDetailError(null)
+    if (typeof item.dataUrl === 'string' && item.dataUrl) {
+      setGalleryDetailLoading(false)
+      return
+    }
+    setGalleryDetailLoading(true)
+    requestCgData(id, props.sessionId).then((detailResult) => {
+      if (requestId !== galleryDetailRequestSeq.current) return
+      const normalizedDetail = { ...item, ...detailResult, id }
+      setGalleryItems((items) => items.map((entry) => {
+        if (String(entry && entry.id) !== id) return entry
+        const savedAsBg = typeof entry.savedAsBg === 'boolean' ? entry.savedAsBg : normalizedDetail.savedAsBg
+        return { ...entry, ...normalizedDetail, savedAsBg }
+      }))
+      setGallerySelected((current: any) => {
+        if (!current || String(current.id) !== id) return current
+        const savedAsBg = typeof current.savedAsBg === 'boolean' ? current.savedAsBg : normalizedDetail.savedAsBg
+        return { ...current, ...normalizedDetail, savedAsBg }
+      })
+    }).catch((error) => {
+      if (requestId === galleryDetailRequestSeq.current) {
+        setGalleryDetailError(String(error && error.message ? error.message : error))
+      }
+    }).finally(() => {
+      if (requestId === galleryDetailRequestSeq.current) setGalleryDetailLoading(false)
     })
   }
 
   function openArchive(kind: 'history' | 'gallery' | 'profile', trigger: HTMLElement): void {
     setPickerPanel(null)
     if (!archivePanel) archiveReturnFocus.current = trigger
-    setGallerySelected(null)
+    galleryListRequestSeq.current += 1
+    closeGalleryDetail()
     setArchivePanel(kind)
     if (kind === 'gallery') loadGallery()
     if (kind === 'profile') loadCharacterProfile(String(s && s.current ? s.current : ''))
@@ -1593,13 +1982,13 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     return React.createElement('div', {
       'aria-label': '选择出场角色',
       className: 'whg-picker',
-      id: 'whg-character-picker',
+      id: 'whg-character-picker-' + appScope,
       ref: pickerRef,
       role: 'listbox',
     },
       React.createElement('div', { className: 'whg-picker-head' },
         React.createElement('span', null, 'CHARACTER SOURCE'),
-        React.createElement('span', null, pickerLoading ? '读取中…' : String(characters.length + 1).padStart(2, '0')),
+        React.createElement('span', null, pickerCatalogLoading ? '读取中…' : String(characters.length + 1).padStart(2, '0')),
       ),
       pickerOption({
         selected: mode !== 'manual',
@@ -1631,13 +2020,13 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     return React.createElement('div', {
       'aria-label': '选择对话模型',
       className: 'whg-picker',
-      id: 'whg-chat-picker',
+      id: 'whg-chat-picker-' + appScope,
       ref: pickerRef,
       role: 'listbox',
     },
       React.createElement('div', { className: 'whg-picker-head' },
         React.createElement('span', null, 'DIALOGUE MODEL'),
-        React.createElement('span', null, pickerLoading ? '读取中…' : String(models.length + 2).padStart(2, '0')),
+        React.createElement('span', null, pickerCatalogLoading ? '读取中…' : String(models.length + 2).padStart(2, '0')),
       ),
       pickerOption({
         selected: mode === 'configured' || (!pluginSettings && !s.chatMode),
@@ -1725,7 +2114,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     return React.createElement('div', {
       'aria-label': '修改 galgame 背景图',
       className: 'whg-picker right whg-bg-picker',
-      id: 'whg-background-picker',
+      id: 'whg-background-picker-' + appScope,
       ref: pickerRef,
       role: 'dialog',
     },
@@ -1737,7 +2126,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
         ? React.createElement('img', { className: 'whg-bg-preview', src: visiblePreview, alt: backgroundPreview ? '待应用背景预览' : '当前 galgame 背景' })
         : React.createElement('div', { className: 'whg-bg-empty' }, '选择一张本地图片后在这里预览'),
       builtinSection,
-      React.createElement('div', { className: 'whg-picker-note' }, '内置背景会随角色切换。上传的图片只保存在本工作区，并会持续覆盖角色背景；建议使用横向 16:9 图片。'),
+      React.createElement('div', { className: 'whg-picker-note' }, '内置背景会随角色切换。上传的图片会在所有工作区共享，并持续覆盖角色背景；建议使用横向 16:9 图片。'),
       React.createElement('input', {
         accept: 'image/png,image/jpeg,image/webp,image/avif',
         className: 'whg-bg-file',
@@ -1789,7 +2178,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     return React.createElement('div', {
       'aria-label': '修改' + (s && s.name ? s.name : '当前角色') + '的角色立绘',
       className: 'whg-picker right whg-sprite-picker',
-      id: 'whg-sprite-picker',
+      id: 'whg-sprite-picker-' + appScope,
       ref: pickerRef,
       role: 'dialog',
     },
@@ -1807,7 +2196,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
         )
         : React.createElement('div', { className: 'whg-bg-empty' }, '选择一张本地图片后在这里预览'),
       React.createElement('div', { className: 'whg-picker-note' },
-        '当前角色 · ' + (s && s.name ? s.name : '未识别') + '。立绘按角色分别保存，只用于本工作区；建议使用透明背景的竖向图片。',
+        '当前角色 · ' + (s && s.name ? s.name : '未识别') + '。立绘按角色分别保存，并在所有工作区共享；建议使用透明背景的竖向图片。',
       ),
       React.createElement('input', {
         accept: 'image/png,image/jpeg,image/webp,image/avif',
@@ -1903,7 +2292,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     return React.createElement(React.Fragment, null,
       React.createElement('div', { className: 'whg-profile-intro' },
         React.createElement('strong', null, (s && s.name ? s.name : '当前角色') + ' · 独立角色档案'),
-        '。设定按角色分别保存；保存或恢复默认都不会改变好感度、记忆或角色立绘，已经开始互动的对话历史也不会被改写。',
+        '。设定按角色分别保存，并在所有工作区共享；保存或恢复默认都不会改变好感度、记忆或角色立绘，已经开始互动的对话历史也不会被改写。',
         React.createElement('span', { className: 'whg-profile-guard' },
           '若尚未开始互动，编辑会原位更新当前开场问候；开始对话后不再改写历史。安全规则与单句回复限制始终保留。',
         ),
@@ -1996,16 +2385,27 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
       body = React.createElement('div', { className: 'whg-gallery-detail' },
         React.createElement('button', {
           className: 'whg-archive-back',
-          onClick: () => setGallerySelected(null),
+          onClick: closeGalleryDetail,
           type: 'button',
         }, '← 返回图鉴'),
-        gallerySelected.dataUrl
-          ? React.createElement('img', {
-            className: 'whg-gallery-full',
-            src: gallerySelected.dataUrl,
-            alt: (gallerySelected.name || s.name) + '的特殊CG',
-          })
-          : React.createElement('div', { className: 'whg-archive-empty' }, '这张 CG 暂时无法读取。'),
+        galleryDetailLoading
+          ? React.createElement('div', { className: 'whg-archive-empty', role: 'status' }, '正在读取这张特殊 CG……')
+          : galleryDetailError
+            ? React.createElement('div', { className: 'whg-archive-error', role: 'alert' },
+              'CG 图片读取失败：' + galleryDetailError,
+              React.createElement('button', {
+                className: 'whg-btn',
+                onClick: () => openGalleryDetail(gallerySelected),
+                type: 'button',
+              }, '重新读取'),
+            )
+            : gallerySelected.dataUrl
+              ? React.createElement('img', {
+                className: 'whg-gallery-full',
+                src: gallerySelected.dataUrl,
+                alt: (gallerySelected.name || s.name) + '的特殊CG',
+              })
+              : React.createElement('div', { className: 'whg-archive-error', role: 'alert' }, '这张 CG 暂时无法读取。'),
         React.createElement('div', { className: 'whg-gallery-caption' },
           React.createElement('strong', null, 'Lv.' + (gallerySelected.level || '?')),
           React.createElement('span', null, (gallerySelected.name || s.name) + ' · ' + formatCgDate(gallerySelected.at)),
@@ -2035,7 +2435,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
           'aria-label': '查看' + (item.name || s.name) + ' Lv.' + (item.level || '?') + ' 特殊CG',
           className: 'whg-gallery-card',
           key: item.id || index,
-          onClick: () => setGallerySelected(item),
+          onClick: () => openGalleryDetail(item),
           type: 'button',
         },
           item.dataUrl
@@ -2097,7 +2497,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
       React.createElement('span', { className: 'whg-title' }, '与' + s.name + '的galgame'),
       React.createElement('div', { className: 'whg-chip-wrap' },
         React.createElement('button', {
-          'aria-controls': 'whg-character-picker',
+          'aria-controls': 'whg-character-picker-' + appScope,
           'aria-expanded': pickerPanel === 'character',
           'aria-haspopup': 'listbox',
           className: 'whg-chip whg-chip-button',
@@ -2114,7 +2514,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
       ),
       React.createElement('div', { className: 'whg-chip-wrap' },
         React.createElement('button', {
-          'aria-controls': 'whg-chat-picker',
+          'aria-controls': 'whg-chat-picker-' + appScope,
           'aria-expanded': pickerPanel === 'chat',
           'aria-haspopup': 'listbox',
           className: 'whg-chip whg-chip-button',
@@ -2133,7 +2533,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
       React.createElement('div', { className: 'whg-top-actions' },
         React.createElement('div', { className: 'whg-chip-wrap' },
           React.createElement('button', {
-            'aria-controls': 'whg-background-picker',
+            'aria-controls': 'whg-background-picker-' + appScope,
             'aria-expanded': pickerPanel === 'background',
             'aria-haspopup': 'dialog',
             className: 'whg-btn',
@@ -2144,7 +2544,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
         ),
         React.createElement('div', { className: 'whg-chip-wrap' },
           React.createElement('button', {
-            'aria-controls': 'whg-sprite-picker',
+            'aria-controls': 'whg-sprite-picker-' + appScope,
             'aria-expanded': pickerPanel === 'sprite',
             'aria-haspopup': 'dialog',
             className: 'whg-btn',
@@ -2259,7 +2659,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     const plateColor = last
       ? (last.who === 'heroine' ? s.color : last.who === 'user' ? '#ff9cc8' : '#8fb4dd')
       : s.color
-    const showChoices = last && last.who === 'heroine' && s.choices && s.choices.length > 0
+    const showChoices = Array.isArray(s.choices) && s.choices.length > 0
     const choices = showChoices
       ? React.createElement('div', { className: 'whg-choices' },
         s.choices.map((c: any, i: number) => {
@@ -2312,10 +2712,38 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
       return React.createElement('div', { className: 'whg-toast', onClick: () => { act('cg-ack') } },
         '⚠️ CG 生成失败：' + (s.cg.error || '未知错误') + '（点击关闭）')
     }
-    if (s.cg.status === 'ready' && !s.cg.seen && s.cg.dataUrl) {
+    if (s.cg.status === 'ready' && !s.cg.seen) {
+      const detailReady = rewardCgDetail
+        && String(rewardCgDetail.id || '') === rewardCgId
+        && typeof rewardCgDetail.dataUrl === 'string'
+        && rewardCgDetail.dataUrl
+      if (!detailReady) {
+        return React.createElement('div', { 'aria-modal': 'true', className: 'whg-cg-backdrop', role: 'dialog' },
+          React.createElement('div', { className: 'whg-cg-title' }, '🎁 升级啦 · ' + (s.cg.name || s.name) + '送给你的特殊CG'),
+          rewardCgError
+            ? React.createElement('div', { className: 'whg-archive-error', role: 'alert' }, '特殊 CG 读取失败：' + rewardCgError)
+            : React.createElement('div', { className: 'whg-cg-title', role: 'status' }, rewardCgLoading ? '正在取出这份深海礼物……' : '正在准备这份深海礼物……'),
+          rewardCgError
+            ? React.createElement('div', { className: 'whg-cg-btns' },
+              React.createElement('button', {
+                className: 'whg-cg-btn',
+                disabled: rewardCgLoading,
+                onClick: () => loadRewardCg(rewardCgId),
+                type: 'button',
+              }, rewardCgLoading ? '重新读取中…' : '重新读取'),
+              React.createElement('button', {
+                className: 'whg-cg-btn alt',
+                disabled: busy,
+                onClick: acknowledgeRewardCg,
+                type: 'button',
+              }, '暂时收下并关闭'),
+            )
+            : null,
+        )
+      }
       return React.createElement('div', { 'aria-modal': 'true', className: 'whg-cg-backdrop', role: 'dialog' },
         React.createElement('div', { className: 'whg-cg-title' }, '🎁 升级啦 · ' + (s.cg.name || s.name) + '送给你的特殊CG'),
-        React.createElement('img', { className: 'whg-cg-img', src: s.cg.dataUrl, alt: (s.cg.name || s.name) + '送给你的特殊CG' }),
+        React.createElement('img', { className: 'whg-cg-img', src: rewardCgDetail.dataUrl, alt: (s.cg.name || s.name) + '送给你的特殊CG' }),
         React.createElement('div', { className: 'whg-cg-btns' },
           s.cg.savedAsBg
             ? React.createElement('button', {
@@ -2328,17 +2756,14 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
             }, '恢复默认背景')
             : React.createElement('button', {
               className: 'whg-cg-btn',
-              onClick: () => {
-                if (s.cg && s.cg.dataUrl) {
-                  bgCache.current = s.cg.dataUrl
-                }
-                act('cg-save-bg')
-              },
+              disabled: busy,
+              onClick: saveRewardCgBackground,
               type: 'button',
             }, '保存为galgame界面背景'),
           React.createElement('button', {
             className: 'whg-cg-btn alt',
-            onClick: () => { act('cg-ack') },
+            disabled: busy,
+            onClick: acknowledgeRewardCg,
             type: 'button',
           }, '收下并关闭'),
         ),
@@ -2357,14 +2782,11 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
       )
     }
     if (s.enabled === false) {
-      const mismatch = s.workspaceMismatch === true
       return React.createElement('div', { id: 'whg-tab-root', className: 'whg-root-tab' },
         React.createElement('div', { className: 'whg-disabled' },
           React.createElement('div', { className: 'whg-disabled-card' },
-            React.createElement('h2', null, mismatch ? '此工作区没有对应的 Galgame 存档' : '鲸鱼娘 Galgame 已关闭'),
-            React.createElement('p', null, mismatch
-              ? '为避免跨工作区混用角色记忆与任务上下文，本页不会读取另一个工作区的 Galgame 数据。'
-              : '在左侧“设置 → 插件 → 插件配置”中展开鲸鱼娘 Galgame，即可重新开启。'),
+            React.createElement('h2', null, '鲸鱼娘 Galgame 已关闭'),
+            React.createElement('p', null, '在左侧“设置 → 插件 → 插件配置”中展开鲸鱼娘 Galgame，即可重新开启。'),
           ),
         ),
       )
