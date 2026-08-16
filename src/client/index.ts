@@ -568,7 +568,10 @@ function PluginSettingsCard(): React.ReactElement {
   )
 }
 
-function App(props: { useSessions: any; variant?: string }): React.ReactElement {
+function App(props: { useSessions: any; variant?: string; sessionId?: string }): React.ReactElement {
+  const callApi = (action: string, args?: any) => api(action, props.sessionId
+    ? { ...(args && typeof args === 'object' ? args : {}), sessionId: props.sessionId }
+    : args)
   const [s, setS] = useState<any>(null)
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -606,9 +609,9 @@ function App(props: { useSessions: any; variant?: string }): React.ReactElement 
 
   useEffect(() => {
     let alive = true
-    api('view').then((v) => { if (alive) { setS(v); setApiError(null) } }).catch((e) => { if (alive) setApiError('galgame 服务未就绪：' + String(e && e.message ? e.message : e)) })
+    callApi('view').then((v) => { if (alive) { setS(v); setApiError(null) } }).catch((e) => { if (alive) setApiError('galgame 服务未就绪：' + String(e && e.message ? e.message : e)) })
     return () => { alive = false }
-  }, [])
+  }, [props.sessionId])
 
   useEffect(() => {
     const t = setTimeout(() => setSettled(true), 4000)
@@ -646,20 +649,20 @@ function App(props: { useSessions: any; variant?: string }): React.ReactElement 
   }, [props.variant])
 
   useEffect(() => {
-    if (s && s.enabled === false) return undefined
+    if (s && s.enabled === false && s.workspaceMismatch !== true) return undefined
     const id = setInterval(() => {
-      api('view').then((v) => {
+      callApi('view').then((v) => {
         if (v && typeof v === 'object') setS(v)
       }).catch(() => { /* server transient */ })
     }, 6000)
     return () => clearInterval(id)
-  }, [s && s.enabled])
+  }, [s && s.enabled, s && s.workspaceMismatch, props.sessionId])
 
   useEffect(() => {
     if (!s) return
     if (s.bg === 'cg' || s.bg === 'custom') {
       if (!bgCache.current) {
-        api('bg-data').then((r) => {
+        callApi('bg-data').then((r) => {
           if (r && typeof r.dataUrl === 'string' && r.dataUrl) {
             bgCache.current = r.dataUrl
             setS((prev: any) => prev ? { ...prev } : prev)
@@ -669,7 +672,7 @@ function App(props: { useSessions: any; variant?: string }): React.ReactElement 
     } else {
       bgCache.current = null
     }
-  }, [s && s.bg])
+  }, [s && s.bg, props.sessionId])
 
   useEffect(() => {
     if (!s || s.enabled === false) {
@@ -688,7 +691,7 @@ function App(props: { useSessions: any; variant?: string }): React.ReactElement 
       return undefined
     }
     let alive = true
-    api('sprite-data', { characterId }).then((result) => {
+    callApi('sprite-data', { characterId }).then((result) => {
       assertApiResult(result, '角色立绘读取失败')
       if (!alive) return
       const returnedId = String(result && (result.characterId || result.charId) ? (result.characterId || result.charId) : characterId)
@@ -704,7 +707,7 @@ function App(props: { useSessions: any; variant?: string }): React.ReactElement 
       if (alive) setCustomSprite(null)
     })
     return () => { alive = false }
-  }, [s && s.current, s && s.enabled, s && s.spriteRevision])
+  }, [s && s.current, s && s.enabled, s && s.spriteRevision, props.sessionId])
 
   useEffect(() => {
     const onSettingsChanged = (event: Event) => {
@@ -713,14 +716,14 @@ function App(props: { useSessions: any; variant?: string }): React.ReactElement 
       if (detail && detail.view) {
         setS(detail.view)
       } else {
-        api('view').then((view) => {
+        callApi('view').then((view) => {
           if (view && typeof view === 'object') setS(view)
         }).catch(() => { /* server transient */ })
       }
     }
     window.addEventListener('whg:settings-changed', onSettingsChanged)
     return () => window.removeEventListener('whg:settings-changed', onSettingsChanged)
-  }, [])
+  }, [props.sessionId])
 
   useEffect(() => {
     const onBackgroundChanged = (event: Event) => {
@@ -730,14 +733,14 @@ function App(props: { useSessions: any; variant?: string }): React.ReactElement 
       if (detail.view && typeof detail.view === 'object') {
         setS(detail.view)
       } else {
-        api('view').then((nextView) => {
+        callApi('view').then((nextView) => {
           if (nextView && typeof nextView === 'object') setS(nextView)
         }).catch(() => { /* server transient */ })
       }
     }
     window.addEventListener('whg:bg-changed', onBackgroundChanged)
     return () => window.removeEventListener('whg:bg-changed', onBackgroundChanged)
-  }, [])
+  }, [props.sessionId])
 
   useEffect(() => {
     const currentId = String(s && s.current ? s.current : '')
@@ -759,11 +762,11 @@ function App(props: { useSessions: any; variant?: string }): React.ReactElement 
     }
     window.addEventListener('whg:sprite-changed', onSpriteChanged)
     return () => window.removeEventListener('whg:sprite-changed', onSpriteChanged)
-  }, [s && s.current])
+  }, [s && s.current, props.sessionId])
 
   useEffect(() => {
     setImgFail(false)
-  }, [s && s.current, s && s.sprite, customSprite])
+  }, [s && s.current, s && s.sprite, customSprite, props.sessionId])
 
   useEffect(() => {
     const onPetSetting = (event: Event) => {
@@ -888,7 +891,7 @@ function App(props: { useSessions: any; variant?: string }): React.ReactElement 
   function act(action: string, args?: any): void {
     if (busy) return
     setBusy(true)
-    api(action, args).then((v) => {
+    callApi(action, args).then((v) => {
       if (v && typeof v === 'object') {
         setS(v)
         setApiError(null)
@@ -923,7 +926,7 @@ function App(props: { useSessions: any; variant?: string }): React.ReactElement 
   function loadPickerData(): void {
     setPickerLoading(true)
     setPickerError('')
-    Promise.all([api('model-options'), api('settings-get')]).then(([options, settingsResult]) => {
+    Promise.all([callApi('model-options'), callApi('settings-get')]).then(([options, settingsResult]) => {
       setModelOptions(options && typeof options === 'object' ? options : { characters: [], models: [] })
       setPluginSettings(settingsFromResult(settingsResult) || settingsResult)
     }).catch((err) => {
@@ -950,15 +953,15 @@ function App(props: { useSessions: any; variant?: string }): React.ReactElement 
     if (pickerLoading) return
     setPickerLoading(true)
     setPickerError('')
-    api('settings-set', patch).then(async (result) => {
+    callApi('settings-set', patch).then(async (result) => {
       assertApiResult(result, '切换未被接受')
       let nextSettings = settingsFromResult(result)
       if (!nextSettings) {
-        const refreshed = await api('settings-get')
+        const refreshed = await callApi('settings-get')
         nextSettings = settingsFromResult(refreshed) || refreshed
       }
       let nextView = viewFromResult(result)
-      if (!nextView) nextView = await api('view')
+      if (!nextView) nextView = await callApi('view')
       if (nextSettings) setPluginSettings(nextSettings)
       if (nextView && typeof nextView === 'object') setS(nextView)
       window.dispatchEvent(new CustomEvent('whg:settings-changed', {
@@ -1001,11 +1004,11 @@ function App(props: { useSessions: any; variant?: string }): React.ReactElement 
     if (!backgroundPreview || pickerLoading) return
     setPickerLoading(true)
     setPickerError('')
-    api('bg-upload', { dataUrl: backgroundPreview, fileName: backgroundFileName }).then(async (result) => {
+    callApi('bg-upload', { dataUrl: backgroundPreview, fileName: backgroundFileName }).then(async (result) => {
       assertApiResult(result, '背景未保存')
       bgCache.current = backgroundPreview
       let nextView = viewFromResult(result)
-      if (!nextView) nextView = await api('view')
+      if (!nextView) nextView = await callApi('view')
       if (nextView && typeof nextView === 'object') setS(nextView)
       window.dispatchEvent(new CustomEvent('whg:bg-changed', {
         detail: { dataUrl: backgroundPreview, view: nextView },
@@ -1021,11 +1024,11 @@ function App(props: { useSessions: any; variant?: string }): React.ReactElement 
     setPickerLoading(true)
     setPickerError('')
     const action = s && s.bg === 'cg' ? 'cg-clear-bg' : 'bg-clear-custom'
-    api(action).then(async (result) => {
+    callApi(action).then(async (result) => {
       assertApiResult(result, '背景未恢复')
       bgCache.current = null
       let nextView = viewFromResult(result)
-      if (!nextView) nextView = await api('view')
+      if (!nextView) nextView = await callApi('view')
       if (nextView && typeof nextView === 'object') setS(nextView)
       window.dispatchEvent(new CustomEvent('whg:bg-changed', {
         detail: { dataUrl: null, view: nextView },
@@ -1069,14 +1072,14 @@ function App(props: { useSessions: any; variant?: string }): React.ReactElement 
     if (!dataUrl || !characterId || pickerLoading) return
     setPickerLoading(true)
     setPickerError('')
-    api('sprite-upload', { characterId, dataUrl, fileName: spriteFileName }).then(async (result) => {
+    callApi('sprite-upload', { characterId, dataUrl, fileName: spriteFileName }).then(async (result) => {
       assertApiResult(result, '角色立绘未保存')
       const savedCharacterId = String(result && (result.characterId || result.charId) ? (result.characterId || result.charId) : characterId)
       const revision = Number(result && result.revision)
       spriteCache.current[savedCharacterId] = dataUrl
       if (Number.isFinite(revision)) spriteRevisionCache.current[savedCharacterId] = revision
       let nextView = viewFromResult(result)
-      if (!nextView) nextView = await api('view')
+      if (!nextView) nextView = await callApi('view')
       if (nextView && typeof nextView === 'object') setS(nextView)
       window.dispatchEvent(new CustomEvent('whg:sprite-changed', {
         detail: { characterId: savedCharacterId, dataUrl, revision, view: nextView },
@@ -1092,14 +1095,14 @@ function App(props: { useSessions: any; variant?: string }): React.ReactElement 
     if (!characterId || pickerLoading) return
     setPickerLoading(true)
     setPickerError('')
-    api('sprite-clear', { characterId }).then(async (result) => {
+    callApi('sprite-clear', { characterId }).then(async (result) => {
       assertApiResult(result, '默认立绘未恢复')
       const savedCharacterId = String(result && (result.characterId || result.charId) ? (result.characterId || result.charId) : characterId)
       const revision = Number(result && result.revision)
       spriteCache.current[savedCharacterId] = null
       if (Number.isFinite(revision)) spriteRevisionCache.current[savedCharacterId] = revision
       let nextView = viewFromResult(result)
-      if (!nextView) nextView = await api('view')
+      if (!nextView) nextView = await callApi('view')
       if (nextView && typeof nextView === 'object') setS(nextView)
       window.dispatchEvent(new CustomEvent('whg:sprite-changed', {
         detail: { characterId: savedCharacterId, dataUrl: null, revision, view: nextView },
@@ -1182,7 +1185,7 @@ function App(props: { useSessions: any; variant?: string }): React.ReactElement 
   function loadGallery(): void {
     setGalleryLoading(true)
     setGalleryError(null)
-    api('cg-gallery').then((result) => {
+    callApi('cg-gallery').then((result) => {
       const items = result && Array.isArray(result.items) ? result.items : []
       setGalleryItems(items)
     }).catch((error) => {
@@ -1824,11 +1827,14 @@ function App(props: { useSessions: any; variant?: string }): React.ReactElement 
       )
     }
     if (s.enabled === false) {
+      const mismatch = s.workspaceMismatch === true
       return React.createElement('div', { id: 'whg-tab-root', className: 'whg-root-tab' },
         React.createElement('div', { className: 'whg-disabled' },
           React.createElement('div', { className: 'whg-disabled-card' },
-            React.createElement('h2', null, '鲸鱼娘 Galgame 已关闭'),
-            React.createElement('p', null, '在左侧“设置 → 插件 → 插件配置”中展开鲸鱼娘 Galgame，即可重新开启。'),
+            React.createElement('h2', null, mismatch ? '此工作区没有对应的 Galgame 存档' : '鲸鱼娘 Galgame 已关闭'),
+            React.createElement('p', null, mismatch
+              ? '为避免跨工作区混用角色记忆与任务上下文，本页不会读取另一个工作区的 Galgame 数据。'
+              : '在左侧“设置 → 插件 → 插件配置”中展开鲸鱼娘 Galgame，即可重新开启。'),
           ),
         ),
       )
@@ -1914,7 +1920,11 @@ export function apply(ctx: any): void {
   // galgame as a first-class conversation view tab (对话 / 轨迹 / galgame)
   slots.inject('conversation.view', () => slots.register(
     { name: 'conversation.view', id: 'galgame', order: 100, label: 'galgame' },
-    () => React.createElement(App, { useSessions: null, variant: 'tab' }),
+    (slotProps: any) => React.createElement(App, {
+      useSessions: slotProps && slotProps.useSessions,
+      sessionId: slotProps && slotProps.sessionId,
+      variant: 'tab',
+    }),
   ))
 
   // Public DSH extension point: Settings → Plugins → Plugin configuration.

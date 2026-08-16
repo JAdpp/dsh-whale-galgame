@@ -29,7 +29,8 @@
     "prune:art": "node scripts/prune-art.mjs",
     "audit:release": "node scripts/release-audit.mjs",
     "check": "node --check lib/index.js && node --check lib/client.js",
-    "verify": "npm run prune:art && npm run export:art && npm run build && npm run check && npm run audit:release"
+    "test": "node --experimental-strip-types --test test/activity-context.test.ts test/plugin-integration.test.ts",
+    "verify": "npm run prune:art && npm run export:art && npm run test && npm run build && npm run check && npm run audit:release"
   },
   "repository": {
     "type": "git",

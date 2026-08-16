@@ -17,6 +17,20 @@ The installed plugin embeds 16 runtime visual assets: six character sprites, one
 - Each turn offers close, neutral, and distant reply options in shuffled positions. Free-text input remains available.
 - Manage the background, per-role sprite, dialogue archive, CG gallery, and desktop pet from the interface. Clicking the pet opens the `galgame` tab.
 
+## Affection and cross-session context
+
+### Relationship progression
+
+Each role begins at Lv.1 with 0 affection and keeps its own state. The close, neutral, and distant reply choices apply +1, 0, and -1 respectively, with their positions shuffled each turn; free text uses lightweight keyword rules. While the plugin is running, every 5,000 input and output tokens observed in newly emitted same-workspace Harness `assistant/message` usage events add 1 point to the current role. A settlement redeems at most 3 points and keeps the remaining balance; model calls initiated by the plugin itself are excluded, and historical usage is not recalculated. After a 24-hour grace period without activity, every role loses 2 points per day, with a floor of 0.
+
+The level threshold is `30 + 15 × (Lv - 1)`: 30, 45, 60, and so on. Reaching it raises the level and carries any surplus into the next one; there is no level cap. Relationship tone has five stages and remains at the closest stage from Lv.5 onward. When CG generation is enabled, each level-up creates a commemorative CG.
+
+### Harness task events
+
+The plugin examines at most 16 top-level live and persisted Harness sessions from the same workspace, limited to the past 72 hours and the final 240 events in each session. Local deterministic rules classify activity as code debugging, code development, document summarization, document writing, literary creation, research, data analysis, visual design, presentation work, translation and proofreading, or task planning. Text classification uses only explicit user text submitted by a person; tool names and turn-end status may also contribute. Tool arguments, tool results, and assistant body text are neither read nor sent.
+
+Only fixed category and status cues are passed to the Galgame reply model and CG generation service. While answering the current topic, the character naturally adds one brief acknowledgement—for example, reminding the player to rest after a debugging task. Each role stores its own event fingerprints and last-mention time: an event is proactively mentioned only once to that role, with at least 30 minutes between different events. Task events affect the topic, not affection directly.
+
 ## Bundled default art
 
 The six images below are the default role sprites used after installation. In the GitHub source repository, [`assets/default/`](assets/default/README.md) lists all 16 exported files and their runtime purposes. The npm installation uses the same images embedded in the client bundle instead of packaging a second raw-image copy.
@@ -95,6 +109,8 @@ Runtime data is stored in `.whale-girl-save.json` at the active workspace root. 
 - Ordinary dialogue is sent to the model provider selected in DSH.
 - Generating a level-up CG sends a text prompt to DashScope.
 - User-uploaded backgrounds and sprites remain in the workspace save and are not included in either external request.
+- Harness context writes only event fingerprints that contain no source text and the last-mention time to the save; it does not store the original Harness text. External requests receive only fixed category and status cues.
+- If the active session and the plugin save do not belong to the same workspace, the Galgame view refuses to read role state or task cues instead of reusing data across workspaces.
 
 This plugin repository's `.gitignore` cannot protect a different workspace automatically. If the active workspace is itself a Git repository, add these entries to that workspace's `.gitignore`:
 

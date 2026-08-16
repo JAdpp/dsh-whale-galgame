@@ -1,3 +1,13 @@
+import {
+  activityCgTheme,
+  activitySystemInstruction,
+  collectHarnessActivities,
+  nextUnseenActivity,
+  normalizeActivityMemory,
+  rememberActivity,
+  type HarnessActivity,
+} from './activity-context.ts'
+
 /**
  * dsh-whale-galgame — web-host half.
  * Free-chat galgame: the heroine follows the main UI's current model.
@@ -120,7 +130,7 @@ const ROSTER: Record<string, any> = {
 
 const ROSTER_IDS = Object.keys(ROSTER)
 const SAVE_NAME = '.whale-girl-save.json'
-const SAVE_VERSION = 6
+const SAVE_VERSION = 7
 const DECAY_GRACE_MS = 24 * 3600 * 1000
 const DECAY_PER_DAY = 2
 const AFFECTION_FLOOR = 0
@@ -130,6 +140,9 @@ const MAX_CUSTOM_IMAGE_BYTES = 18 * 1024 * 1024
 const MAX_CUSTOM_BG_DATA_URL_CHARS = 24 * 1024 * 1024
 const MAX_CUSTOM_SPRITE_DATA_URL_CHARS = 24 * 1024 * 1024
 const MAX_API_BODY_BYTES = MAX_CUSTOM_BG_DATA_URL_CHARS + 64 * 1024
+const ACTIVITY_CACHE_MS = 60 * 1000
+const ACTIVITY_SESSION_LIMIT = 16
+const ACTIVITY_EVENT_LIMIT = 240
 
 function affectionCap(level: number): number {
   return 30 + (Math.max(1, level) - 1) * 15
@@ -193,6 +206,7 @@ export function apply(ctx: any, config: any = {}): void {
   let sessionsSvc: any
   let workspaceRegistry: any
   let agentDefaultModel: any
+  let sessionQuery: any
 
   if (typeof ctx.inject === 'function') {
     ctx.inject(['fs', 'sandboxPolicy', 'sessions', 'workspaceRegistry', 'agentDefaultModel'], (scope: any) => {
@@ -202,10 +216,21 @@ export function apply(ctx: any, config: any = {}): void {
       workspaceRegistry = scope.workspaceRegistry
       agentDefaultModel = scope.agentDefaultModel
     })
+    ctx.inject(['sessionQuery'], (scope: any) => {
+      sessionQuery = scope.sessionQuery
+    })
   }
 
   let s: any = null
   let tokensObserved = 0
+  let tokensAppliedRuntime = 0
+  let boundActivitySessionId = ''
+  let activityCache: HarnessActivity[] = []
+  let activityCacheRoot = ''
+  let activityCacheAt = 0
+  let activityCacheGeneration = 0
+  let activityRefreshPromise: Promise<void> | null = null
+  let chatMutex: Promise<void> = Promise.resolve()
 
   function emptyCharacter(): any {
     return {
@@ -215,6 +240,9 @@ export function apply(ctx: any, config: any = {}): void {
       chatLines: [],
       choices: [],
       cgs: [],
+      // Only opaque event fingerprints and a timestamp are persisted. Harness
+      // message text never enters the Galgame save file.
+      activity: normalizeActivityMemory(null),
       // Custom sprites belong to a character, just like her relationship
       // state. The image itself is only exposed through the sprite-data API.
       customSprite: { dataUrl: null, fileName: '', revision: 0 },
@@ -231,7 +259,7 @@ export function apply(ctx: any, config: any = {}): void {
       current: 'deepseek',
       lastCurrent: 'deepseek',
       characters,
-      tokens: { lastApplied: 0, bank: 0, lastActiveAt: 0 },
+      tokens: { bank: 0, lastActiveAt: 0 },
       bg: null,
       cg: null,
       preferences: {
@@ -365,6 +393,201 @@ export function apply(ctx: any, config: any = {}): void {
     return undefined
   }
 
+  function normalizedWorkspacePath(value: any): string {
+    return typeof value === 'string'
+      ? value.replace(/\\/g, '/').replace(/\/$/, '').toLowerCase()
+      : ''
+  }
+
+  function sameWorkspace(left: any, right: any): boolean {
+    const a = normalizedWorkspacePath(left)
+    const b = normalizedWorkspacePath(right)
+    return !!a && a === b
+  }
+
+  function activityWorkspaceRoot(): string {
+    // State and its save file are currently one bucket per plugin instance.
+    // Another open workspace must never retarget this bucket.
+    return workspaceRoot() || ''
+  }
+
+  function registeredWorkspaceRoot(candidate: string): string {
+    if (!candidate) return ''
+    try {
+      const rows = workspaceRegistry && typeof workspaceRegistry.list === 'function'
+        ? workspaceRegistry.list()
+        : []
+      if (!Array.isArray(rows) || rows.length === 0) return ''
+      const match = rows.find((row: any) => row && sameWorkspace(row.path, candidate))
+      return match && typeof match.path === 'string' ? match.path : ''
+    } catch (err) {
+      return ''
+    }
+  }
+
+  async function bindActivitySession(rawSessionId: any): Promise<'unscoped' | 'matched' | 'mismatch'> {
+    const sessionId = typeof rawSessionId === 'string' ? rawSessionId.trim().slice(0, 240) : ''
+    if (!sessionId) return 'unscoped'
+    if (sessionId === boundActivitySessionId) return 'matched'
+    let header: any = null
+    try {
+      if (sessionQuery && typeof sessionQuery.readSession === 'function') {
+        const snapshot = await sessionQuery.readSession(sessionId)
+        header = snapshot && snapshot.session
+      }
+    } catch (err) { /* fall through to the live service */ }
+    if (!header && sessionsSvc && typeof sessionsSvc.list === 'function') {
+      try {
+        const live = sessionsSvc.list()
+        const match = Array.isArray(live)
+          ? live.find((row: any) => row && row.header && row.header.id === sessionId)
+          : null
+        header = match && match.header
+      } catch (err) { /* ignore */ }
+    }
+    const verifiedRoot = registeredWorkspaceRoot(header && header.cwd)
+    const stateRoot = activityWorkspaceRoot()
+    if (!verifiedRoot || !sameWorkspace(header && header.cwd, stateRoot)) return 'mismatch'
+    boundActivitySessionId = sessionId
+    activityCacheGeneration += 1
+    activityCacheAt = 0
+    return 'matched'
+  }
+
+  async function collectActivitySessions(root: string): Promise<any[]> {
+    const snapshots: any[] = []
+    const seen = new Set<string>()
+    if (sessionQuery && typeof sessionQuery.readSession === 'function'
+      && (typeof sessionQuery.listSessions === 'function' || typeof sessionQuery.filterSessions === 'function')) {
+      try {
+        const records = typeof sessionQuery.listSessions === 'function'
+          ? await sessionQuery.listSessions()
+          : await sessionQuery.filterSessions([{ kind: 'cwd', values: [root] }])
+        const usable = Array.isArray(records)
+          ? records.filter((row: any) => row && row.header
+            && row.header.origin !== 'subagent'
+            && sameWorkspace(row.header.cwd, root))
+          : []
+        const ranked = usable.map((row: any) => ({
+          row,
+          lastEventAt: Number(row.header.createdAt || 0),
+        }))
+        if (typeof sessionQuery.listEvents === 'function' && ranked.length > 0) {
+          let cursor = 0
+          const worker = async () => {
+            while (cursor < ranked.length) {
+              const index = cursor++
+              try {
+                const eventRows = await sessionQuery.listEvents(ranked[index].row.header.id)
+                const latest = Array.isArray(eventRows) && eventRows.length > 0
+                  ? eventRows[eventRows.length - 1]
+                  : null
+                if (latest && Number.isFinite(latest.time)) ranked[index].lastEventAt = Number(latest.time)
+              } catch (err) { /* createdAt remains the fallback rank */ }
+            }
+          }
+          await Promise.all(Array.from({ length: Math.min(6, ranked.length) }, () => worker()))
+        }
+        ranked.sort((a: any, b: any) => {
+          const aBound = a.row.header.id === boundActivitySessionId ? 1 : 0
+          const bBound = b.row.header.id === boundActivitySessionId ? 1 : 0
+          if (aBound !== bBound) return bBound - aBound
+          if (a.lastEventAt !== b.lastEventAt) return b.lastEventAt - a.lastEventAt
+          if (!!a.row.live !== !!b.row.live) return a.row.live ? -1 : 1
+          return String(a.row.header.id).localeCompare(String(b.row.header.id))
+        })
+        const selected = ranked.slice(0, ACTIVITY_SESSION_LIMIT).map((entry: any) => entry.row)
+        const settled = await Promise.allSettled(selected.map((row: any) => sessionQuery.readSession(row.header.id)))
+        for (const result of settled) {
+          if (result.status !== 'fulfilled') continue
+          const snapshot: any = result.value
+          const header = snapshot && snapshot.session
+          if (!header || !sameWorkspace(header.cwd, root) || header.origin === 'subagent') continue
+          const id = String(header.id || '')
+          if (!id || seen.has(id)) continue
+          seen.add(id)
+          const fullEvents = Array.isArray(snapshot.events) ? snapshot.events : []
+          const eventStart = Math.max(0, fullEvents.length - ACTIVITY_EVENT_LIMIT)
+          const inherited = Number.isSafeInteger(header.seedLength) && header.seedLength > 0
+            ? Math.max(0, Math.min(header.seedLength, fullEvents.length) - eventStart)
+            : 0
+          snapshots.push({
+            id,
+            header: { ...header, seedLength: inherited },
+            events: fullEvents.slice(eventStart),
+          })
+        }
+      } catch (err) {
+        console.warn('whale-galgame activity history unavailable:', err)
+      }
+    }
+
+    // Live sessions keep the feature useful on older Harness builds without
+    // sessionQuery, and supplement a transient persisted-read failure.
+    if (sessionsSvc && typeof sessionsSvc.list === 'function') {
+      try {
+        const live = sessionsSvc.list()
+        for (const session of Array.isArray(live) ? live : []) {
+          const header = session && session.header
+          const id = String(header && header.id || '')
+          if (!id || seen.has(id) || !sameWorkspace(header.cwd, root) || header.origin === 'subagent') continue
+          seen.add(id)
+          const fullEvents = Array.isArray(session.events) ? session.events : []
+          const eventStart = Math.max(0, fullEvents.length - ACTIVITY_EVENT_LIMIT)
+          const inherited = Number.isSafeInteger(header.seedLength) && header.seedLength > 0
+            ? Math.max(0, Math.min(header.seedLength, fullEvents.length) - eventStart)
+            : 0
+          snapshots.push({
+            id,
+            header: { ...header, seedLength: inherited },
+            events: fullEvents.slice(eventStart),
+          })
+        }
+      } catch (err) { /* ignore */ }
+    }
+    return snapshots
+  }
+
+  async function refreshActivityCache(force = false): Promise<void> {
+    const root = activityWorkspaceRoot()
+    if (!root) {
+      activityCache = []
+      return
+    }
+    const now = Date.now()
+    if (!force && sameWorkspace(activityCacheRoot, root) && now - activityCacheAt < ACTIVITY_CACHE_MS) return
+    if (activityRefreshPromise) {
+      await activityRefreshPromise
+      if (!force && sameWorkspace(activityCacheRoot, root) && Date.now() - activityCacheAt < ACTIVITY_CACHE_MS) return
+    }
+    const requestedRoot = root
+    activityRefreshPromise = (async () => {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const requestedGeneration = activityCacheGeneration
+        const snapshots = await collectActivitySessions(requestedRoot)
+        const next = collectHarnessActivities(snapshots, requestedRoot)
+        if (!sameWorkspace(activityWorkspaceRoot(), requestedRoot)) return
+        if (activityCacheGeneration !== requestedGeneration) {
+          activityCacheAt = 0
+          if (attempt === 0) continue
+          // Prefer omitting one proactive reference over using a stale digest.
+          activityCache = []
+          activityCacheRoot = requestedRoot
+          return
+        }
+        activityCache = next
+        activityCacheRoot = requestedRoot
+        activityCacheAt = Date.now()
+        return
+      }
+    })()
+    try {
+      await activityRefreshPromise
+    } finally {
+      activityRefreshPromise = null
+    }
+  }
+
   function resolvePolicy(): any {
     try {
       if (!sandboxPolicy) return undefined
@@ -382,17 +605,22 @@ export function apply(ctx: any, config: any = {}): void {
     }
   }
 
-  ctx.on('llm/stream', (options: any, next: () => AsyncIterable<any>) => {
-    const inner = next()
-    return (async function* () {
-      for await (const chunk of inner) {
-        if (chunk && chunk.type === 'usage' && chunk.usage) {
-          const u = chunk.usage
-          tokensObserved += (u.inputTokens || 0) + (u.outputTokens || 0)
-        }
-        yield chunk
-      }
-    })()
+  ctx.on('session/event', (session: any, event: any) => {
+    const header = session && session.header
+    if (!header || !sameWorkspace(header.cwd, activityWorkspaceRoot())) return
+    if (s && s.preferences && s.preferences.enabled === false) return
+    const type = String(event && event.type || '')
+    if (type === 'assistant/message') {
+      const usage = event && event.data && event.data.usage
+      const input = Number(usage && (usage.inputTokens ?? usage.input_tokens ?? usage.promptTokens ?? usage.prompt_tokens))
+      const output = Number(usage && (usage.outputTokens ?? usage.output_tokens ?? usage.completionTokens ?? usage.completion_tokens))
+      if (Number.isFinite(input) && input > 0) tokensObserved += Math.floor(input)
+      if (Number.isFinite(output) && output > 0) tokensObserved += Math.floor(output)
+    }
+    if (type === 'user/message' || type === 'tool/call' || type === 'todo/write' || type === 'turn/end') {
+      activityCacheGeneration += 1
+      activityCacheAt = 0
+    }
   })
 
   function currentSelectionSync(): any {
@@ -526,11 +754,11 @@ export function apply(ctx: any, config: any = {}): void {
 
   function settle(): { decay: number; gain: number; changed: boolean } {
     if (!s) s = fresh()
-    if (!s.tokens) s.tokens = { lastApplied: 0, bank: 0, lastActiveAt: 0 }
+    if (!s.tokens) s.tokens = { bank: 0, lastActiveAt: 0 }
     if (typeof s.tokens.bank !== 'number' || s.tokens.bank < 0) s.tokens.bank = 0
     let now = 0
     try { now = Date.now() } catch (err) { now = 0 }
-    if (tokensObserved < s.tokens.lastApplied) s.tokens.lastApplied = 0
+    if (tokensObserved < tokensAppliedRuntime) tokensAppliedRuntime = 0
     let changed = false
     let decay = 0
     if (now > 0 && s.tokens.lastActiveAt > 0) {
@@ -543,11 +771,11 @@ export function apply(ctx: any, config: any = {}): void {
       }
       changed = true
     }
-    const delta = tokensObserved - s.tokens.lastApplied
+    const delta = tokensObserved - tokensAppliedRuntime
     let gain = 0
     if (delta > 0) {
       s.tokens.bank += delta
-      s.tokens.lastApplied = tokensObserved
+      tokensAppliedRuntime = tokensObserved
       changed = true
     }
     gain = Math.min(MAX_TOKEN_GAIN, Math.floor(s.tokens.bank / TOKEN_PER_POINT))
@@ -661,6 +889,14 @@ export function apply(ctx: any, config: any = {}): void {
         savedAsBg: cg.savedAsBg === true,
         error: cg.error || null,
       } : null,
+    }
+  }
+
+  function workspaceMismatchView(): any {
+    return {
+      enabled: false,
+      workspaceMismatch: true,
+      petEnabled: false,
     }
   }
 
@@ -878,90 +1114,9 @@ export function apply(ctx: any, config: any = {}): void {
     return out.trim()
   }
 
-  function isExplicitUserEvent(node: any): boolean {
-    if (!node || typeof node !== 'object') return false
-    const type = String(node.type || (node.data && node.data.type) || '').toLowerCase()
-    const role = String(node.role || (node.message && node.message.role) || (node.data && node.data.role) || '').toLowerCase()
-    const sourceKind = String(
-      (node.source && node.source.kind)
-      || (node.message && node.message.source && node.message.source.kind)
-      || (node.data && node.data.source && node.data.source.kind)
-      || '',
-    ).toLowerCase()
-    return type === 'user/message' || role === 'user' || sourceKind === 'user'
-  }
-
-  function extractUserText(node: any): string {
-    if (!node) return ''
-    if (typeof node === 'string') return node
-    if (typeof node !== 'object') return ''
-    if (typeof node.text === 'string' && node.text) return node.text
-    if (typeof node.content === 'string' && node.content) return node.content
-    if (Array.isArray(node.content)) {
-      const parts: string[] = []
-      for (const block of node.content) {
-        if (block && typeof block === 'object') {
-          const blockType = String(block.type || '').toLowerCase()
-          if (blockType && blockType !== 'text' && blockType !== 'input_text') continue
-        }
-        const text = extractUserText(block)
-        if (text) parts.push(text)
-      }
-      return parts.join(' ')
-    }
-    if (node.message) return extractUserText(node.message)
-    if (node.data && typeof node.data !== 'function') return extractUserText(node.data)
-    return ''
-  }
-
-  function cleanThemeText(raw: string): string {
-    const internal = /\b(the user is asking|assistant analysis|analysis channel|reasoning|tool call|tool output|exec_command|apply_patch|rg --files|function call)\b|(?:工具调用|工具输出|内部分析|推理过程)/i
-    return raw
-      .replace(/\x60{3}[\s\S]*?\x60{3}/g, ' ')
-      .replace(/\x60[^\x60\r\n]*\x60/g, ' ')
-      .split(/\r?\n/)
-      .filter((line) => !internal.test(line))
-      .join(' ')
-      .replace(/https?:\/\/\S+/gi, ' ')
-      .replace(/\b[A-Za-z]:[\\/][^\s，。；！？,;]+/g, ' ')
-      .replace(/(?:^|\s)\/(?:[\w.-]+\/)+[\w.-]+/g, ' ')
-      .replace(/\b(?:sk-[A-Za-z0-9_-]{8,}|Bearer\s+\S+)\b/gi, ' ')
-      .replace(/[#>*_~\[\]{}|]+/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim()
-  }
-
-  function gatherRecentTheme(): string {
-    try {
-      if (!sessionsSvc || typeof sessionsSvc.list !== 'function') return ''
-      const root = workspaceRoot()
-      if (!root) return ''
-      const list = sessionsSvc.list()
-      if (!Array.isArray(list) || list.length === 0) return ''
-      const matches = list.filter((x: any) => x && x.header && x.header.cwd === root)
-      if (matches.length === 0) return ''
-      const session = matches[matches.length - 1]
-      const events = session && Array.isArray(session.events) ? session.events : []
-      const texts: string[] = []
-      for (let i = events.length - 1; i >= 0 && texts.length < 3; i--) {
-        const event = events[i]
-        if (!isExplicitUserEvent(event)) continue
-        const cleaned = cleanThemeText(extractUserText(event))
-        if (cleaned.length > 2) texts.unshift(cleaned.slice(0, 160))
-      }
-      return texts.join(' ').slice(0, 360)
-    } catch (err) {
-      return ''
-    }
-  }
-
-  function systemPrompt(ch: any, c: any): string {
+  function systemPrompt(ch: any, c: any, activity: HarnessActivity | null): string {
     if (!c.level) c.level = 1
-    let work = ''
-    try {
-      const theme = gatherRecentTheme()
-      if (theme) work = '\n主人最近在做的事情：' + theme + '。你可以自然地提起这些（表示你在默默关注他），但绝不主动给工作建议。'
-    } catch (err) { /* ignore */ }
+    const work = activity ? activitySystemInstruction(activity) : ''
     return ch.system + '\n'
       + '当前等级：Lv.' + c.level + '。亲昵度：' + intimacyFor(c.level) + '\n'
       + '好感度：' + c.affection + '/' + affectionCap(c.level) + '（满了会升级，你会越来越亲近主人）'
@@ -1052,7 +1207,8 @@ export function apply(ctx: any, config: any = {}): void {
     if (!record) return
     try {
       const ch = ROSTER[charId]
-      const theme = gatherRecentTheme()
+      await refreshActivityCache()
+      const theme = activityCache.length > 0 ? activityCgTheme(activityCache[0]) : ''
       const prompt = [
         '精美galgame风格特殊CG插画，横向16:9桌面壁纸构图，唯美光效，高清细节，无文字无边框',
         '角色：' + ch.visual + '，表情幸福温柔',
@@ -1166,6 +1322,7 @@ export function apply(ctx: any, config: any = {}): void {
         .map((cg: any, index: number) => normalizeCg(cg, '', index))
         .filter(Boolean)
     }
+    dst.activity = normalizeActivityMemory(src.activity)
     if (src.customSprite && typeof src.customSprite === 'object') {
       const dataUrl = validCustomSprite(src.customSprite.dataUrl)
       const storedRevision = Number.isFinite(src.customSprite.revision) && src.customSprite.revision >= 0
@@ -1197,7 +1354,6 @@ export function apply(ctx: any, config: any = {}): void {
         s.characters[id] = hydrateCharacter(data.characters[id], legacyVersion)
         for (const cg of s.characters[id].cgs) cg.charId = id
       }
-      if (data.tokens && typeof data.tokens.lastApplied === 'number') s.tokens.lastApplied = Math.max(0, data.tokens.lastApplied)
       if (data.tokens && typeof data.tokens.bank === 'number') s.tokens.bank = Math.max(0, data.tokens.bank)
       if (data.tokens && typeof data.tokens.lastActiveAt === 'number') s.tokens.lastActiveAt = data.tokens.lastActiveAt
       if (data.preferences && typeof data.preferences === 'object') {
@@ -1296,8 +1452,12 @@ export function apply(ctx: any, config: any = {}): void {
     return readyPromise
   }
 
-  async function handleAction(action: string, args: any): Promise<any> {
+  async function dispatchAction(action: string, args: any): Promise<any> {
     await ensureReady().catch(() => { /* ignore */ })
+    const hasSessionId = !!(args && typeof args.sessionId === 'string' && args.sessionId.trim())
+    const binding = await bindActivitySession(args && args.sessionId)
+      .catch(() => hasSessionId ? 'mismatch' as const : 'unscoped' as const)
+    if (binding === 'mismatch') return workspaceMismatchView()
     switch (action) {
       case 'model-options': {
         return modelOptions()
@@ -1420,6 +1580,7 @@ export function apply(ctx: any, config: any = {}): void {
       case 'view': {
         const p = ensurePreferences()
         if (p.enabled === false) return view()
+        await refreshActivityCache()
         const heroineChanged = syncHeroine()
         const actualSelection = await pickModel()
         s.chatModelLabel = actualSelection && actualSelection.model ? String(actualSelection.model) : ''
@@ -1438,6 +1599,8 @@ export function apply(ctx: any, config: any = {}): void {
         if (!text) return view()
         const ch = ROSTER[s.current]
         const c = s.characters[s.current]
+        await refreshActivityCache()
+        const pendingActivity = nextUnseenActivity(activityCache, c.activity)
         const selectedChoice = args && typeof args.choiceId === 'string'
           ? c.choices.find((choice: any) => choice && typeof choice === 'object' && choice.id === args.choiceId)
           : null
@@ -1476,7 +1639,7 @@ export function apply(ctx: any, config: any = {}): void {
                 }
                 return msgs
               })(),
-              system: systemPrompt(ch, c),
+              system: systemPrompt(ch, c, pendingActivity),
               temperature: 0.9,
               maxTokens: 1200,
             })
@@ -1493,6 +1656,9 @@ export function apply(ctx: any, config: any = {}): void {
         }
         s.fallbackUsed = usedFallback
         s.fallbackReason = fallbackReason
+        if (pendingActivity && !usedFallback) {
+          c.activity = rememberActivity(c.activity, pendingActivity)
+        }
         c.log.push({ role: 'assistant', text: reply })
         if (c.log.length > 24) c.log = c.log.slice(-24)
         c.chatLines.push({ who: 'heroine', text: reply })
@@ -1659,6 +1825,20 @@ export function apply(ctx: any, config: any = {}): void {
       }
       default:
         return view()
+    }
+  }
+
+  async function handleAction(action: string, args: any): Promise<any> {
+    if (action !== 'chat') return dispatchAction(action, args)
+    const previous = chatMutex
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => { release = resolve })
+    chatMutex = previous.catch(() => { /* keep the queue alive */ }).then(() => gate)
+    await previous.catch(() => { /* a prior request already returned its own error */ })
+    try {
+      return await dispatchAction(action, args)
+    } finally {
+      release()
     }
   }
 
