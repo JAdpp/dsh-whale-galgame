@@ -103,6 +103,25 @@ The Galgame top bar controls the displayed character and actual dialogue model. 
 
 Settings → Plugins → Plugin configuration contains the plugin toggle and the default character and reply-model choices. Disabling the plugin pauses Galgame dialogue and affection settlement without deleting existing data.
 
+### Customize a character profile
+
+Select **Character profile**, next to **Character sprite** in the Galgame top bar, to edit six fields for the current role:
+
+- Character nickname
+- What the character calls the user
+- First greeting
+- Personality
+- Speaking style
+- CG appearance description
+
+Custom profiles are stored separately for all six roles. **Save profile** and **Restore defaults** change only these six fields for the current role; neither resets that role's affection or level, long-term memory, or custom sprite. Before any real user/role exchange, changing or restoring **First greeting** updates the opening greeting in place while leaving any automatic entrance narration untouched. Once a real exchange exists, the plugin will not insert, replace, or replay it in the history. The CG appearance description guides future level-up CGs and does not rewrite images already saved in the gallery.
+
+Custom profile text cannot override the plugin's safety constraints or its one-sentence reply limit.
+
+### Built-in desktop pet
+
+The desktop pet ships inside this plugin; no separate installation is needed. It is enabled by default for new installations and appears in the lower-right corner of the main DSH interface. Clicking it opens the `galgame` tab. The **Desktop pet · On/Off** control in the Galgame top bar is an independent visibility switch. **Enable plugin** under Settings → Plugins → Plugin configuration controls the whole plugin; disabling it hides the pet and pauses Galgame dialogue and affection settlement.
+
 ## Optional generated CGs
 
 Level-up CGs use DashScope `qwen-image-3.0` at 1920 × 1080 by default. Without a DashScope key, chat, role switching, history, affection, and custom images still work; only CG generation is unavailable.
@@ -169,6 +188,6 @@ DeepSeek, Claude, ChatGPT/GPT, Gemini, Kimi, Grok, and related marks belong to t
 
 - [gal-view](https://github.com/Ayase34/gal-view)
 - [dsh-galgame](https://github.com/Lanxing6480/dsh-galgame)
-- Recommended desktop pet: [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet)
+- Upstream desktop-pet project (already built in; no separate installation needed): [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet)
 
 If you enjoy these projects, consider giving their repositories a Star.

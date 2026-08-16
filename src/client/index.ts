@@ -165,6 +165,31 @@ const CSS = [
   '.whg-gallery-caption{display:flex;align-items:center;gap:10px;color:#9bb9ca;font-size:12px}',
   '.whg-gallery-caption strong{color:#f0d99d;font:700 12px/1 Consolas,monospace}',
   '.whg-gallery-prompt{margin:0;padding:12px 14px;border-left:2px solid rgba(215,182,108,.55);background:rgba(2,12,22,.42);color:#9fbccb;font-size:11px;line-height:1.65;white-space:pre-wrap;word-break:break-word;user-select:text}',
+  '.whg-profile-archive{width:min(560px,calc(100% - 42px))}',
+  '.whg-profile-intro{margin-bottom:16px;padding:12px 14px;border:1px solid rgba(143,216,239,.2);border-left:3px solid rgba(215,182,108,.66);border-radius:0 11px 11px 0;background:rgba(2,16,28,.48);color:#aec8d6;font-size:12px;line-height:1.7}',
+  '.whg-profile-intro strong{color:#eff9ff;font-weight:700}',
+  '.whg-profile-guard{display:block;margin-top:7px;color:#d2bf89;font-size:11px}',
+  '.whg-profile-form{display:flex;flex-direction:column;gap:17px;user-select:text}',
+  '.whg-profile-section{margin:0;padding:0;border:0}',
+  '.whg-profile-section-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 9px;padding-bottom:7px;border-bottom:1px solid rgba(215,182,108,.22)}',
+  '.whg-profile-section-head strong{color:#d7c48f;font:700 10px/1.3 Consolas,monospace;letter-spacing:1.35px}',
+  '.whg-profile-section-head span{color:#789bad;font-size:10px}',
+  '.whg-profile-head-fields,.whg-profile-main-fields,.whg-profile-secondary-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}',
+  '.whg-profile-field{display:flex;min-width:0;flex-direction:column;gap:6px}',
+  '.whg-profile-field label{color:#e5f4fb;font-size:12px;font-weight:700;line-height:1.4}',
+  '.whg-profile-field small{color:#789bad;font-size:10px;line-height:1.45}',
+  '.whg-profile-control{box-sizing:border-box;width:100%;min-width:0;border:1px solid rgba(143,216,239,.24);border-radius:9px;background:rgba(1,11,21,.58);color:#eaf7ff;padding:9px 10px;font:12px/1.55 system-ui,"Segoe UI","Microsoft YaHei",sans-serif;outline:none;transition:border-color .16s ease,box-shadow .16s ease}',
+  '.whg-profile-control::placeholder{color:#567687}',
+  '.whg-profile-control:hover{border-color:rgba(143,216,239,.42)}',
+  '.whg-profile-control:focus{border-color:rgba(159,232,255,.76);box-shadow:0 0 0 2px rgba(85,185,216,.14)}',
+  '.whg-profile-control:disabled{opacity:.58;cursor:default}',
+  'textarea.whg-profile-control{min-height:112px;resize:vertical}',
+  '.whg-profile-secondary-fields textarea.whg-profile-control{min-height:92px}',
+  '.whg-profile-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding-top:14px;border-top:1px solid rgba(215,182,108,.22)}',
+  '.whg-profile-actions .whg-cg-btn{padding:8px 16px}',
+  '.whg-profile-message{min-height:18px;flex:1 1 180px;margin:0;color:#8fd8e9;font-size:11px;line-height:1.5;text-align:right}',
+  '.whg-profile-message.error{color:#ffb5bd}',
+  '.whg-profile-loading{display:grid;place-items:center;min-height:240px;color:#8fb1c5;font-size:13px;letter-spacing:.2px}',
   '.whg-disabled{position:absolute;inset:0;z-index:6;display:grid;place-items:center;padding:24px;background:linear-gradient(180deg,#071629,#03101f)}',
   '.whg-disabled-card{width:min(480px,100%);padding:28px;border:1px solid rgba(215,182,108,.4);border-radius:18px;background:rgba(5,25,39,.86);box-shadow:0 22px 60px rgba(0,4,14,.46);text-align:center}',
   '.whg-disabled-card h2{margin:0 0 8px;color:#eefaff;font-family:"STSong","Songti SC",Georgia,serif;font-size:23px}',
@@ -199,7 +224,7 @@ const CSS = [
   'body[data-dsh-maid-atelier]:not([data-whale-galgame-active]) [data-skin-owner="maid-atelier"]{display:none !important}',
   'body[data-dsh-maid-atelier]:not([data-whale-galgame-active]){background-image:none !important}',
   '@media (max-width:900px){.whg-top{gap:6px;padding:10px 12px;flex-wrap:wrap}.whg-title{font-size:14px}.whg-chip{padding:3px 8px}.whg-spacer{display:none}.whg-top-actions{width:100%;justify-content:flex-end}.whg-btn{padding:5px 9px;font-size:12px}.whg-archive{width:min(470px,calc(100% - 12px))}.whg-archive-spine{display:none}}',
-  '@media (max-width:560px){.whg-chip-wrap{max-width:calc(50% - 4px)}.whg-chip{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.whg-picker{position:fixed;top:92px;right:10px;left:10px;width:auto;max-height:55vh}.whg-top-actions{gap:5px;overflow-x:auto;padding-bottom:2px}.whg-archive{width:100%;border-left:0}.whg-archive-head{padding:18px 16px 14px}.whg-archive-body{padding:14px 14px 24px}.whg-gallery{grid-template-columns:1fr}.whg-history-row{grid-template-columns:38px minmax(0,1fr);gap:8px}.whg-archive-title{font-size:21px}.whg-settings-row{grid-template-columns:1fr;gap:8px}.whg-settings-toggle{justify-self:start}.whg-settings-head{padding:13px}.whg-settings-body{margin:0 13px}}',
+  '@media (max-width:560px){.whg-chip-wrap{max-width:calc(50% - 4px)}.whg-chip{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.whg-picker{position:fixed;top:92px;right:10px;left:10px;width:auto;max-height:55vh}.whg-top-actions{gap:5px;overflow-x:auto;padding-bottom:2px}.whg-archive{width:100%;border-left:0}.whg-archive-head{padding:18px 16px 14px}.whg-archive-body{padding:14px 14px 24px}.whg-gallery{grid-template-columns:1fr}.whg-history-row{grid-template-columns:38px minmax(0,1fr);gap:8px}.whg-archive-title{font-size:21px}.whg-profile-head-fields,.whg-profile-main-fields,.whg-profile-secondary-fields{grid-template-columns:1fr}.whg-profile-section-head{align-items:flex-start;flex-direction:column;gap:3px}.whg-profile-message{flex-basis:100%;text-align:left}.whg-settings-row{grid-template-columns:1fr;gap:8px}.whg-settings-toggle{justify-self:start}.whg-settings-head{padding:13px}.whg-settings-body{margin:0 13px}}',
   '@media (prefers-reduced-motion:reduce){.whg-archive-scrim,.whg-archive{animation:none}.whg-gallery-card:hover{transform:none}}',
 ].join('\n')
 
@@ -404,6 +429,65 @@ function viewFromResult(result: any): any | null {
   return null
 }
 
+const PROFILE_KEYS = ['displayName', 'address', 'greeting', 'persona', 'tone', 'visual'] as const
+type ProfileKey = typeof PROFILE_KEYS[number]
+type CharacterProfile = Record<ProfileKey, string>
+
+const EMPTY_CHARACTER_PROFILE: CharacterProfile = {
+  displayName: '',
+  address: '',
+  greeting: '',
+  persona: '',
+  tone: '',
+  visual: '',
+}
+
+function profileFromObject(value: any): CharacterProfile | null {
+  if (!value || typeof value !== 'object') return null
+  if (!PROFILE_KEYS.some((key) => Object.prototype.hasOwnProperty.call(value, key))) return null
+  const profile = { ...EMPTY_CHARACTER_PROFILE }
+  PROFILE_KEYS.forEach((key) => {
+    const field = value[key]
+    profile[key] = field === undefined || field === null ? '' : String(field)
+  })
+  return profile
+}
+
+function profileFromResult(result: any): CharacterProfile | null {
+  if (!result || typeof result !== 'object') return null
+  return profileFromObject(result.effective)
+    || profileFromObject(result.profile && result.profile.effective)
+    || profileFromObject(result.profile)
+    || profileFromObject(result.values)
+    || profileFromObject(result)
+}
+
+function builtInProfileFromResult(result: any): CharacterProfile | null {
+  if (!result || typeof result !== 'object') return null
+  return profileFromObject(result.builtIn)
+    || profileFromObject(result.profile && result.profile.builtIn)
+    || profileFromObject(result.defaults)
+}
+
+function profileOverridesFromResult(result: any): Partial<CharacterProfile> | null {
+  if (!result || typeof result !== 'object') return null
+  const value = result.overrides || (result.profile && result.profile.overrides)
+  if (!value || typeof value !== 'object') return null
+  const overrides: Partial<CharacterProfile> = {}
+  PROFILE_KEYS.forEach((key) => {
+    if (Object.prototype.hasOwnProperty.call(value, key)) {
+      overrides[key] = value[key] === undefined || value[key] === null ? '' : String(value[key])
+    }
+  })
+  return overrides
+}
+
+function profileHasOverridesFromResult(result: any, fallback: boolean): boolean {
+  if (result && typeof result.hasOverrides === 'boolean') return result.hasOverrides
+  const overrides = profileOverridesFromResult(result)
+  return overrides ? Object.keys(overrides).length > 0 : fallback
+}
+
 function assertApiResult(result: any, fallback: string): void {
   if (!result || result.ok !== false) return
   const errors = Array.isArray(result.errors) ? result.errors.join('；') : result.error
@@ -587,6 +671,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
   const callApi = (action: string, args?: any) => api(action, props.sessionId
     ? { ...(args && typeof args === 'object' ? args : {}), sessionId: props.sessionId }
     : args)
+  const appScope = props.variant === 'tab' ? 'tab' : 'overlay'
   const [s, setS] = useState<any>(null)
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -595,7 +680,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
   const [imgFail, setImgFail] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
   const [settled, setSettled] = useState(false)
-  const [archivePanel, setArchivePanel] = useState<'history' | 'gallery' | null>(null)
+  const [archivePanel, setArchivePanel] = useState<'history' | 'gallery' | 'profile' | null>(null)
   const [galleryItems, setGalleryItems] = useState<any[]>([])
   const [galleryLoading, setGalleryLoading] = useState(false)
   const [galleryError, setGalleryError] = useState<string | null>(null)
@@ -610,6 +695,16 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
   const [spritePreview, setSpritePreview] = useState<string | null>(null)
   const [spriteFileName, setSpriteFileName] = useState('')
   const [customSprite, setCustomSprite] = useState<string | null>(null)
+  const [profileDraft, setProfileDraft] = useState<CharacterProfile>({ ...EMPTY_CHARACTER_PROFILE })
+  const [profileBaseline, setProfileBaseline] = useState<CharacterProfile>({ ...EMPTY_CHARACTER_PROFILE })
+  const [profileBuiltIn, setProfileBuiltIn] = useState<CharacterProfile>({ ...EMPTY_CHARACTER_PROFILE })
+  const [profileCharacterId, setProfileCharacterId] = useState('')
+  const [profileLoaded, setProfileLoaded] = useState(false)
+  const [profileLoading, setProfileLoading] = useState(false)
+  const [profileSaving, setProfileSaving] = useState(false)
+  const [profileHasOverrides, setProfileHasOverrides] = useState(false)
+  const [profileError, setProfileError] = useState('')
+  const [profileMessage, setProfileMessage] = useState('')
   const bgCache = useRef<string | null>(null)
   const spriteCache = useRef<Record<string, string | null>>({})
   const spriteRevisionCache = useRef<Record<string, number>>({})
@@ -621,6 +716,8 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
   const pickerReturnFocus = useRef<HTMLElement | null>(null)
   const bgFileRef = useRef<HTMLInputElement | null>(null)
   const spriteFileRef = useRef<HTMLInputElement | null>(null)
+  const profileFirstFieldRef = useRef<HTMLInputElement | null>(null)
+  const profileRequestSeq = useRef(0)
 
   useEffect(() => {
     let alive = true
@@ -780,6 +877,39 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
   }, [s && s.current, props.sessionId])
 
   useEffect(() => {
+    const currentId = String(s && s.current ? s.current : '')
+    const onProfileChanged = (event: Event) => {
+      const detail = (event as CustomEvent).detail
+      if (!detail || typeof detail !== 'object') return
+      const characterId = String(detail.characterId || detail.charId || (detail.view && detail.view.current) || currentId)
+      const nextProfile = profileFromResult(detail)
+      if (archivePanel === 'profile' && characterId && characterId === (profileCharacterId || currentId)) {
+        if (nextProfile) {
+          const nextBuiltIn = builtInProfileFromResult(detail)
+          setProfileDraft(nextProfile)
+          setProfileBaseline(nextProfile)
+          if (nextBuiltIn) setProfileBuiltIn(nextBuiltIn)
+          setProfileLoaded(true)
+          setProfileLoading(false)
+          setProfileHasOverrides(profileHasOverridesFromResult(detail, profileHasOverrides))
+          setProfileError('')
+        } else {
+          loadCharacterProfile(characterId)
+        }
+      }
+      if (detail.view && typeof detail.view === 'object') {
+        setS(detail.view)
+      } else {
+        callApi('view').then((nextView) => {
+          if (nextView && typeof nextView === 'object') setS(nextView)
+        }).catch(() => { /* server transient */ })
+      }
+    }
+    window.addEventListener('whg:profile-changed', onProfileChanged)
+    return () => window.removeEventListener('whg:profile-changed', onProfileChanged)
+  }, [archivePanel, profileCharacterId, profileHasOverrides, s && s.current, props.sessionId])
+
+  useEffect(() => {
     setImgFail(false)
   }, [s && s.current, s && s.sprite, customSprite, props.sessionId])
 
@@ -798,7 +928,8 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     if (!archivePanel) return undefined
     const frame = requestAnimationFrame(() => {
       if (!archiveRef.current || archiveRef.current.contains(document.activeElement)) return
-      archiveCloseRef.current?.focus()
+      if (archivePanel === 'profile' && !profileLoading && profileLoaded) profileFirstFieldRef.current?.focus()
+      else archiveCloseRef.current?.focus()
     })
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -833,7 +964,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
       cancelAnimationFrame(frame)
       document.removeEventListener('keydown', onKeyDown, true)
     }
-  }, [archivePanel, gallerySelected])
+  }, [archivePanel, gallerySelected, profileLoaded, profileLoading])
 
   useEffect(() => {
     if (!pickerPanel) return undefined
@@ -893,6 +1024,12 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
       setArchivePanel(null)
     }
   }, [s && s.enabled])
+
+  useEffect(() => {
+    if (archivePanel !== 'profile') return
+    const currentId = String(s && s.current ? s.current : '')
+    if (currentId && currentId !== profileCharacterId && !profileLoading) loadCharacterProfile(currentId)
+  }, [archivePanel, profileCharacterId, profileLoading, s && s.current])
 
   useEffect(() => {
     if (archivePanel !== 'history') return
@@ -1147,6 +1284,148 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     }).then(() => setPickerLoading(false))
   }
 
+  function loadCharacterProfile(characterId: string): void {
+    if (!characterId) {
+      setProfileLoaded(false)
+      setProfileLoading(false)
+      setProfileError('当前角色未识别，暂时无法读取角色设定。')
+      return
+    }
+    const requestId = ++profileRequestSeq.current
+    setProfileCharacterId(characterId)
+    setProfileLoaded(false)
+    setProfileLoading(true)
+    setProfileError('')
+    setProfileMessage('')
+    callApi('profile-get', { characterId }).then((result) => {
+      assertApiResult(result, '角色设定读取失败')
+      if (requestId !== profileRequestSeq.current) return
+      const profile = profileFromResult(result)
+      if (!profile) throw new Error('服务未返回可编辑的角色设定')
+      const returnedId = String(result && (result.charId || result.characterId) ? (result.charId || result.characterId) : characterId)
+      const builtIn = builtInProfileFromResult(result) || profile
+      setProfileCharacterId(returnedId)
+      setProfileDraft(profile)
+      setProfileBaseline(profile)
+      setProfileBuiltIn(builtIn)
+      setProfileHasOverrides(profileHasOverridesFromResult(result, false))
+      setProfileLoaded(true)
+    }).catch((err) => {
+      if (requestId !== profileRequestSeq.current) return
+      setProfileError('角色设定读取失败：' + String(err && err.message ? err.message : err))
+    }).then(() => {
+      if (requestId === profileRequestSeq.current) setProfileLoading(false)
+    })
+  }
+
+  function updateProfileField(key: ProfileKey, value: string): void {
+    setProfileDraft((current) => ({ ...current, [key]: value }))
+    setProfileMessage('')
+    setProfileError('')
+  }
+
+  function saveCharacterProfile(): void {
+    const characterId = String(s && s.current ? s.current : profileCharacterId)
+    if (!characterId || !profileLoaded || profileSaving) return
+    if (profileCharacterId && characterId !== profileCharacterId) {
+      loadCharacterProfile(characterId)
+      return
+    }
+    const overrides: Partial<Record<ProfileKey, string | null>> = {}
+    PROFILE_KEYS.forEach((key) => {
+      overrides[key] = profileDraft[key] === profileBuiltIn[key] ? null : profileDraft[key]
+    })
+    setProfileSaving(true)
+    setProfileError('')
+    setProfileMessage('')
+    callApi('profile-set', { characterId, overrides }).then(async (result) => {
+      assertApiResult(result, '角色设定未保存')
+      const returnedId = String(result && (result.charId || result.characterId) ? (result.charId || result.characterId) : characterId)
+      const effective = profileFromResult(result) || { ...profileDraft }
+      const builtIn = builtInProfileFromResult(result) || profileBuiltIn
+      let nextView = viewFromResult(result)
+      let refreshError = ''
+      if (!nextView) {
+        try {
+          nextView = await callApi('view')
+        } catch (err: any) {
+          refreshError = '设定已保存，但画面刷新失败：' + String(err && err.message ? err.message : err)
+        }
+      }
+      setProfileCharacterId(returnedId)
+      setProfileDraft(effective)
+      setProfileBaseline(effective)
+      setProfileBuiltIn(builtIn)
+      setProfileHasOverrides(profileHasOverridesFromResult(result, true))
+      setProfileLoaded(true)
+      if (nextView && typeof nextView === 'object') setS(nextView)
+      window.dispatchEvent(new CustomEvent('whg:profile-changed', {
+        detail: {
+          characterId: returnedId,
+          builtIn,
+          effective,
+          overrides: profileOverridesFromResult(result) || Object.fromEntries(
+            PROFILE_KEYS.filter((key) => overrides[key] !== null).map((key) => [key, overrides[key]]),
+          ),
+          view: nextView,
+        },
+      }))
+      setProfileMessage(refreshError ? '设定已保存；画面会在服务恢复后自动同步。' : '角色设定已保存。')
+      setProfileError(refreshError)
+    }).catch((err) => {
+      setProfileError('角色设定保存失败：' + String(err && err.message ? err.message : err))
+    }).then(() => setProfileSaving(false))
+  }
+
+  function resetCharacterProfile(): void {
+    const characterId = String(s && s.current ? s.current : profileCharacterId)
+    if (!characterId || profileSaving) return
+    setProfileSaving(true)
+    setProfileError('')
+    setProfileMessage('')
+    callApi('profile-reset', { characterId }).then(async (result) => {
+      assertApiResult(result, '默认角色设定未恢复')
+      const returnedId = String(result && (result.charId || result.characterId) ? (result.charId || result.characterId) : characterId)
+      let effective = profileFromResult(result)
+      let builtIn = builtInProfileFromResult(result)
+      let refreshError = ''
+      if (!effective) {
+        try {
+          const refreshed = await callApi('profile-get', { characterId: returnedId })
+          assertApiResult(refreshed, '默认角色设定读取失败')
+          effective = profileFromResult(refreshed)
+          builtIn = builtInProfileFromResult(refreshed)
+        } catch (err: any) {
+          refreshError = '默认设定已恢复，但内容刷新失败：' + String(err && err.message ? err.message : err)
+        }
+      }
+      let nextView = viewFromResult(result)
+      if (!nextView) {
+        try {
+          nextView = await callApi('view')
+        } catch (err: any) {
+          refreshError = refreshError || ('默认设定已恢复，但画面刷新失败：' + String(err && err.message ? err.message : err))
+        }
+      }
+      if (effective) {
+        setProfileDraft(effective)
+        setProfileBaseline(effective)
+        setProfileBuiltIn(builtIn || effective)
+        setProfileLoaded(true)
+      }
+      setProfileCharacterId(returnedId)
+      setProfileHasOverrides(false)
+      if (nextView && typeof nextView === 'object') setS(nextView)
+      window.dispatchEvent(new CustomEvent('whg:profile-changed', {
+        detail: { characterId: returnedId, builtIn: builtIn || effective, effective, overrides: {}, view: nextView },
+      }))
+      setProfileMessage(refreshError ? '默认设定已恢复；内容会在服务恢复后自动同步。' : '已恢复该角色的默认设定。')
+      setProfileError(refreshError)
+    }).catch((err) => {
+      setProfileError('恢复默认设定失败：' + String(err && err.message ? err.message : err))
+    }).then(() => setProfileSaving(false))
+  }
+
   function send(): void {
     const t = text
     if (!t.trim()) return
@@ -1209,6 +1488,8 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
   function closeArchive(): void {
     setArchivePanel(null)
     setGallerySelected(null)
+    setProfileMessage('')
+    setProfileError('')
     const target = archiveReturnFocus.current
     archiveReturnFocus.current = null
     if (target && target.isConnected) {
@@ -1229,12 +1510,13 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     })
   }
 
-  function openArchive(kind: 'history' | 'gallery', trigger: HTMLElement): void {
+  function openArchive(kind: 'history' | 'gallery' | 'profile', trigger: HTMLElement): void {
     setPickerPanel(null)
     if (!archivePanel) archiveReturnFocus.current = trigger
     setGallerySelected(null)
     setArchivePanel(kind)
     if (kind === 'gallery') loadGallery()
+    if (kind === 'profile') loadCharacterProfile(String(s && s.current ? s.current : ''))
   }
 
   function saveGalleryBackground(item: any): void {
@@ -1535,16 +1817,136 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     )
   }
 
+  function profileField(
+    key: ProfileKey,
+    label: string,
+    hint: string,
+    multiline = false,
+  ): React.ReactElement {
+    const id = 'whg-profile-' + appScope + '-' + key
+    const hintId = id + '-hint'
+    const common = {
+      'aria-describedby': hintId,
+      className: 'whg-profile-control',
+      disabled: profileLoading || profileSaving,
+      id,
+      onChange: (event: any) => updateProfileField(key, String(event.target.value || '')),
+      spellCheck: true,
+      value: profileDraft[key],
+    }
+    const control = multiline
+      ? React.createElement('textarea', { ...common, rows: key === 'persona' || key === 'tone' ? 5 : 4 })
+      : React.createElement('input', {
+        ...common,
+        autoComplete: 'off',
+        ref: key === 'displayName' ? profileFirstFieldRef : undefined,
+        type: 'text',
+      })
+    return React.createElement('div', { className: 'whg-profile-field' },
+      React.createElement('label', { htmlFor: id }, label),
+      control,
+      React.createElement('small', { id: hintId }, hint),
+    )
+  }
+
+  function profileEditor(): React.ReactElement {
+    if (profileLoading) {
+      return React.createElement('div', { className: 'whg-profile-loading', role: 'status' }, '正在调取角色档案……')
+    }
+    if (!profileLoaded) {
+      return React.createElement('div', { className: 'whg-archive-error', role: 'alert' },
+        profileError || '角色设定暂时无法读取。',
+        React.createElement('button', {
+          className: 'whg-btn',
+          onClick: () => loadCharacterProfile(String(s && s.current ? s.current : '')),
+          type: 'button',
+        }, '重新读取'),
+      )
+    }
+    const dirty = PROFILE_KEYS.some((key) => profileDraft[key] !== profileBaseline[key])
+    const message = profileError
+      || profileMessage
+      || (dirty ? '有未保存的修改。' : profileHasOverrides ? '当前角色使用自定义设定。' : '当前角色使用默认设定。')
+    return React.createElement(React.Fragment, null,
+      React.createElement('div', { className: 'whg-profile-intro' },
+        React.createElement('strong', null, (s && s.name ? s.name : '当前角色') + ' · 独立角色档案'),
+        '。设定按角色分别保存；保存或恢复默认都不会改变好感度、记忆或角色立绘，已经开始互动的对话历史也不会被改写。',
+        React.createElement('span', { className: 'whg-profile-guard' },
+          '若尚未开始互动，编辑会原位更新当前开场问候；开始对话后不再改写历史。安全规则与单句回复限制始终保留。',
+        ),
+      ),
+      React.createElement('form', {
+        'aria-busy': profileSaving,
+        className: 'whg-profile-form',
+        onSubmit: (event: any) => { event.preventDefault(); saveCharacterProfile() },
+      },
+        React.createElement('section', { 'aria-labelledby': 'whg-profile-heading-' + appScope, className: 'whg-profile-section' },
+          React.createElement('div', { className: 'whg-profile-section-head', id: 'whg-profile-heading-' + appScope },
+            React.createElement('strong', null, 'DOSSIER HEADING'),
+            React.createElement('span', null, '姓名牌与彼此称呼'),
+          ),
+          React.createElement('div', { className: 'whg-profile-head-fields' },
+            profileField('displayName', '角色昵称', '显示在标题、姓名牌与对话记录中。'),
+            profileField('address', '对用户称呼', '角色在台词中如何称呼你。'),
+          ),
+        ),
+        React.createElement('section', { 'aria-labelledby': 'whg-profile-core-' + appScope, className: 'whg-profile-section' },
+          React.createElement('div', { className: 'whg-profile-section-head', id: 'whg-profile-core-' + appScope },
+            React.createElement('strong', null, 'CHARACTER CORE'),
+            React.createElement('span', null, '主要对话依据'),
+          ),
+          React.createElement('div', { className: 'whg-profile-main-fields' },
+            profileField('persona', '性格', '角色的性格、价值取向与互动边界。', true),
+            profileField('tone', '语气', '措辞、节奏、口癖等表达偏好。', true),
+          ),
+        ),
+        React.createElement('section', { 'aria-labelledby': 'whg-profile-scenes-' + appScope, className: 'whg-profile-section' },
+          React.createElement('div', { className: 'whg-profile-section-head', id: 'whg-profile-scenes-' + appScope },
+            React.createElement('strong', null, 'SCENE NOTES'),
+            React.createElement('span', null, '开场与纪念 CG'),
+          ),
+          React.createElement('div', { className: 'whg-profile-secondary-fields' },
+            profileField('greeting', '首次问候', '尚未开始互动时可更新当前开场问候；已有真实对话后不会改写。', true),
+            profileField('visual', 'CG 外观描述', '用于生成升级纪念 CG，不会更换当前角色立绘。', true),
+          ),
+        ),
+        React.createElement('div', { className: 'whg-profile-actions' },
+          React.createElement('button', {
+            className: 'whg-cg-btn',
+            disabled: profileSaving || !dirty,
+            type: 'submit',
+          }, profileSaving ? '保存中…' : '保存设定'),
+          React.createElement('button', {
+            className: 'whg-btn',
+            disabled: profileSaving || (!profileHasOverrides && !dirty),
+            onClick: resetCharacterProfile,
+            title: '只恢复当前角色的六项设定，不清除其他存档内容',
+            type: 'button',
+          }, profileSaving ? '处理中…' : '恢复默认'),
+          React.createElement('p', {
+            className: 'whg-profile-message' + (profileError ? ' error' : ''),
+            role: profileError ? 'alert' : 'status',
+          }, message),
+        ),
+      ),
+    )
+  }
+
   function archiveDrawer(): React.ReactElement | null {
     if (!archivePanel || !s) return null
     const history: any[] = Array.isArray(s.history) ? s.history : []
     const galleryCount = typeof s.galleryCount === 'number' ? s.galleryCount : galleryItems.length
     const isHistory = archivePanel === 'history'
+    const isProfile = archivePanel === 'profile'
     const recordCount = isHistory ? history.length : galleryCount
-    const kicker = 'DEEP-SEA ARCHIVE · ' + (isHistory ? 'LOG ' : 'CG ') + String(recordCount).padStart(3, '0')
+    const kicker = isProfile
+      ? 'DEEP-SEA DOSSIER · ' + String(profileCharacterId || s.current || 'PROFILE').toUpperCase()
+      : 'DEEP-SEA ARCHIVE · ' + (isHistory ? 'LOG ' : 'CG ') + String(recordCount).padStart(3, '0')
     let body: React.ReactElement
 
-    if (isHistory) {
+    if (isProfile) {
+      body = profileEditor()
+    } else if (isHistory) {
       body = history.length === 0
         ? React.createElement('div', { className: 'whg-archive-empty' }, '还没有对话记录。和' + s.name + '说句话，第一份深海档案就会在这里归档。')
         : React.createElement('div', { className: 'whg-history' },
@@ -1622,20 +2024,21 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
       onMouseDown: (event: any) => { if (event.target === event.currentTarget) closeArchive() },
     },
       React.createElement('aside', {
-        'aria-labelledby': 'whg-archive-title',
+        'aria-labelledby': 'whg-archive-title-' + appScope,
         'aria-modal': 'true',
-        className: 'whg-archive',
+        className: 'whg-archive' + (isProfile ? ' whg-profile-archive' : ''),
+        id: isProfile ? 'whg-profile-editor-' + appScope : undefined,
         ref: archiveRef,
         role: 'dialog',
       },
-        React.createElement('div', { className: 'whg-archive-spine', 'aria-hidden': 'true' }, 'DEEP-SEA ARCHIVE'),
+        React.createElement('div', { className: 'whg-archive-spine', 'aria-hidden': 'true' }, isProfile ? 'CHARACTER DOSSIER' : 'DEEP-SEA ARCHIVE'),
         React.createElement('header', { className: 'whg-archive-head' },
           React.createElement('div', { className: 'whg-archive-heading' },
             React.createElement('div', { className: 'whg-archive-kicker' }, kicker),
-            React.createElement('h2', { className: 'whg-archive-title', id: 'whg-archive-title' }, isHistory ? '对话历史' : 'CG图鉴'),
+            React.createElement('h2', { className: 'whg-archive-title', id: 'whg-archive-title-' + appScope }, isProfile ? '角色设定' : isHistory ? '对话历史' : 'CG图鉴'),
           ),
           React.createElement('button', {
-            'aria-label': '关闭' + (isHistory ? '对话历史' : 'CG图鉴'),
+            'aria-label': '关闭' + (isProfile ? '角色设定' : isHistory ? '对话历史' : 'CG图鉴'),
             className: 'whg-archive-close',
             onClick: closeArchive,
             ref: archiveCloseRef,
@@ -1718,6 +2121,15 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
           }, '角色立绘'),
           spritePicker(),
         ),
+        React.createElement('button', {
+          'aria-controls': 'whg-profile-editor-' + appScope,
+          'aria-expanded': archivePanel === 'profile',
+          'aria-haspopup': 'dialog',
+          className: 'whg-btn',
+          onClick: (event: any) => openArchive('profile', event.currentTarget),
+          title: '修改' + (s.name || '当前角色') + '的昵称、称呼、问候、性格、语气与 CG 外观描述',
+          type: 'button',
+        }, '角色设定'),
         React.createElement('button', {
           'aria-expanded': archivePanel === 'history',
           className: 'whg-btn',
