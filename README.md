@@ -64,7 +64,7 @@ DeepSeek、Claude、GPT、Gemini、Kimi、Grok 对应六位独立角色，显示
   </tr>
 </table>
 
-完整运行时素材还包括八张 `whale-*.png` 表情，以及 8 列 × 11 行的 `pet-spritesheet.webp` 桌宠动画图集。前 21 张默认图片与桌宠图集采用不同许可；来源、修改内容和逐文件许可见 [NOTICE](NOTICE.md) 与 [第三方许可索引](THIRD_PARTY_LICENSES.md)。
+完整运行时素材还包括八张原始分辨率透明 `whale-*.png` 表情，以及 8 列 × 11 行的 `pet-spritesheet.webp` 桌宠动画图集。前 21 张默认图片与桌宠图集采用不同许可；来源、修改内容和逐文件许可见 [NOTICE](NOTICE.md) 与 [第三方许可索引](THIRD_PARTY_LICENSES.md)。
 
 Galgame 界面的布局、对话框、控件和装饰随 [`src/client/index.ts`](src/client/index.ts) 公开，不依赖未公开的 UI 图片包。
 

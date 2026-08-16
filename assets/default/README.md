@@ -38,8 +38,9 @@ Only this allowlisted set is part of the public default art pack.
   [`dsh-deep-whale / maid-atelier`](https://github.com/Small-tailqwq/dsh-deep-whale/tree/main/maid-atelier)
   skin. They are byte-identical to the upstream standing sprite and night
   background.
-- The eight `whale-*.png` files are resized and processed expression variants
-  created from the credited maid whale-girl design for this plugin.
+- The eight `whale-*.png` files are full-resolution transparent expression
+  variants (935 × 1682/1683) created from the credited maid whale-girl design
+  for this plugin.
 - `pet-spritesheet.webp` is a byte-identical copy of
   [`f0909172434/dsh-deepseek-girl-pet`](https://github.com/f0909172434/dsh-deepseek-girl-pet)'s
   `assets/spritesheet.webp` (SHA-256

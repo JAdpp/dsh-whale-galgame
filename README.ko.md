@@ -66,7 +66,7 @@ Galgame 답변 모델과 CG 생성 서비스에는 미리 정해진 작업 분�
   </tr>
 </table>
 
-나머지 런타임 소재는 `whale-*.png` 표정 이미지 8개와 8열 × 11행 애니메이션 아틀라스 `pet-spritesheet.webp`입니다. 앞의 기본 이미지 21개와 펫 아틀라스에는 서로 다른 라이선스가 적용됩니다. 출처, 수정 사항, 파일별 라이선스는 [NOTICE](NOTICE.md)와 [제3자 라이선스 색인](THIRD_PARTY_LICENSES.md)을 확인하세요.
+나머지 런타임 소재는 원본 해상도의 투명 `whale-*.png` 표정 이미지 8개와 8열 × 11행 애니메이션 아틀라스 `pet-spritesheet.webp`입니다. 앞의 기본 이미지 21개와 펫 아틀라스에는 서로 다른 라이선스가 적용됩니다. 출처, 수정 사항, 파일별 라이선스는 [NOTICE](NOTICE.md)와 [제3자 라이선스 색인](THIRD_PARTY_LICENSES.md)을 확인하세요.
 
 Galgame 레이아웃, 대화 상자, 컨트롤, 장식은 [`src/client/index.ts`](src/client/index.ts)에 공개되어 있으며 비공개 UI 이미지 팩에 의존하지 않습니다.
 

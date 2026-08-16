@@ -25,14 +25,14 @@ Files 1–10 and 12–22 are distributed under CC BY-NC-SA 4.0. File 11 is copie
 | ---: | --- | --- | --- |
 | 1 | `assets/default/maid-left.webp` | `dsh-deep-whale / maid-atelier`; DeepSeek whale-girl default standing sprite | Byte-identical export of the upstream runtime asset; filename and runtime key are documented here. |
 | 2 | `assets/default/palace-night.webp` | `dsh-deep-whale / maid-atelier`; default deep-sea palace background | Byte-identical export of the upstream runtime asset; filename and runtime key are documented here. |
-| 3 | `assets/default/whale-cheerful.png` | Project-prepared cheerful expression in the whale-girl chain | Resized and processed as a 400 × 720 transparent PNG for the plugin's expression system. |
-| 4 | `assets/default/whale-shy.png` | Project-prepared shy expression in the whale-girl chain | Resized and processed as a 400 × 720 transparent PNG for the plugin's expression system. |
-| 5 | `assets/default/whale-serious.png` | Project-prepared serious expression in the whale-girl chain | Resized and processed as a 400 × 720 transparent PNG for the plugin's expression system. |
-| 6 | `assets/default/whale-confused.png` | Project-prepared confused expression in the whale-girl chain | Resized and processed as a 400 × 720 transparent PNG for the plugin's expression system. |
-| 7 | `assets/default/whale-angry.png` | Project-prepared angry expression in the whale-girl chain | Resized and processed as a 400 × 720 transparent PNG for the plugin's expression system. |
-| 8 | `assets/default/whale-frightened.png` | Project-prepared frightened expression in the whale-girl chain | Resized and processed as a 400 × 720 transparent PNG for the plugin's expression system. |
-| 9 | `assets/default/whale-exasperated.png` | Project-prepared exasperated expression in the whale-girl chain | Resized and processed as a 400 × 720 transparent PNG for the plugin's expression system. |
-| 10 | `assets/default/whale-starry.png` | Project-prepared starry-eyed expression in the whale-girl chain | Resized and processed as a 400 × 720 transparent PNG for the plugin's expression system. |
+| 3 | `assets/default/whale-cheerful.png` | Project-prepared cheerful expression in the whale-girl chain | Full-resolution 935 × 1682 transparent PNG used by the plugin's expression system. |
+| 4 | `assets/default/whale-shy.png` | Project-prepared shy expression in the whale-girl chain | Full-resolution 935 × 1682 transparent PNG used by the plugin's expression system. |
+| 5 | `assets/default/whale-serious.png` | Project-prepared serious expression in the whale-girl chain | Full-resolution 935 × 1682 transparent PNG used by the plugin's expression system. |
+| 6 | `assets/default/whale-confused.png` | Project-prepared confused expression in the whale-girl chain | Full-resolution 935 × 1683 transparent PNG used by the plugin's expression system. |
+| 7 | `assets/default/whale-angry.png` | Project-prepared angry expression in the whale-girl chain | Full-resolution 935 × 1683 transparent PNG used by the plugin's expression system. |
+| 8 | `assets/default/whale-frightened.png` | Project-prepared frightened expression in the whale-girl chain | Full-resolution 935 × 1683 transparent PNG used by the plugin's expression system. |
+| 9 | `assets/default/whale-exasperated.png` | Project-prepared exasperated expression in the whale-girl chain | Full-resolution 935 × 1682 transparent PNG used by the plugin's expression system. |
+| 10 | `assets/default/whale-starry.png` | Project-prepared starry-eyed expression in the whale-girl chain | Full-resolution 935 × 1682 transparent PNG used by the plugin's expression system. |
 | 11 | `assets/default/pet-spritesheet.webp` | [`f0909172434/dsh-deepseek-girl-pet`](https://github.com/f0909172434/dsh-deepseek-girl-pet); 8-column × 11-row desktop-pet atlas under MIT | Byte-identical to upstream `assets/spritesheet.webp` (SHA-256 `234f24a97c18195a00c6093da0090773e675993c169e92e7e13a24c37b323fa2`); the image itself is unmodified. |
 | 12 | `assets/default/claude-amber-manuscript-mediator-v5.png` | Unofficial Claude-inspired, AI-assisted project artwork | Exported as a 1024 × 1536 runtime PNG and assigned to the Claude role; it does not reproduce an official character design or exact logo. |
 | 13 | `assets/default/gpt-recursive-weaver-v7.png` | Unofficial GPT-inspired, AI-assisted project artwork | Exported as a 1024 × 1536 runtime PNG and assigned to the GPT role; it does not reproduce an official character design or exact logo. |

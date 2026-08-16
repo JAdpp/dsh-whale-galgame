@@ -66,7 +66,7 @@ Galgame の返信モデルと CG 生成サービスに渡されるのは、固�
   </tr>
 </table>
 
-残りの実行時素材は、8 点の `whale-*.png` 表情画像と8 列 × 11 行のアニメーションアトラス `pet-spritesheet.webp` です。最初のデフォルト画像 21 点とペット用アトラスには別々のライセンスが適用されます。出典、変更内容、ファイルごとのライセンスは [NOTICE](NOTICE.md) と[第三者ライセンス一覧](THIRD_PARTY_LICENSES.md)を参照してください。
+残りの実行時素材は、フル解像度の透過 `whale-*.png` 表情画像 8 点と8 列 × 11 行のアニメーションアトラス `pet-spritesheet.webp` です。最初のデフォルト画像 21 点とペット用アトラスには別々のライセンスが適用されます。出典、変更内容、ファイルごとのライセンスは [NOTICE](NOTICE.md) と[第三者ライセンス一覧](THIRD_PARTY_LICENSES.md)を参照してください。
 
 Galgame のレイアウト、会話ボックス、操作部品、装飾は [`src/client/index.ts`](src/client/index.ts) で公開され、非公開の UI 画像パックには依存しません。
 

@@ -66,7 +66,7 @@ The six new role backgrounds are shown below. Claude, GPT, Gemini, Kimi, and Gro
   </tr>
 </table>
 
-The remaining runtime assets comprise eight `whale-*.png` expression images and the 8-column × 11-row `pet-spritesheet.webp` animation atlas. The first 21 default images and the pet atlas use different licenses; see the [NOTICE](NOTICE.md) and [third-party license index](THIRD_PARTY_LICENSES.md) for sources, modifications, and file-by-file licensing.
+The remaining runtime assets comprise eight full-resolution transparent `whale-*.png` expression images and the 8-column × 11-row `pet-spritesheet.webp` animation atlas. The first 21 default images and the pet atlas use different licenses; see the [NOTICE](NOTICE.md) and [third-party license index](THIRD_PARTY_LICENSES.md) for sources, modifications, and file-by-file licensing.
 
 The Galgame layout, dialogue box, controls, and decorations are public in [`src/client/index.ts`](src/client/index.ts); there is no undisclosed UI-image pack.
 
