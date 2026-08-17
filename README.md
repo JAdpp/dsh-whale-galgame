@@ -197,7 +197,7 @@ npm run verify
 
 - **上善**创作了鲸鱼娘的原始角色形象：[Pixiv](https://www.pixiv.net/users/62155430) · [Bilibili](https://space.bilibili.com/4456176)。
 - **ZipZipPipe**在鲸鱼娘形象上加入 DeepSeek 元素，完成女仆鲸鱼娘二创：[Pixiv](https://www.pixiv.net/users/18604994) · [Bilibili](https://space.bilibili.com/4168597)。
-- **Small-tailqwq** 在开源项目 [dsh-deep-whale](https://github.com/Small-tailqwq/dsh-deep-whale) 中提供了本插件沿用的深海宫殿背景、鲸鱼娘立绘和 Galgame UI 装饰，并保留了完整创作链。本项目在这些素材基础上继续制作了八张表情。
+- **Small-tailqwq** 在开源项目 [dsh-deep-whale](https://github.com/Small-tailqwq/dsh-deep-whale) 中提供了本插件沿用的深海宫殿背景。
 - **f0909172434 / [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet)** 以 MIT 许可开源了 DSH 鲸鱼娘桌宠。本插件的桌宠功能基于该项目二次开发，`pet-spritesheet.webp` 与上游相同；本项目调整了插件集成方式与界面样式，并加入点击桌宠进入 Galgame 界面的交互。
 - Claude、GPT、Gemini、Kimi、Grok 五张模型娘立绘、六张角色日常背景和 Galgame UI 为本项目制作的非官方 AI 辅助素材，不代表相关厂商的官方形象、合作或背书。
 
