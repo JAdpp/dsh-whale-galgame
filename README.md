@@ -34,7 +34,7 @@
 
 ## 内置默认美术
 
-插件安装包内嵌并使用 22 项美术素材：六张角色立绘、七张内置背景、八张鲸鱼娘立绘差分，以及一张来自 [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet) 的 11 行桌宠动画图集。下面六张图是各模型角色的默认立绘；GitHub 源码仓库中的 [`assets/default/`](assets/default/README.md) 列出了全部图片及其运行时用途。npm 安装包只携带内嵌后的客户端 bundle，不重复收录导出原图或生成图源码。
+插件安装包内嵌并使用 22 项美术素材：六张角色立绘、七张内置背景、八张鲸鱼娘表情差分立绘，以及一张来自 [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet) 的 11 行桌宠动画图集。下面六张图是各模型角色的默认立绘；GitHub 源码仓库中的 [`assets/default/`](assets/default/README.md) 列出了全部图片及其运行时用途。npm 安装包只携带内嵌后的客户端 bundle，不重复收录导出原图或生成图源码。
 
 <table>
   <tr>
