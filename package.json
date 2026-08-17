@@ -25,6 +25,7 @@
   },
   "scripts": {
     "build": "tsdown",
+    "prepare": "node scripts/embed-art.mjs && tsdown",
     "sanitize:backgrounds": "node scripts/sanitize-backgrounds.mjs",
     "embed:art": "node scripts/embed-art.mjs",
     "export:art": "node scripts/export-art.mjs",
@@ -32,7 +33,7 @@
     "audit:release": "node scripts/release-audit.mjs",
     "check": "node --check lib/index.js && node --check lib/client.js",
     "test": "node --experimental-strip-types --test test/activity-context.test.ts test/plugin-integration.test.ts test/global-state.test.ts test/api-responsiveness.test.ts test/client-interactions.test.ts test/choices-continuity.test.ts",
-    "verify": "npm run prune:art && npm run export:art && npm run test && npm run build && npm run check && npm run audit:release"
+    "verify": "npm run embed:art && npm run test && npm run build && npm run check && npm run audit:release"
   },
   "repository": {
     "type": "git",

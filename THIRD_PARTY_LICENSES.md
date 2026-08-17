@@ -24,7 +24,7 @@ This project directly adapts the upstream desktop-pet state animation, 16-direct
 
 ## Project-produced role artwork
 
-The five non-DeepSeek standing sprites and six `bg-*.png` role backgrounds are unofficial, AI-assisted artwork newly produced for this project, not third-party company art. They are distributed under CC BY-NC-SA 4.0 to the extent the maintainer holds the applicable rights. The six backgrounds map to DeepSeek, Claude, GPT, Gemini, Kimi, and Grok; the DeepSeek seaside-study scene is an optional built-in alternative, while the other five are their roles' defaults. See [NOTICE.md](NOTICE.md) for the exact file-by-file map.
+The five non-DeepSeek standing sprites and six `bg-*.webp` role backgrounds are unofficial, AI-assisted artwork newly produced for this project, not third-party company art. They are distributed under CC BY-NC-SA 4.0 to the extent the maintainer holds the applicable rights. The six backgrounds map to DeepSeek, Claude, GPT, Gemini, Kimi, and Grok; the DeepSeek seaside-study scene is an optional built-in alternative, while the other five are their roles' defaults. See [NOTICE.md](NOTICE.md) for the exact file-by-file map.
 
 ## Creator profiles
 

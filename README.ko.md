@@ -41,13 +41,13 @@ Galgame 답변 모델과 CG 생성 서비스에는 미리 정해진 작업 분�
 <table>
   <tr>
     <td align="center"><img src="assets/default/maid-left.webp" width="180" alt="DeepSeek 고래 소녀 기본 이미지"><br><strong>DeepSeek · 고래 소녀</strong></td>
-    <td align="center"><img src="assets/default/claude-amber-manuscript-mediator-v5.png" width="180" alt="Claude 모델 소녀 克洛德 기본 이미지"><br><strong>Claude · 克洛德</strong></td>
-    <td align="center"><img src="assets/default/gpt-recursive-weaver-v7.png" width="180" alt="GPT 모델 소녀 小吉 기본 이미지"><br><strong>GPT · 小吉</strong></td>
+    <td align="center"><img src="assets/default/claude-amber-manuscript-mediator-v5.webp" width="180" alt="Claude 모델 소녀 克洛德 기본 이미지"><br><strong>Claude · 克洛德</strong></td>
+    <td align="center"><img src="assets/default/gpt-recursive-weaver-v7.webp" width="180" alt="GPT 모델 소녀 小吉 기본 이미지"><br><strong>GPT · 小吉</strong></td>
   </tr>
   <tr>
-    <td align="center"><img src="assets/default/gemini-dual-prism-translator-v4.png" width="180" alt="Gemini 모델 소녀 双子 기본 이미지"><br><strong>Gemini · 双子</strong></td>
-    <td align="center"><img src="assets/default/kimi-lunar-scroll-navigator-v5.png" width="180" alt="Kimi 모델 소녀 月见 기본 이미지"><br><strong>Kimi · 月见</strong></td>
-    <td align="center"><img src="assets/default/grok-cosmic-signal-ranger-v5.png" width="180" alt="Grok 모델 소녀 洛可 기본 이미지"><br><strong>Grok · 洛可</strong></td>
+    <td align="center"><img src="assets/default/gemini-dual-prism-translator-v4.webp" width="180" alt="Gemini 모델 소녀 双子 기본 이미지"><br><strong>Gemini · 双子</strong></td>
+    <td align="center"><img src="assets/default/kimi-lunar-scroll-navigator-v5.webp" width="180" alt="Kimi 모델 소녀 月见 기본 이미지"><br><strong>Kimi · 月见</strong></td>
+    <td align="center"><img src="assets/default/grok-cosmic-signal-ranger-v5.webp" width="180" alt="Grok 모델 소녀 洛可 기본 이미지"><br><strong>Grok · 洛可</strong></td>
   </tr>
 </table>
 
@@ -55,18 +55,18 @@ Galgame 답변 모델과 CG 생성 서비스에는 미리 정해진 작업 분�
 
 <table>
   <tr>
-    <td align="center"><img src="assets/default/bg-deepseek-seaside-study.png" width="260" alt="DeepSeek 고래 소녀 해변 서재 대체 배경"><br><strong>DeepSeek · 선택 대안</strong></td>
-    <td align="center"><img src="assets/default/bg-claude-writing-study.png" width="260" alt="Claude 글쓰기 서재 기본 배경"><br><strong>Claude</strong></td>
-    <td align="center"><img src="assets/default/bg-gpt-collaboration-workshop.png" width="260" alt="GPT 협업 공방 기본 배경"><br><strong>GPT</strong></td>
+    <td align="center"><img src="assets/default/bg-deepseek-seaside-study.webp" width="260" alt="DeepSeek 고래 소녀 해변 서재 대체 배경"><br><strong>DeepSeek · 선택 대안</strong></td>
+    <td align="center"><img src="assets/default/bg-claude-writing-study.webp" width="260" alt="Claude 글쓰기 서재 기본 배경"><br><strong>Claude</strong></td>
+    <td align="center"><img src="assets/default/bg-gpt-collaboration-workshop.webp" width="260" alt="GPT 협업 공방 기본 배경"><br><strong>GPT</strong></td>
   </tr>
   <tr>
-    <td align="center"><img src="assets/default/bg-gemini-twin-creative-studio.png" width="260" alt="Gemini 쌍둥이 창작 스튜디오 기본 배경"><br><strong>Gemini</strong></td>
-    <td align="center"><img src="assets/default/bg-kimi-moonlit-reading-study.png" width="260" alt="Kimi 달빛 독서실 기본 배경"><br><strong>Kimi</strong></td>
-    <td align="center"><img src="assets/default/bg-grok-electronics-studio.png" width="260" alt="Grok 전자 공작실 기본 배경"><br><strong>Grok</strong></td>
+    <td align="center"><img src="assets/default/bg-gemini-twin-creative-studio.webp" width="260" alt="Gemini 쌍둥이 창작 스튜디오 기본 배경"><br><strong>Gemini</strong></td>
+    <td align="center"><img src="assets/default/bg-kimi-moonlit-reading-study.webp" width="260" alt="Kimi 달빛 독서실 기본 배경"><br><strong>Kimi</strong></td>
+    <td align="center"><img src="assets/default/bg-grok-electronics-studio.webp" width="260" alt="Grok 전자 공작실 기본 배경"><br><strong>Grok</strong></td>
   </tr>
 </table>
 
-나머지 런타임 소재는 원본 해상도의 투명 `whale-*.png` 표정 이미지 8개와 8열 × 11행 애니메이션 아틀라스 `pet-spritesheet.webp`입니다. 앞의 기본 이미지 21개와 펫 아틀라스에는 서로 다른 라이선스가 적용됩니다. 출처, 수정 사항, 파일별 라이선스는 [NOTICE](NOTICE.md)와 [제3자 라이선스 색인](THIRD_PARTY_LICENSES.md)을 확인하세요.
+나머지 런타임 소재는 원본 해상도의 투명 `whale-*.webp` 표정 이미지 8개와 8열 × 11행 애니메이션 아틀라스 `pet-spritesheet.webp`입니다. 앞의 기본 이미지 21개와 펫 아틀라스에는 서로 다른 라이선스가 적용됩니다. 출처, 수정 사항, 파일별 라이선스는 [NOTICE](NOTICE.md)와 [제3자 라이선스 색인](THIRD_PARTY_LICENSES.md)을 확인하세요.
 
 Galgame 레이아웃, 대화 상자, 컨트롤, 장식은 [`src/client/index.ts`](src/client/index.ts)에 공개되어 있으며 비공개 UI 이미지 팩에 의존하지 않습니다.
 
@@ -170,7 +170,7 @@ npm run export:art
 npm run verify
 ~~~
 
-바로 설치할 수 있도록 `lib/index.js`와 `lib/client.js`를 저장소에 포함합니다. `src/`를 변경한 뒤 두 파일을 다시 빌드해 commit하세요. `npm run sanitize:backgrounds`는 6개 배경에서 화면 표시에 필요 없는 PNG 메타데이터를 제거하고, `npm run embed:art`는 허용 목록의 이미지를 런타임 소스에 쓰며, `npm run export:art`는 바이트 단위 검증을 위해 공개 소재 22개를 다시 내보냅니다.
+`lib/`와 `src/client/art.generated.ts`는 빌드 산출물이므로 저장소에 포함하지 않습니다. `prepare` 스크립트가 설치 시 `npm run embed:art`와 `tsdown`을 실행하므로 git 기반 설치는 스스로 빌드되고 저장소 tarball도 가볍게 유지됩니다. 클론한 뒤 `npm install`을 한 번 실행하면 로컬에 생성됩니다. `npm run sanitize:backgrounds`는 6개 배경에서 화면 표시에 필요 없는 WebP 메타데이터를 제거하고, `npm run embed:art`는 허용 목록의 이미지를 런타임 소스에 쓰며, `npm run export:art`는 바이트 단위 검증을 위해 공개 소재 22개를 다시 내보냅니다.
 
 ## 라이선스와 감사
 

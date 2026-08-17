@@ -41,13 +41,13 @@ Galgame の返信モデルと CG 生成サービスに渡されるのは、固�
 <table>
   <tr>
     <td align="center"><img src="assets/default/maid-left.webp" width="180" alt="DeepSeek 鯨娘のデフォルト立ち絵"><br><strong>DeepSeek · 鯨娘</strong></td>
-    <td align="center"><img src="assets/default/claude-amber-manuscript-mediator-v5.png" width="180" alt="Claude モデル娘・克洛德のデフォルト立ち絵"><br><strong>Claude · 克洛德</strong></td>
-    <td align="center"><img src="assets/default/gpt-recursive-weaver-v7.png" width="180" alt="GPT モデル娘・小吉のデフォルト立ち絵"><br><strong>GPT · 小吉</strong></td>
+    <td align="center"><img src="assets/default/claude-amber-manuscript-mediator-v5.webp" width="180" alt="Claude モデル娘・克洛德のデフォルト立ち絵"><br><strong>Claude · 克洛德</strong></td>
+    <td align="center"><img src="assets/default/gpt-recursive-weaver-v7.webp" width="180" alt="GPT モデル娘・小吉のデフォルト立ち絵"><br><strong>GPT · 小吉</strong></td>
   </tr>
   <tr>
-    <td align="center"><img src="assets/default/gemini-dual-prism-translator-v4.png" width="180" alt="Gemini モデル娘・双子のデフォルト立ち絵"><br><strong>Gemini · 双子</strong></td>
-    <td align="center"><img src="assets/default/kimi-lunar-scroll-navigator-v5.png" width="180" alt="Kimi モデル娘・月见のデフォルト立ち絵"><br><strong>Kimi · 月见</strong></td>
-    <td align="center"><img src="assets/default/grok-cosmic-signal-ranger-v5.png" width="180" alt="Grok モデル娘・洛可のデフォルト立ち絵"><br><strong>Grok · 洛可</strong></td>
+    <td align="center"><img src="assets/default/gemini-dual-prism-translator-v4.webp" width="180" alt="Gemini モデル娘・双子のデフォルト立ち絵"><br><strong>Gemini · 双子</strong></td>
+    <td align="center"><img src="assets/default/kimi-lunar-scroll-navigator-v5.webp" width="180" alt="Kimi モデル娘・月见のデフォルト立ち絵"><br><strong>Kimi · 月见</strong></td>
+    <td align="center"><img src="assets/default/grok-cosmic-signal-ranger-v5.webp" width="180" alt="Grok モデル娘・洛可のデフォルト立ち絵"><br><strong>Grok · 洛可</strong></td>
   </tr>
 </table>
 
@@ -55,18 +55,18 @@ Galgame の返信モデルと CG 生成サービスに渡されるのは、固�
 
 <table>
   <tr>
-    <td align="center"><img src="assets/default/bg-deepseek-seaside-study.png" width="260" alt="DeepSeek 鯨娘の海辺の書斎・代替背景"><br><strong>DeepSeek · 選択可</strong></td>
-    <td align="center"><img src="assets/default/bg-claude-writing-study.png" width="260" alt="Claude の書斎・既定背景"><br><strong>Claude</strong></td>
-    <td align="center"><img src="assets/default/bg-gpt-collaboration-workshop.png" width="260" alt="GPT の共同作業スタジオ・既定背景"><br><strong>GPT</strong></td>
+    <td align="center"><img src="assets/default/bg-deepseek-seaside-study.webp" width="260" alt="DeepSeek 鯨娘の海辺の書斎・代替背景"><br><strong>DeepSeek · 選択可</strong></td>
+    <td align="center"><img src="assets/default/bg-claude-writing-study.webp" width="260" alt="Claude の書斎・既定背景"><br><strong>Claude</strong></td>
+    <td align="center"><img src="assets/default/bg-gpt-collaboration-workshop.webp" width="260" alt="GPT の共同作業スタジオ・既定背景"><br><strong>GPT</strong></td>
   </tr>
   <tr>
-    <td align="center"><img src="assets/default/bg-gemini-twin-creative-studio.png" width="260" alt="Gemini のツイン創作スタジオ・既定背景"><br><strong>Gemini</strong></td>
-    <td align="center"><img src="assets/default/bg-kimi-moonlit-reading-study.png" width="260" alt="Kimi の月明かりの閲覧室・既定背景"><br><strong>Kimi</strong></td>
-    <td align="center"><img src="assets/default/bg-grok-electronics-studio.png" width="260" alt="Grok の電子工作室・既定背景"><br><strong>Grok</strong></td>
+    <td align="center"><img src="assets/default/bg-gemini-twin-creative-studio.webp" width="260" alt="Gemini のツイン創作スタジオ・既定背景"><br><strong>Gemini</strong></td>
+    <td align="center"><img src="assets/default/bg-kimi-moonlit-reading-study.webp" width="260" alt="Kimi の月明かりの閲覧室・既定背景"><br><strong>Kimi</strong></td>
+    <td align="center"><img src="assets/default/bg-grok-electronics-studio.webp" width="260" alt="Grok の電子工作室・既定背景"><br><strong>Grok</strong></td>
   </tr>
 </table>
 
-残りの実行時素材は、フル解像度の透過 `whale-*.png` 表情画像 8 点と8 列 × 11 行のアニメーションアトラス `pet-spritesheet.webp` です。最初のデフォルト画像 21 点とペット用アトラスには別々のライセンスが適用されます。出典、変更内容、ファイルごとのライセンスは [NOTICE](NOTICE.md) と[第三者ライセンス一覧](THIRD_PARTY_LICENSES.md)を参照してください。
+残りの実行時素材は、フル解像度の透過 `whale-*.webp` 表情画像 8 点と8 列 × 11 行のアニメーションアトラス `pet-spritesheet.webp` です。最初のデフォルト画像 21 点とペット用アトラスには別々のライセンスが適用されます。出典、変更内容、ファイルごとのライセンスは [NOTICE](NOTICE.md) と[第三者ライセンス一覧](THIRD_PARTY_LICENSES.md)を参照してください。
 
 Galgame のレイアウト、会話ボックス、操作部品、装飾は [`src/client/index.ts`](src/client/index.ts) で公開され、非公開の UI 画像パックには依存しません。
 
@@ -170,7 +170,7 @@ npm run export:art
 npm run verify
 ~~~
 
-そのままインストールできるよう、`lib/index.js` と `lib/client.js` をリポジトリに含めています。`src/` の変更後は両方を再ビルドして commit してください。`npm run sanitize:backgrounds` は 6 点の背景から表示に不要な PNG メタデータを除去し、`npm run embed:art` は許可リストの画像を実行時ソースへ書き込み、`npm run export:art` は 22 点をバイト単位の確認用に再出力します。
+`lib/` と `src/client/art.generated.ts` はビルド生成物のため、リポジトリには含めません。`prepare` スクリプトがインストール時に `npm run embed:art` と `tsdown` を実行するので、git 経由のインストールは自動でビルドされ、リポジトリの tarball も軽量なままです。クローン後は `npm install` を一度実行すればローカルに生成されます。`npm run sanitize:backgrounds` は 6 点の背景から表示に不要な WebP メタデータを除去し、`npm run embed:art` は許可リストの画像を実行時ソースへ書き込み、`npm run export:art` は 22 点をバイト単位の確認用に再出力します。
 
 ## ライセンスとクレジット
 

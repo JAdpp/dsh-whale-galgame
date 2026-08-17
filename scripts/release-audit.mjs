@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto'
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { dirname, extname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { findMetadataChunks, readWebpDimensions } from './webp.mjs'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const npmExecPath = process.env.npm_execpath
@@ -10,69 +11,61 @@ const npmExecPath = process.env.npm_execpath
 const expectedArtFiles = {
   'pet-spritesheet': 'pet-spritesheet.webp',
   'maid-left': 'maid-left.webp',
-  'whale-cheerful': 'whale-cheerful.png',
-  'whale-shy': 'whale-shy.png',
-  'whale-serious': 'whale-serious.png',
-  'whale-confused': 'whale-confused.png',
-  'whale-angry': 'whale-angry.png',
-  'whale-frightened': 'whale-frightened.png',
-  'whale-exasperated': 'whale-exasperated.png',
-  'whale-starry': 'whale-starry.png',
+  'whale-cheerful': 'whale-cheerful.webp',
+  'whale-shy': 'whale-shy.webp',
+  'whale-serious': 'whale-serious.webp',
+  'whale-confused': 'whale-confused.webp',
+  'whale-angry': 'whale-angry.webp',
+  'whale-frightened': 'whale-frightened.webp',
+  'whale-exasperated': 'whale-exasperated.webp',
+  'whale-starry': 'whale-starry.webp',
   'palace-night': 'palace-night.webp',
-  'bg-deepseek-seaside-study': 'bg-deepseek-seaside-study.png',
-  'bg-claude-writing-study': 'bg-claude-writing-study.png',
-  'bg-gpt-collaboration-workshop': 'bg-gpt-collaboration-workshop.png',
-  'bg-gemini-twin-creative-studio': 'bg-gemini-twin-creative-studio.png',
-  'bg-kimi-moonlit-reading-study': 'bg-kimi-moonlit-reading-study.png',
-  'bg-grok-electronics-studio': 'bg-grok-electronics-studio.png',
-  'claude-amber-manuscript-mediator-v5': 'claude-amber-manuscript-mediator-v5.png',
-  'gemini-dual-prism-translator-v4': 'gemini-dual-prism-translator-v4.png',
-  'gpt-recursive-weaver-v7': 'gpt-recursive-weaver-v7.png',
-  'grok-cosmic-signal-ranger-v5': 'grok-cosmic-signal-ranger-v5.png',
-  'kimi-lunar-scroll-navigator-v5': 'kimi-lunar-scroll-navigator-v5.png',
+  'bg-deepseek-seaside-study': 'bg-deepseek-seaside-study.webp',
+  'bg-claude-writing-study': 'bg-claude-writing-study.webp',
+  'bg-gpt-collaboration-workshop': 'bg-gpt-collaboration-workshop.webp',
+  'bg-gemini-twin-creative-studio': 'bg-gemini-twin-creative-studio.webp',
+  'bg-kimi-moonlit-reading-study': 'bg-kimi-moonlit-reading-study.webp',
+  'bg-grok-electronics-studio': 'bg-grok-electronics-studio.webp',
+  'claude-amber-manuscript-mediator-v5': 'claude-amber-manuscript-mediator-v5.webp',
+  'gemini-dual-prism-translator-v4': 'gemini-dual-prism-translator-v4.webp',
+  'gpt-recursive-weaver-v7': 'gpt-recursive-weaver-v7.webp',
+  'grok-cosmic-signal-ranger-v5': 'grok-cosmic-signal-ranger-v5.webp',
+  'kimi-lunar-scroll-navigator-v5': 'kimi-lunar-scroll-navigator-v5.webp',
 }
 const expectedArtKeys = Object.keys(expectedArtFiles)
 const expectedArtHashes = {
-  'bg-claude-writing-study.png': 'df6d700dfb4185240ba99c280bb4fe98c667826bfa9d3cbfb79dbc31be73b4e0',
-  'bg-deepseek-seaside-study.png': '5d7c63d9999d3684fa3aef839c41a49c704f54c846f8558921833030adb67c6d',
-  'bg-gemini-twin-creative-studio.png': 'd6a291550a1535d184975025495323af3dd6ad62dda457bb1ce8597ba17e09c2',
-  'bg-gpt-collaboration-workshop.png': '516918a353d143bd7166e1629222592c1a358167329a61975a0e2cb6440aceff',
-  'bg-grok-electronics-studio.png': 'c5a9eac7b1744615cc4c0e38ab7107b0f9a63f033fcd9175585f36b68821b926',
-  'bg-kimi-moonlit-reading-study.png': 'be328c3fb9011f31c586440cffd7f45c5a94948352199c763f58eb338e9c95da',
-  'claude-amber-manuscript-mediator-v5.png': 'b27c346b9bc18afd773586b60b9f674f8d812dfb0187072228b8359d529b5f58',
-  'gemini-dual-prism-translator-v4.png': '1a34a6581a6795f3acd387676c335b7b87113fd6412b80a36c17132c5639e33d',
-  'gpt-recursive-weaver-v7.png': 'e697d8226f1aa93fbcfca7a640d75b44655d32b35229fd4248a7e13e15450663',
-  'grok-cosmic-signal-ranger-v5.png': '0830266b694ed1db5f0036f3475914d5406b49026c1f99f8a48fbdf960da867b',
-  'kimi-lunar-scroll-navigator-v5.png': '1d6e702d50961ba8be019e0da4772476aa969623696e27a9a8ca813f2d4a04a7',
+  'bg-claude-writing-study.webp': 'fc45e575fc1922fc48db8b7a3d1976e330405ba8afa1b46dd107a431e5eb74e3',
+  'bg-deepseek-seaside-study.webp': '35cfd0190aad1aaf1b2e08a1653879cbd86257a5a99e4cfaeb33645f6f054534',
+  'bg-gemini-twin-creative-studio.webp': '5107cf6d599b0b2ab8053d4f7e1a21a820c0b02d545fded6bb89e9b25250a9ee',
+  'bg-gpt-collaboration-workshop.webp': '971c9f8473ea196d8159b19314e3b909d49bad165e87009306dc3d48830a6040',
+  'bg-grok-electronics-studio.webp': '967f77f97343512876d55a9bfa53e934703860e4884e07539392091f62ceb9b7',
+  'bg-kimi-moonlit-reading-study.webp': '59a18e6f03abfd11aa31079c2fee1d41ef25da277546b3823a0661c32ef0e71b',
+  'claude-amber-manuscript-mediator-v5.webp': '6d2aa47c7cb062c2373e6351e82df14d0da3c212f73fd7a4fa9eeeea11098237',
+  'gemini-dual-prism-translator-v4.webp': '9c7842d4d7d122480d5e5e5cee668eb40675480ffedceea25fcd22a4b9166bba',
+  'gpt-recursive-weaver-v7.webp': '31860daaa62b93f352b9159d785af2b4e2f29208f822ed5c25868c7f0a6af07d',
+  'grok-cosmic-signal-ranger-v5.webp': 'c8f0ede3fef9a31d9b620321eed795d09b4bfcb3d581b38e32302fd81a95fe7f',
+  'kimi-lunar-scroll-navigator-v5.webp': 'c6f07e2430a4d102abf4356ac3f785124a894cbf1213e05eec1738204d3943f9',
   'maid-left.webp': 'af7bfd2e18505fc9d6f94cefd9febc92b31c1b2b66c756982d91fc7b93fb184c',
   'palace-night.webp': 'ae6917bb1aafa71e6a10cfcaa1289f13e265aa7f32d3fb7c1988004bf50f8983',
   'pet-spritesheet.webp': '234f24a97c18195a00c6093da0090773e675993c169e92e7e13a24c37b323fa2',
-  'whale-angry.png': 'aa000e690ef4752539f3d4ffd2fae09b026fe3557619e22ed0844c9ebfe1f5c1',
-  'whale-cheerful.png': '911f0b9ad0a4aa5e4fea47e70303c963eb7a5f326235aeac66579e05f03f574d',
-  'whale-confused.png': 'e71c2b87ece719639f5765071a32ecaa7f6b7f1643bb78428a648f1c1b505d06',
-  'whale-exasperated.png': 'b40046c63bf35cf9f918c6cdd7d7f2b194038e6c3168634f7386547eadb98666',
-  'whale-frightened.png': '6b3474e71216844140f7f7d5ba791aea2b971a6a2f60ee01396312c5d5e88140',
-  'whale-serious.png': '7ead530a1bf41447844097a53771819ecb9987dfaa912e0fd61e15b3b347b270',
-  'whale-shy.png': 'd96ea4da00c15c421fef256d555b86deda40f657ddc9dbe31467ae5aaadd187a',
-  'whale-starry.png': '6bf39264f814d66047072a1e15ecceb932a7d239bfac6d9272ba04d0a3e64030',
+  'whale-angry.webp': '63bb54126cf3acc785b251a19d465a8e388865badbdc7baf17bbad4b68057a02',
+  'whale-cheerful.webp': '117ed691623da550075056963764cee7a4cd14318d5ab87ce63d11926b83aa4b',
+  'whale-confused.webp': 'f879656eeec7d02e07543774efcf93a62f03d5b73e577a4c5440d855b942d436',
+  'whale-exasperated.webp': 'c627bea1c000d304a538f1d63a2cf244f73824496ca585e0bda91a91450b67aa',
+  'whale-frightened.webp': 'a74c7b1afd6b6deaa60d3bbceeaf079dd2379b6b8be3da6265c492921522867b',
+  'whale-serious.webp': '2974cc4a814f6b1f95d907d22f62d9e0094dd7e538b6145e7c8a1dbb6154de34',
+  'whale-shy.webp': '87dea8920f550d75e68d189a816856fcc77379532a79c169cc766f02aeeb80f4',
+  'whale-starry.webp': '65a3bd1eb9ad4f8cb357af4825311f84e91be4f7f57deb5357fb79116bcad774',
 }
-const roleBackgroundKeys = [
-  'bg-deepseek-seaside-study',
-  'bg-claude-writing-study',
-  'bg-gpt-collaboration-workshop',
-  'bg-gemini-twin-creative-studio',
-  'bg-kimi-moonlit-reading-study',
-  'bg-grok-electronics-studio',
-]
 const whaleExpressionDimensions = {
-  'whale-cheerful.png': [935, 1682],
-  'whale-shy.png': [935, 1682],
-  'whale-serious.png': [935, 1682],
-  'whale-confused.png': [935, 1683],
-  'whale-angry.png': [935, 1683],
-  'whale-frightened.png': [935, 1683],
-  'whale-exasperated.png': [935, 1682],
-  'whale-starry.png': [935, 1682],
+  'whale-cheerful.webp': [935, 1682],
+  'whale-shy.webp': [935, 1682],
+  'whale-serious.webp': [935, 1682],
+  'whale-confused.webp': [935, 1683],
+  'whale-angry.webp': [935, 1683],
+  'whale-frightened.webp': [935, 1683],
+  'whale-exasperated.webp': [935, 1682],
+  'whale-starry.webp': [935, 1682],
 }
 const expectedHashFiles = Object.keys(expectedArtHashes).sort()
 const expectedImageFiles = Object.values(expectedArtFiles).sort()
@@ -127,48 +120,25 @@ for (const [key, fileName] of Object.entries(expectedArtFiles)) {
   const hash = createHash('sha256').update(exported).digest('hex')
   if (hash !== expectedArtHashes[fileName]) throw new Error(`${fileName} hash mismatch: ${hash}`)
 }
-const pngSignature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
 for (const [fileName, [expectedWidth, expectedHeight]] of Object.entries(whaleExpressionDimensions)) {
-  const png = readFileSync(resolve(artDir, fileName))
-  if (png.length < 24 || !png.subarray(0, pngSignature.length).equals(pngSignature) || png.toString('ascii', 12, 16) !== 'IHDR') {
-    throw new Error(`${fileName} is not a valid PNG with an IHDR chunk.`)
-  }
-  const width = png.readUInt32BE(16)
-  const height = png.readUInt32BE(20)
+  const { width, height } = readWebpDimensions(readFileSync(resolve(artDir, fileName)), fileName)
   if (width !== expectedWidth || height !== expectedHeight) {
     throw new Error(`${fileName} dimensions changed: ${width} × ${height}; expected ${expectedWidth} × ${expectedHeight}`)
   }
 }
-const allowedBackgroundChunks = new Set(['IHDR', 'PLTE', 'tRNS', 'IDAT', 'IEND'])
-for (const key of roleBackgroundKeys) {
-  const fileName = expectedArtFiles[key]
-  const png = readFileSync(resolve(artDir, fileName))
-  if (png.length < pngSignature.length || !png.subarray(0, pngSignature.length).equals(pngSignature)) {
-    throw new Error(`${fileName} is not a PNG file.`)
+for (const fileName of Object.values(expectedArtFiles)) {
+  const metadata = findMetadataChunks(readFileSync(resolve(artDir, fileName)), fileName)
+  if (metadata.length) {
+    throw new Error(`${fileName} contains non-visual WebP metadata chunk ${metadata.join(', ')}.`)
   }
-  let offset = pngSignature.length
-  let reachedEnd = false
-  while (offset + 12 <= png.length) {
-    const length = png.readUInt32BE(offset)
-    const end = offset + 12 + length
-    if (end > png.length) throw new Error(`${fileName} has a truncated PNG chunk.`)
-    const type = png.toString('ascii', offset + 4, offset + 8)
-    if (!allowedBackgroundChunks.has(type)) {
-      throw new Error(`${fileName} contains non-visual PNG metadata chunk ${type}.`)
-    }
-    offset = end
-    if (type === 'IEND') {
-      reachedEnd = true
-      break
-    }
-  }
-  if (!reachedEnd) throw new Error(`${fileName} is missing IEND.`)
 }
+// --ignore-scripts keeps the prepare script's stdout out of the --json payload;
+// lib/ is already built by the time the audit runs.
 const packCommand = npmExecPath?.endsWith('.js')
-  ? [process.execPath, [npmExecPath, 'pack', '--dry-run', '--json']]
+  ? [process.execPath, [npmExecPath, 'pack', '--dry-run', '--json', '--ignore-scripts']]
   : process.platform === 'win32'
-    ? [process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', 'npm.cmd pack --dry-run --json']]
-    : ['npm', ['pack', '--dry-run', '--json']]
+    ? [process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', 'npm.cmd pack --dry-run --json --ignore-scripts']]
+    : ['npm', ['pack', '--dry-run', '--json', '--ignore-scripts']]
 const packResult = JSON.parse(execFileSync(packCommand[0], packCommand[1], {
   cwd: root,
   encoding: 'utf8',

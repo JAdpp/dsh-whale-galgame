@@ -10,6 +10,11 @@ Thumbs.db
 *.backup
 *.bak
 
+# Build output. Rebuilt from assets/default + src by the prepare script, so it
+# stays out of git and out of the git-hosted install tarball.
+/lib/
+/src/client/art.generated.ts
+
 # Workspace-local Galgame data and user-provided visuals
 .whale-girl-save*.json
 .whale-galgame/

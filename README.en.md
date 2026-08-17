@@ -41,13 +41,13 @@ The installed plugin embeds 22 runtime visual assets: six character sprites, sev
 <table>
   <tr>
     <td align="center"><img src="assets/default/maid-left.webp" width="180" alt="Default DeepSeek whale-girl sprite"><br><strong>DeepSeek · Whale Girl</strong></td>
-    <td align="center"><img src="assets/default/claude-amber-manuscript-mediator-v5.png" width="180" alt="Default Claude-inspired character sprite, nickname 克洛德"><br><strong>Claude · 克洛德</strong></td>
-    <td align="center"><img src="assets/default/gpt-recursive-weaver-v7.png" width="180" alt="Default GPT-inspired character sprite, nickname 小吉"><br><strong>GPT · 小吉</strong></td>
+    <td align="center"><img src="assets/default/claude-amber-manuscript-mediator-v5.webp" width="180" alt="Default Claude-inspired character sprite, nickname 克洛德"><br><strong>Claude · 克洛德</strong></td>
+    <td align="center"><img src="assets/default/gpt-recursive-weaver-v7.webp" width="180" alt="Default GPT-inspired character sprite, nickname 小吉"><br><strong>GPT · 小吉</strong></td>
   </tr>
   <tr>
-    <td align="center"><img src="assets/default/gemini-dual-prism-translator-v4.png" width="180" alt="Default Gemini-inspired character sprite, nickname 双子"><br><strong>Gemini · 双子</strong></td>
-    <td align="center"><img src="assets/default/kimi-lunar-scroll-navigator-v5.png" width="180" alt="Default Kimi-inspired character sprite, nickname 月见"><br><strong>Kimi · 月见</strong></td>
-    <td align="center"><img src="assets/default/grok-cosmic-signal-ranger-v5.png" width="180" alt="Default Grok-inspired character sprite, nickname 洛可"><br><strong>Grok · 洛可</strong></td>
+    <td align="center"><img src="assets/default/gemini-dual-prism-translator-v4.webp" width="180" alt="Default Gemini-inspired character sprite, nickname 双子"><br><strong>Gemini · 双子</strong></td>
+    <td align="center"><img src="assets/default/kimi-lunar-scroll-navigator-v5.webp" width="180" alt="Default Kimi-inspired character sprite, nickname 月见"><br><strong>Kimi · 月见</strong></td>
+    <td align="center"><img src="assets/default/grok-cosmic-signal-ranger-v5.webp" width="180" alt="Default Grok-inspired character sprite, nickname 洛可"><br><strong>Grok · 洛可</strong></td>
   </tr>
 </table>
 
@@ -55,18 +55,18 @@ The six new role backgrounds are shown below. Claude, GPT, Gemini, Kimi, and Gro
 
 <table>
   <tr>
-    <td align="center"><img src="assets/default/bg-deepseek-seaside-study.png" width="260" alt="Optional DeepSeek whale-girl seaside-study background"><br><strong>DeepSeek · optional</strong></td>
-    <td align="center"><img src="assets/default/bg-claude-writing-study.png" width="260" alt="Claude writing-study default background"><br><strong>Claude</strong></td>
-    <td align="center"><img src="assets/default/bg-gpt-collaboration-workshop.png" width="260" alt="GPT collaboration-workshop default background"><br><strong>GPT</strong></td>
+    <td align="center"><img src="assets/default/bg-deepseek-seaside-study.webp" width="260" alt="Optional DeepSeek whale-girl seaside-study background"><br><strong>DeepSeek · optional</strong></td>
+    <td align="center"><img src="assets/default/bg-claude-writing-study.webp" width="260" alt="Claude writing-study default background"><br><strong>Claude</strong></td>
+    <td align="center"><img src="assets/default/bg-gpt-collaboration-workshop.webp" width="260" alt="GPT collaboration-workshop default background"><br><strong>GPT</strong></td>
   </tr>
   <tr>
-    <td align="center"><img src="assets/default/bg-gemini-twin-creative-studio.png" width="260" alt="Gemini twin creative-studio default background"><br><strong>Gemini</strong></td>
-    <td align="center"><img src="assets/default/bg-kimi-moonlit-reading-study.png" width="260" alt="Kimi moonlit reading-study default background"><br><strong>Kimi</strong></td>
-    <td align="center"><img src="assets/default/bg-grok-electronics-studio.png" width="260" alt="Grok electronics-studio default background"><br><strong>Grok</strong></td>
+    <td align="center"><img src="assets/default/bg-gemini-twin-creative-studio.webp" width="260" alt="Gemini twin creative-studio default background"><br><strong>Gemini</strong></td>
+    <td align="center"><img src="assets/default/bg-kimi-moonlit-reading-study.webp" width="260" alt="Kimi moonlit reading-study default background"><br><strong>Kimi</strong></td>
+    <td align="center"><img src="assets/default/bg-grok-electronics-studio.webp" width="260" alt="Grok electronics-studio default background"><br><strong>Grok</strong></td>
   </tr>
 </table>
 
-The remaining runtime assets comprise eight full-resolution transparent `whale-*.png` expression images and the 8-column × 11-row `pet-spritesheet.webp` animation atlas. The first 21 default images and the pet atlas use different licenses; see the [NOTICE](NOTICE.md) and [third-party license index](THIRD_PARTY_LICENSES.md) for sources, modifications, and file-by-file licensing.
+The remaining runtime assets comprise eight full-resolution transparent `whale-*.webp` expression images and the 8-column × 11-row `pet-spritesheet.webp` animation atlas. The first 21 default images and the pet atlas use different licenses; see the [NOTICE](NOTICE.md) and [third-party license index](THIRD_PARTY_LICENSES.md) for sources, modifications, and file-by-file licensing.
 
 The Galgame layout, dialogue box, controls, and decorations are public in [`src/client/index.ts`](src/client/index.ts); there is no undisclosed UI-image pack.
 
@@ -170,7 +170,7 @@ npm run export:art
 npm run verify
 ~~~
 
-The repository commits installable `lib/index.js` and `lib/client.js` bundles. Rebuild and commit both after changing `src/`. `npm run sanitize:backgrounds` strips non-visual PNG metadata from the six role backgrounds, `npm run embed:art` writes the allowlisted files into the runtime source, and `npm run export:art` reproduces all 22 public assets for byte-level checking.
+`lib/` and `src/client/art.generated.ts` are build output and are not committed. The `prepare` script runs `npm run embed:art` and `tsdown` on install, so git-hosted installs build themselves and the repository tarball stays small; after cloning, run `npm install` once to produce them locally. `npm run sanitize:backgrounds` strips non-visual WebP metadata from the six role backgrounds, `npm run embed:art` writes the allowlisted files into the runtime source, and `npm run export:art` reproduces all 22 public assets for byte-level checking.
 
 ## License and credits
 

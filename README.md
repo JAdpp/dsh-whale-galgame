@@ -41,13 +41,13 @@
 <table>
   <tr>
     <td align="center"><img src="assets/default/maid-left.webp" width="180" alt="DeepSeek 鲸鱼娘默认立绘"><br><strong>DeepSeek · 鲸鱼娘</strong></td>
-    <td align="center"><img src="assets/default/claude-amber-manuscript-mediator-v5.png" width="180" alt="Claude 模型娘克洛德默认立绘"><br><strong>Claude · 克洛德</strong></td>
-    <td align="center"><img src="assets/default/gpt-recursive-weaver-v7.png" width="180" alt="GPT 模型娘小吉默认立绘"><br><strong>GPT · 小吉</strong></td>
+    <td align="center"><img src="assets/default/claude-amber-manuscript-mediator-v5.webp" width="180" alt="Claude 模型娘克洛德默认立绘"><br><strong>Claude · 克洛德</strong></td>
+    <td align="center"><img src="assets/default/gpt-recursive-weaver-v7.webp" width="180" alt="GPT 模型娘小吉默认立绘"><br><strong>GPT · 小吉</strong></td>
   </tr>
   <tr>
-    <td align="center"><img src="assets/default/gemini-dual-prism-translator-v4.png" width="180" alt="Gemini 模型娘双子默认立绘"><br><strong>Gemini · 双子</strong></td>
-    <td align="center"><img src="assets/default/kimi-lunar-scroll-navigator-v5.png" width="180" alt="Kimi 模型娘月见默认立绘"><br><strong>Kimi · 月见</strong></td>
-    <td align="center"><img src="assets/default/grok-cosmic-signal-ranger-v5.png" width="180" alt="Grok 模型娘洛可默认立绘"><br><strong>Grok · 洛可</strong></td>
+    <td align="center"><img src="assets/default/gemini-dual-prism-translator-v4.webp" width="180" alt="Gemini 模型娘双子默认立绘"><br><strong>Gemini · 双子</strong></td>
+    <td align="center"><img src="assets/default/kimi-lunar-scroll-navigator-v5.webp" width="180" alt="Kimi 模型娘月见默认立绘"><br><strong>Kimi · 月见</strong></td>
+    <td align="center"><img src="assets/default/grok-cosmic-signal-ranger-v5.webp" width="180" alt="Grok 模型娘洛可默认立绘"><br><strong>Grok · 洛可</strong></td>
   </tr>
 </table>
 
@@ -55,18 +55,18 @@
 
 <table>
   <tr>
-    <td align="center"><img src="assets/default/bg-deepseek-seaside-study.png" width="260" alt="DeepSeek 鲸鱼娘海边书房可选背景"><br><strong>DeepSeek · 可选替代</strong></td>
-    <td align="center"><img src="assets/default/bg-claude-writing-study.png" width="260" alt="Claude 写作书房默认背景"><br><strong>Claude</strong></td>
-    <td align="center"><img src="assets/default/bg-gpt-collaboration-workshop.png" width="260" alt="GPT 协作工坊默认背景"><br><strong>GPT</strong></td>
+    <td align="center"><img src="assets/default/bg-deepseek-seaside-study.webp" width="260" alt="DeepSeek 鲸鱼娘海边书房可选背景"><br><strong>DeepSeek · 可选替代</strong></td>
+    <td align="center"><img src="assets/default/bg-claude-writing-study.webp" width="260" alt="Claude 写作书房默认背景"><br><strong>Claude</strong></td>
+    <td align="center"><img src="assets/default/bg-gpt-collaboration-workshop.webp" width="260" alt="GPT 协作工坊默认背景"><br><strong>GPT</strong></td>
   </tr>
   <tr>
-    <td align="center"><img src="assets/default/bg-gemini-twin-creative-studio.png" width="260" alt="Gemini 双子创意工作室默认背景"><br><strong>Gemini</strong></td>
-    <td align="center"><img src="assets/default/bg-kimi-moonlit-reading-study.png" width="260" alt="Kimi 月下阅读室默认背景"><br><strong>Kimi</strong></td>
-    <td align="center"><img src="assets/default/bg-grok-electronics-studio.png" width="260" alt="Grok 电子工作室默认背景"><br><strong>Grok</strong></td>
+    <td align="center"><img src="assets/default/bg-gemini-twin-creative-studio.webp" width="260" alt="Gemini 双子创意工作室默认背景"><br><strong>Gemini</strong></td>
+    <td align="center"><img src="assets/default/bg-kimi-moonlit-reading-study.webp" width="260" alt="Kimi 月下阅读室默认背景"><br><strong>Kimi</strong></td>
+    <td align="center"><img src="assets/default/bg-grok-electronics-studio.webp" width="260" alt="Grok 电子工作室默认背景"><br><strong>Grok</strong></td>
   </tr>
 </table>
 
-完整运行时素材还包括八张原始分辨率透明 `whale-*.png` 表情，以及 8 列 × 11 行的 `pet-spritesheet.webp` 桌宠动画图集。前 21 张默认图片与桌宠图集采用不同许可；来源、修改内容和逐文件许可见 [NOTICE](NOTICE.md) 与 [第三方许可索引](THIRD_PARTY_LICENSES.md)。
+完整运行时素材还包括八张原始分辨率透明 `whale-*.webp` 表情，以及 8 列 × 11 行的 `pet-spritesheet.webp` 桌宠动画图集。前 21 张默认图片与桌宠图集采用不同许可；来源、修改内容和逐文件许可见 [NOTICE](NOTICE.md) 与 [第三方许可索引](THIRD_PARTY_LICENSES.md)。
 
 Galgame 界面的布局、对话框、控件和装饰随 [`src/client/index.ts`](src/client/index.ts) 公开，不依赖未公开的 UI 图片包。
 
@@ -170,7 +170,7 @@ npm run export:art
 npm run verify
 ~~~
 
-仓库提交了可直接安装的 `lib/index.js` 和 `lib/client.js`。修改 `src/` 后需要重新构建并提交这两个文件；`npm run sanitize:backgrounds` 会剥离六张角色背景的非画面 PNG 元数据，`npm run embed:art` 会将白名单原图写入运行时，`npm run export:art` 则反向导出公开的 22 项运行时美术以供核对。
+`lib/` 与 `src/client/art.generated.ts` 是构建产物，不再提交到仓库。`prepare` 脚本会在安装时运行 `npm run embed:art` 和 `tsdown`，因此从 git 安装的插件会自行构建，仓库压缩包也保持精简；克隆后执行一次 `npm install` 即可在本地生成它们。`npm run sanitize:backgrounds` 会剥离六张角色背景的非画面 WebP 元数据，`npm run embed:art` 会将白名单原图写入运行时，`npm run export:art` 则反向导出公开的 22 项运行时美术以供核对。
 
 ## 许可与致谢
 
