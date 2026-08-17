@@ -1,7 +1,7 @@
 # dsh-whale-galgame bundle patch: inserts the plugin into the DSH Web bundle.
 - insert:
     - id: ui-whale-galgame
-      name: '@dsh-external/dsh-whale-galgame'
+      name: 'dsh-whale-galgame'
       config:
         enabled: true
         # Optional: set a DashScope API key locally to enable level-up CG generation.

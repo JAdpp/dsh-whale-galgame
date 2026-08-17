@@ -75,7 +75,7 @@ The Galgame layout, dialogue box, controls, and decorations are public in [`src/
 DeepSeek Harness must be installed with a working `dsh` command and Web profile.
 
 ~~~sh
-dsh plugin --profile web add github:JAdpp/dsh-whale-galgame#main
+dsh plugin --profile web add dsh-whale-galgame
 ~~~
 
 After installation, stop the running Web profile and start it again:
@@ -89,11 +89,33 @@ If a source installation exposes the command as `pnpm dsh`, keep the same argume
 ### Update and remove
 
 ~~~sh
-dsh plugin --profile web update @dsh-external/dsh-whale-galgame
-dsh plugin --profile web remove @dsh-external/dsh-whale-galgame
+dsh plugin --profile web update dsh-whale-galgame
+dsh plugin --profile web remove dsh-whale-galgame
 ~~~
 
 Stop and restart the Web profile after either operation.
+
+### Installing from GitHub (tracking main)
+
+Only needed to follow the latest commit instead of the published release:
+
+~~~sh
+dsh plugin --profile web add github:JAdpp/dsh-whale-galgame#main
+~~~
+
+A git install runs this repository's `prepare` build script on the spot, which
+pnpm blocks by default. The first run fails with
+`ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED` and prints a key; add it to the profile's
+`pnpm-workspace.yaml`:
+
+~~~yaml
+allowBuilds:
+  'dsh-whale-galgame@https://codeload.github.com/JAdpp/dsh-whale-galgame/tar.gz/<commit>': true
+~~~
+
+The key pins one commit, so it has to be updated from pnpm's output every time
+you follow a new one. **Installing from npm skips all of this** — the published
+package is prebuilt and runs no install-time scripts.
 
 ## Use and settings
 

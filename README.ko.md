@@ -75,7 +75,7 @@ Galgame 레이아웃, 대화 상자, 컨트롤, 장식은 [`src/client/index.ts`
 `dsh` 명령과 Web profile을 사용할 수 있는 DeepSeek Harness가 필요합니다.
 
 ~~~sh
-dsh plugin --profile web add github:JAdpp/dsh-whale-galgame#main
+dsh plugin --profile web add dsh-whale-galgame
 ~~~
 
 설치 후 실행 중인 Web profile을 먼저 중지한 다음 다시 시작하세요.
@@ -89,11 +89,32 @@ dsh --profile web
 ### 업데이트 및 제거
 
 ~~~sh
-dsh plugin --profile web update @dsh-external/dsh-whale-galgame
-dsh plugin --profile web remove @dsh-external/dsh-whale-galgame
+dsh plugin --profile web update dsh-whale-galgame
+dsh plugin --profile web remove dsh-whale-galgame
 ~~~
 
 두 작업 모두 실행 후 Web profile을 중지하고 다시 시작해야 합니다.
+
+### GitHub에서 설치 (main 추적)
+
+배포판 대신 최신 커밋을 따라가고 싶을 때만 필요합니다.
+
+~~~sh
+dsh plugin --profile web add github:JAdpp/dsh-whale-galgame#main
+~~~
+
+git 설치는 이 저장소의 `prepare` 빌드 스크립트를 즉시 실행하므로 pnpm이 기본적으로
+차단합니다. 첫 실행은 `ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED`로 실패하며 키를
+출력하는데, 이를 profile의 `pnpm-workspace.yaml`에 추가하세요.
+
+~~~yaml
+allowBuilds:
+  'dsh-whale-galgame@https://codeload.github.com/JAdpp/dsh-whale-galgame/tar.gz/<commit>': true
+~~~
+
+이 키는 특정 커밋에 고정되므로 새 커밋을 따라갈 때마다 pnpm이 출력한 값으로
+갱신해야 합니다. **npm에서 설치하면 이 과정이 전혀 필요 없습니다** — 배포
+패키지는 미리 빌드되어 있고 설치 시 어떤 스크립트도 실행하지 않습니다.
 
 ## 사용 및 설정
 

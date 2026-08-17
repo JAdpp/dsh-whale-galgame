@@ -1,7 +1,7 @@
 {
-  "name": "@dsh-external/dsh-whale-galgame",
+  "name": "dsh-whale-galgame",
   "description": "A multi-character Galgame interface and optional desktop companion for DeepSeek Harness Web.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "main": "lib/index.js",
   "exports": {

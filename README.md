@@ -75,7 +75,7 @@ Galgame 界面的布局、对话框、控件和装饰随 [`src/client/index.ts`]
 需要已安装 DeepSeek Harness，并能运行 `dsh` 的 Web profile。
 
 ~~~sh
-dsh plugin --profile web add github:JAdpp/dsh-whale-galgame#main
+dsh plugin --profile web add dsh-whale-galgame
 ~~~
 
 安装完成后，先停止正在运行的 Web profile，再重新启动：
@@ -89,11 +89,28 @@ dsh --profile web
 ### 更新与卸载
 
 ~~~sh
-dsh plugin --profile web update @dsh-external/dsh-whale-galgame
-dsh plugin --profile web remove @dsh-external/dsh-whale-galgame
+dsh plugin --profile web update dsh-whale-galgame
+dsh plugin --profile web remove dsh-whale-galgame
 ~~~
 
 更新或卸载后同样需要停止并重新启动 Web profile。
+
+### 从 GitHub 安装（跟随 main 分支）
+
+只有想跟最新提交、而不是 npm 发布版时才需要这条路径：
+
+~~~sh
+dsh plugin --profile web add github:JAdpp/dsh-whale-galgame#main
+~~~
+
+git 安装会当场执行本仓库的 `prepare` 构建脚本，pnpm 默认拦截。首次运行会报 `ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED` 并打印一个键，把它写进 profile 的 `pnpm-workspace.yaml`：
+
+~~~yaml
+allowBuilds:
+  'dsh-whale-galgame@https://codeload.github.com/JAdpp/dsh-whale-galgame/tar.gz/<commit>': true
+~~~
+
+该键钉死了具体 commit，每次跟进新提交都要按 pnpm 新打印的值更新。**从 npm 安装完全不涉及这一步**，因为发布包已经预构建，安装期不执行任何脚本。
 
 ## 使用与设置
 

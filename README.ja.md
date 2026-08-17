@@ -75,7 +75,7 @@ Galgame のレイアウト、会話ボックス、操作部品、装飾は [`src
 `dsh` コマンドと Web profile を利用できる DeepSeek Harness が必要です。
 
 ~~~sh
-dsh plugin --profile web add github:JAdpp/dsh-whale-galgame#main
+dsh plugin --profile web add dsh-whale-galgame
 ~~~
 
 インストール後、実行中の Web profile を停止してから再起動します。
@@ -89,11 +89,32 @@ dsh --profile web
 ### 更新・削除
 
 ~~~sh
-dsh plugin --profile web update @dsh-external/dsh-whale-galgame
-dsh plugin --profile web remove @dsh-external/dsh-whale-galgame
+dsh plugin --profile web update dsh-whale-galgame
+dsh plugin --profile web remove dsh-whale-galgame
 ~~~
 
 どちらも実行後に Web profile を停止し、再起動してください。
+
+### GitHub からのインストール（main を追う場合）
+
+公開版ではなく最新コミットを追いたいときだけ必要です。
+
+~~~sh
+dsh plugin --profile web add github:JAdpp/dsh-whale-galgame#main
+~~~
+
+git インストールは本リポジトリの `prepare` ビルドスクリプトをその場で実行するため、
+pnpm が既定でブロックします。初回は `ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED` で失敗し、
+キーが出力されるので、profile の `pnpm-workspace.yaml` に追加してください。
+
+~~~yaml
+allowBuilds:
+  'dsh-whale-galgame@https://codeload.github.com/JAdpp/dsh-whale-galgame/tar.gz/<commit>': true
+~~~
+
+このキーは特定のコミットに固定されるため、新しいコミットを追うたびに pnpm の出力へ
+更新する必要があります。**npm からのインストールではこの手順は一切不要です** —
+公開パッケージはビルド済みで、インストール時にスクリプトを実行しません。
 
 ## 使用方法と設定
 
