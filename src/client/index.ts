@@ -93,6 +93,24 @@ const CSS = [
   '.whg-tint{position:absolute;inset:0}',
   '.whg-sprite-wrap{position:relative;margin-right:0;margin-bottom:0;height:96vh;display:flex;align-items:flex-end;transform:translateY(clamp(56px,12vh,96px)) scale(1.1);transform-origin:center top}',
   '.whg-sprite{height:100%;width:auto;display:block;filter:drop-shadow(0 18px 40px rgba(0,10,30,.65));transition:filter .5s ease}',
+  // Side-story stage: two or three cast slots share the floor line. The speaker
+  // keeps full brightness while the rest step back, reusing the same filter
+  // idiom as the single-character mood tints above.
+  '.whg-cast{position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:space-around;gap:2%;padding:0 3%;pointer-events:none}',
+  '.whg-cast-slot{position:relative;display:flex;align-items:flex-end;height:82vh;max-width:38%;transition:filter .35s ease,transform .35s ease,opacity .35s ease}',
+  '.whg-cast-slot img{height:100%;width:auto;object-fit:contain;object-position:center bottom;filter:drop-shadow(0 18px 40px rgba(0,10,30,.65))}',
+  '.whg-cast-slot[data-active="false"]{filter:brightness(.5) saturate(.75);transform:scale(.92) translateY(2%);opacity:.85}',
+  '.whg-cast-slot[data-active="true"]{filter:none;transform:scale(1)}',
+  '.whg-cast-slot[data-lead="true"]{height:88vh;z-index:1}',
+  '.whg-cast-name{position:absolute;bottom:-2px;left:50%;transform:translateX(-50%);padding:2px 10px;border-radius:10px;background:rgba(6,18,38,.72);font-size:12px;white-space:nowrap}',
+  '.whg-side-badge{display:inline-flex;align-items:center;gap:5px;margin-right:8px;padding:2px 9px;border-radius:10px;background:rgba(255,190,120,.16);border:1px solid rgba(255,190,120,.4);color:#ffd9a8;font-size:12px}',
+  '.whg-side-seed{margin:2px 0 8px;font-size:12px;opacity:.72;line-height:1.5}',
+  '.whg-skit-picker{width:min(320px,calc(100vw - 28px));padding:12px}',
+  '.whg-skit-picker .whg-input{width:100%;margin-bottom:8px}',
+  '.whg-skit-start{width:100%}',
+  '.whg-side-sources{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}',
+  '.whg-side-sources a{font-size:11px;color:#9fd4ff;opacity:.8;text-decoration:none;border-bottom:1px dotted rgba(159,212,255,.5)}',
+  '@media (max-width:720px){.whg-cast-slot{max-width:48%;height:70vh}.whg-cast-slot[data-lead="true"]{height:74vh}.whg-cast-slot[data-overflow="true"]{display:none}}',
   '.whg-sprite-portrait{height:34vh;width:auto;border-radius:22px;box-shadow:0 10px 50px rgba(0,10,30,.7);background:rgba(6,18,38,.35)}',
   '.whg-mood-happy .whg-sprite{filter:drop-shadow(0 18px 40px rgba(0,10,30,.65)) brightness(1.1) saturate(1.2)}',
   '.whg-mood-shy .whg-sprite{filter:drop-shadow(0 18px 40px rgba(0,10,30,.65)) brightness(1.04) saturate(1.25) hue-rotate(-12deg)}',
@@ -137,6 +155,11 @@ const CSS = [
   '.whg-archive-heading{min-width:0;flex:1}',
   '.whg-archive-kicker{margin-bottom:5px;color:#8fd8e9;font:700 10px/1.4 Consolas,"SFMono-Regular",monospace;letter-spacing:2.3px;text-transform:uppercase}',
   '.whg-archive-title{margin:0;color:#f3fbff;font-family:"STSong","Songti SC",Georgia,serif;font-size:24px;font-weight:700;letter-spacing:1px}',
+  '.whg-archive-tabs{display:flex;gap:6px;margin-top:10px}',
+  '.whg-archive-tab{padding:4px 12px;border:1px solid rgba(143,216,239,.28);border-radius:999px;background:transparent;color:#9dc4dd;font-size:12px;font-family:inherit;cursor:pointer}',
+  '.whg-archive-tab:hover{border-color:rgba(160,215,255,.6);color:#dcebff}',
+  '.whg-archive-tab.active{border-color:rgba(215,182,108,.6);background:rgba(215,182,108,.16);color:#f7e6bd}',
+  '.whg-archive-tab:focus-visible{outline:2px solid #9fe8ff;outline-offset:2px}',
   '.whg-archive-close{display:grid;place-items:center;flex:none;width:32px;height:32px;border:1px solid rgba(215,182,108,.36);border-radius:50%;background:rgba(3,14,25,.5);color:#dcefff;cursor:pointer;font-size:18px}',
   '.whg-archive-close:hover{background:rgba(130,216,239,.13)}',
   '.whg-archive-close:focus-visible,.whg-gallery-card:focus-visible,.whg-archive-back:focus-visible{outline:2px solid #9fe8ff;outline-offset:2px}',
@@ -146,6 +169,13 @@ const CSS = [
   '.whg-archive-error .whg-btn{display:block;margin-top:10px}',
   '.whg-history{display:flex;flex-direction:column;gap:12px;user-select:text}',
   '.whg-history-row{display:grid;grid-template-columns:48px minmax(0,1fr);gap:10px;align-items:start}',
+  '.whg-skit-log{display:flex;flex-direction:column;gap:20px}',
+  '.whg-skit{padding:12px 14px;border:1px solid rgba(143,216,239,.2);border-radius:14px;background:rgba(8,22,44,.42)}',
+  '.whg-skit-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:4px}',
+  '.whg-skit-cast{display:flex;flex-wrap:wrap;gap:8px;font-size:13px;font-weight:600}',
+  '.whg-skit-time{font-size:11px;opacity:.55;white-space:nowrap}',
+  '.whg-skit-seed{margin:0 0 10px;font-size:12px;opacity:.7;line-height:1.5}',
+  '.whg-skit-cg{margin-bottom:10px;font-size:12px}',
   '.whg-history-who{padding-top:8px;color:#85bbca;font:700 10px/1.3 Consolas,monospace;letter-spacing:1px;text-align:right}',
   '.whg-history-text{margin:0;padding:9px 12px;border-left:2px solid rgba(127,208,255,.4);background:rgba(4,22,36,.56);color:#dff3ff;font-size:13px;line-height:1.7;white-space:pre-wrap;word-break:break-word}',
   '.whg-history-row.user .whg-history-text{border-left-color:#ff9cc8;color:#ffe4f1}',
@@ -299,7 +329,7 @@ const API_WRITE_ACTIONS = new Set([
 ])
 
 function apiTimeoutMs(action: string): number {
-  if (action === 'chat' || action === 'bg-upload' || action === 'sprite-upload') return API_LONG_TIMEOUT_MS
+  if (action === 'chat' || action === 'side-story' || action === 'bg-upload' || action === 'sprite-upload') return API_LONG_TIMEOUT_MS
   if (API_WRITE_ACTIONS.has(action)) return API_WRITE_TIMEOUT_MS
   return API_READ_TIMEOUT_MS
 }
@@ -820,6 +850,48 @@ function PluginSettingsCard(): React.ReactElement {
         ),
         React.createElement('label', { className: 'whg-settings-row' },
           React.createElement('span', { className: 'whg-settings-copy' },
+            React.createElement('strong', null, '小剧场取材'),
+            React.createElement('small', null,
+              settings && settings.sideStoryWebAvailable === false
+                ? '当前环境没有可用的联网检索，只会使用本地任务类别。'
+                : '联网检索只发送角色对应的模型名与题材词，不含你的对话或工作内容。'),
+          ),
+          React.createElement('select', {
+            className: 'whg-settings-select',
+            disabled: loading || saving || !settings,
+            onChange: (event: any) => { save({ sideStorySeedSource: String(event.target.value) }) },
+            value: settings && settings.sideStorySeedSource === 'activity' ? 'activity' : 'auto',
+          },
+            React.createElement('option', { value: 'auto' }, '优先联网检索，失败回落本地'),
+            React.createElement('option', { value: 'activity' }, '只用本地任务类别（不联网）'),
+          ),
+        ),
+        React.createElement('label', { className: 'whg-settings-row' },
+          React.createElement('span', { className: 'whg-settings-copy' },
+            React.createElement('strong', null, '小剧场冷却'),
+            React.createElement('small', null, '两场小剧场之间要等多少分钟。填 0 表示不限制。'),
+          ),
+          React.createElement('input', {
+            className: 'whg-settings-select',
+            type: 'number',
+            min: 0,
+            max: settings && settings.sideStoryCooldownMax ? settings.sideStoryCooldownMax : 1440,
+            step: 5,
+            disabled: loading || saving || !settings,
+            defaultValue: settings && Number.isFinite(Number(settings.sideStoryCooldownMinutes))
+              ? Number(settings.sideStoryCooldownMinutes)
+              : 30,
+            key: 'skit-cooldown-' + String(settings && settings.sideStoryCooldownMinutes),
+            onBlur: (event: any) => {
+              const minutes = Number(event.target.value)
+              if (!Number.isFinite(minutes) || minutes < 0) return
+              if (settings && Number(settings.sideStoryCooldownMinutes) === Math.round(minutes)) return
+              save({ sideStoryCooldownMinutes: Math.round(minutes) })
+            },
+          }),
+        ),
+        React.createElement('label', { className: 'whg-settings-row' },
+          React.createElement('span', { className: 'whg-settings-copy' },
             React.createElement('strong', null, '角色来源'),
             React.createElement('small', null, '默认跟随工作区模型，也可固定为某位模型娘。'),
           ),
@@ -900,11 +972,16 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [text, setText] = useState('')
+  const [skitText, setSkitText] = useState('')
   const [armReset, setArmReset] = useState(false)
   const [imgFail, setImgFail] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
   const [settled, setSettled] = useState(false)
-  const [archivePanel, setArchivePanel] = useState<'history' | 'gallery' | 'profile' | null>(null)
+  const [archivePanel, setArchivePanel] = useState<'history' | 'gallery' | 'profile' | 'skits' | null>(null)
+  const [skitLog, setSkitLog] = useState<any[]>([])
+  const [skitLogLoading, setSkitLogLoading] = useState(false)
+  const [skitLogError, setSkitLogError] = useState<string | null>(null)
+  const [skitCgAvailable, setSkitCgAvailable] = useState(false)
   const [galleryItems, setGalleryItems] = useState<any[]>([])
   const [galleryLoading, setGalleryLoading] = useState(false)
   const [galleryError, setGalleryError] = useState<string | null>(null)
@@ -914,7 +991,8 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
   const [rewardCgDetail, setRewardCgDetail] = useState<any>(null)
   const [rewardCgLoading, setRewardCgLoading] = useState(false)
   const [rewardCgError, setRewardCgError] = useState<string | null>(null)
-  const [pickerPanel, setPickerPanel] = useState<'character' | 'chat' | 'background' | 'sprite' | null>(null)
+  const [pickerPanel, setPickerPanel] = useState<'character' | 'chat' | 'background' | 'sprite' | 'skit' | null>(null)
+  const [skitTopic, setSkitTopic] = useState('')
   const [modelOptions, setModelOptions] = useState<any>(null)
   const [pluginSettings, setPluginSettings] = useState<any>(null)
   const [pickerLoading, setPickerLoading] = useState(false)
@@ -1378,7 +1456,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     })
   }
 
-  function openPicker(kind: 'character' | 'chat' | 'background' | 'sprite', trigger: HTMLElement): void {
+  function openPicker(kind: 'character' | 'chat' | 'background' | 'sprite' | 'skit', trigger: HTMLElement): void {
     if (pickerPanel === kind) {
       closePicker(false)
       return
@@ -1931,6 +2009,17 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     })
   }
 
+  function loadSkitLog(): void {
+    setSkitLogLoading(true)
+    setSkitLogError(null)
+    callApi('side-story-log').then((result: any) => {
+      setSkitLog(Array.isArray(result && result.skits) ? result.skits : [])
+      setSkitCgAvailable(!!(result && result.cgAvailable))
+    }).catch((err: any) => {
+      setSkitLogError(String(err && err.message ? err.message : err))
+    }).finally(() => { setSkitLogLoading(false) })
+  }
+
   function openArchive(kind: 'history' | 'gallery' | 'profile', trigger: HTMLElement): void {
     setPickerPanel(null)
     if (!archivePanel) archiveReturnFocus.current = trigger
@@ -2170,6 +2259,48 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     )
   }
 
+  function skitPicker(): React.ReactElement | null {
+    if (pickerPanel !== 'skit') return null
+    const side = (s && s.sideStory) || {}
+    const cooling = Number(side.cooldownMs) > 0
+    const mins = cooling ? Math.ceil(Number(side.cooldownMs) / 60000) : 0
+    const start = () => {
+      if (busy || cooling) return
+      const topic = skitTopic.trim()
+      setSkitTopic('')
+      closePicker(false)
+      act('side-story', topic ? { op: 'start', topic } : { op: 'start' })
+    }
+    return React.createElement('div', {
+      'aria-label': '开一场小剧场',
+      className: 'whg-picker right whg-skit-picker',
+      id: 'whg-skit-picker-' + appScope,
+      ref: pickerRef,
+      role: 'dialog',
+    },
+      React.createElement('div', { className: 'whg-picker-head' },
+        React.createElement('span', null, 'SIDE ACT'),
+        React.createElement('span', null, cooling ? '冷却中 · 约 ' + mins + ' 分钟' : '可开演'),
+      ),
+      React.createElement('p', { className: 'whg-side-seed' },
+        '不填就让她们自己找话题：优先看看外面在聊什么，找不到就聊主人最近在忙的事。'),
+      React.createElement('input', {
+        className: 'whg-input',
+        value: skitTopic,
+        placeholder: '想让她们聊点什么？（可留空）',
+        disabled: busy || cooling,
+        onChange: (event: any) => { setSkitTopic(event.target.value) },
+        onKeyDown: (event: any) => { if (event.key === 'Enter') start() },
+      }),
+      React.createElement('button', {
+        className: 'whg-btn whg-skit-start',
+        disabled: busy || cooling,
+        onClick: start,
+        type: 'button',
+      }, cooling ? '冷却中' : '开演'),
+    )
+  }
+
   function spritePicker(): React.ReactElement | null {
     if (pickerPanel !== 'sprite') return null
     const defaultSprite = art(s && s.sprite)
@@ -2360,14 +2491,61 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     const galleryCount = typeof s.galleryCount === 'number' ? s.galleryCount : galleryItems.length
     const isHistory = archivePanel === 'history'
     const isProfile = archivePanel === 'profile'
-    const recordCount = isHistory ? history.length : galleryCount
+    const isSkits = archivePanel === 'skits'
+    const recordCount = isHistory ? history.length : isSkits ? skitLog.length : galleryCount
     const kicker = isProfile
       ? 'DEEP-SEA DOSSIER · ' + String(profileCharacterId || s.current || 'PROFILE').toUpperCase()
-      : 'DEEP-SEA ARCHIVE · ' + (isHistory ? 'LOG ' : 'CG ') + String(recordCount).padStart(3, '0')
+      : 'DEEP-SEA ARCHIVE · ' + (isHistory ? 'LOG ' : isSkits ? 'ACT ' : 'CG ') + String(recordCount).padStart(3, '0')
     let body: React.ReactElement
 
     if (isProfile) {
       body = profileEditor()
+    } else if (isSkits) {
+      body = skitLogError
+        ? React.createElement('div', { className: 'whg-archive-error', role: 'alert' }, '小剧场记录读取失败：' + skitLogError)
+        : skitLogLoading
+          ? React.createElement('div', { className: 'whg-archive-empty' }, '正在翻出后台的演出记录……')
+          : skitLog.length === 0
+            ? React.createElement('div', { className: 'whg-archive-empty' }, '还没有演过小剧场。等主人忙点什么，她们就有话题了。')
+            : React.createElement('div', { className: 'whg-skit-log' },
+              skitLog.map((skit: any) => React.createElement('section', { className: 'whg-skit', key: String(skit.id) },
+                React.createElement('header', { className: 'whg-skit-head' },
+                  React.createElement('span', { className: 'whg-skit-cast' },
+                    (skit.cast || []).map((member: any) => React.createElement('span', {
+                      key: member.id,
+                      style: { color: member.color },
+                    }, member.name))),
+                  React.createElement('time', { className: 'whg-skit-time' },
+                    new Date(Number(skit.at) || 0).toLocaleString()),
+                ),
+                skit.seed ? React.createElement('p', { className: 'whg-skit-seed' }, skit.seed) : null,
+                skitCgAvailable
+                  ? React.createElement('button', {
+                    className: 'whg-btn whg-skit-cg',
+                    disabled: busy || !!skit.cgId,
+                    onClick: () => {
+                      callApi('skit-cg', { skitId: skit.id }).then(() => loadSkitLog()).catch((err: any) => {
+                        setSkitLogError(String(err && err.message ? err.message : err))
+                      })
+                    },
+                    type: 'button',
+                  }, skit.cgStatus === 'ready'
+                    ? '合影已生成 · 见 CG图鉴'
+                    : skit.cgStatus === 'generating'
+                      ? '合影绘制中…'
+                      : skit.cgStatus === 'failed'
+                        ? '合影生成失败'
+                        : '生成这场的合影 CG')
+                  : null,
+                React.createElement('div', { className: 'whg-history' },
+                  (skit.lines || []).map((line: any, index: number) => React.createElement('div', {
+                    className: 'whg-history-row ' + String(line.who || 'narrator'),
+                    key: index,
+                  },
+                    React.createElement('div', { className: 'whg-history-who' }, line.name || '旁白'),
+                    React.createElement('p', { className: 'whg-history-text' }, line.text || ''),
+                  ))),
+              )))
     } else if (isHistory) {
       body = history.length === 0
         ? React.createElement('div', { className: 'whg-archive-empty' }, '还没有对话记录。和' + s.name + '说句话，第一份深海档案就会在这里归档。')
@@ -2468,10 +2646,33 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
         React.createElement('header', { className: 'whg-archive-head' },
           React.createElement('div', { className: 'whg-archive-heading' },
             React.createElement('div', { className: 'whg-archive-kicker' }, kicker),
-            React.createElement('h2', { className: 'whg-archive-title', id: 'whg-archive-title-' + appScope }, isProfile ? '角色设定' : isHistory ? '对话历史' : 'CG图鉴'),
+            React.createElement('h2', { className: 'whg-archive-title', id: 'whg-archive-title-' + appScope }, isProfile ? '角色设定' : isHistory ? '对话历史' : isSkits ? '小剧场' : 'CG图鉴'),
+            // Chat log and skits are two views of the same archive, so they are
+            // tabs in here rather than two more buttons in an already tight bar.
+            isHistory || isSkits
+              ? React.createElement('div', { className: 'whg-archive-tabs', role: 'tablist' },
+                React.createElement('button', {
+                  'aria-selected': isHistory,
+                  className: 'whg-archive-tab' + (isHistory ? ' active' : ''),
+                  onClick: () => { setArchivePanel('history') },
+                  role: 'tab',
+                  type: 'button',
+                }, '对话历史'),
+                React.createElement('button', {
+                  'aria-selected': isSkits,
+                  className: 'whg-archive-tab' + (isSkits ? ' active' : ''),
+                  onClick: () => {
+                    setArchivePanel('skits')
+                    loadSkitLog()
+                  },
+                  role: 'tab',
+                  type: 'button',
+                }, '小剧场'),
+              )
+              : null,
           ),
           React.createElement('button', {
-            'aria-label': '关闭' + (isProfile ? '角色设定' : isHistory ? '对话历史' : 'CG图鉴'),
+            'aria-label': '关闭' + (isProfile ? '角色设定' : isHistory ? '对话历史' : isSkits ? '小剧场' : 'CG图鉴'),
             className: 'whg-archive-close',
             onClick: closeArchive,
             ref: archiveCloseRef,
@@ -2578,6 +2779,29 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
           'CG图鉴',
           galleryCount > 0 ? React.createElement('span', { className: 'whg-count' }, galleryCount) : null,
         ),
+        React.createElement('div', { className: 'whg-chip-wrap' },
+          (() => {
+            const side = (s && s.sideStory) || {}
+            const cooling = Number(side.cooldownMs) > 0
+            const active = !!(side.scene)
+            const mins = cooling ? Math.ceil(Number(side.cooldownMs) / 60000) : 0
+            return React.createElement('button', {
+              'aria-controls': 'whg-skit-picker-' + appScope,
+              'aria-expanded': pickerPanel === 'skit',
+              'aria-haspopup': 'dialog',
+              className: 'whg-btn',
+              disabled: busy || active || side.available === false,
+              onClick: (event: any) => openPicker('skit', event.currentTarget),
+              title: active
+                ? '小剧场正在上演'
+                : cooling
+                  ? '小剧场冷却中，约 ' + mins + ' 分钟后可再开一场'
+                  : '让工坊里的同事们演一段小剧场，可以自己指定话题',
+              type: 'button',
+            }, '小剧场')
+          })(),
+          skitPicker(),
+        ),
         React.createElement('button', {
           'aria-pressed': petEnabled,
           className: 'whg-btn',
@@ -2607,7 +2831,66 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     )
   }
 
+  function sideStoryToast(): React.ReactElement | null {
+    const code = s && typeof s.sideStoryError === 'string' ? s.sideStoryError : ''
+    if (!code) return null
+    const message = code === 'no-seed'
+      ? '工坊今天很安静，等主人忙点什么之后再来看看吧。'
+      : code === 'cooldown'
+        ? '刚热闹过一场，让她们缓一缓。'
+        : '这次没编出像样的短剧，稍后再试一次吧。'
+    return React.createElement('div', { className: 'whg-toast', role: 'status' }, '🎭 ' + message)
+  }
+
+  function sideStoryScene(): any | null {
+    const side = s && s.sideStory
+    return side && side.scene && Array.isArray(side.scene.beats) && side.scene.beats.length ? side.scene : null
+  }
+
+  /** Index of the beat currently on screen; the cursor never runs past the last one. */
+  function sideStoryBeatIndex(scene: any): number {
+    return Math.max(0, Math.min(scene.cursor, scene.beats.length - 1))
+  }
+
+  function sideStoryAtEnd(scene: any): boolean {
+    return scene.cursor >= scene.beats.length - 1
+  }
+
+  function castStage(scene: any): React.ReactElement {
+    const beat = scene.beats[sideStoryBeatIndex(scene)]
+    const speaking = beat && beat.speaker !== 'narrator' ? beat.speaker : ''
+    return React.createElement('div', { className: 'whg-stage' },
+      React.createElement('div', {
+        className: 'whg-tint',
+        style: { background: 'radial-gradient(closest-side, ' + (scene.cast[0] ? scene.cast[0].color : '#8fd8ef') + '2e, transparent)' },
+      }),
+      React.createElement('div', { className: 'whg-cast' },
+        scene.cast.map((member: any, index: number) => {
+          const src = art(member.sprite)
+          return React.createElement('div', {
+            key: member.id,
+            className: 'whg-cast-slot',
+            'data-active': speaking === member.id ? 'true' : 'false',
+            'data-lead': index === 0 ? 'true' : 'false',
+            // Narrow screens only have room for two; the third stays in the script.
+            'data-overflow': index >= 2 ? 'true' : 'false',
+          },
+            src
+              ? React.createElement('img', { src, alt: member.name, draggable: false })
+              : React.createElement('div', { className: 'whg-sprite-fallback' }, '🐋'),
+            React.createElement('div', {
+              className: 'whg-cast-name',
+              style: { color: member.color },
+            }, member.name),
+          )
+        }),
+      ),
+    )
+  }
+
   function stage(): React.ReactElement {
+    const activeScene = sideStoryScene()
+    if (activeScene) return castStage(activeScene)
     const emotion = emotionOf()
     const mood = moodOf()
     let src: string | undefined
@@ -2650,7 +2933,97 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     )
   }
 
+  function sideStoryDialogue(scene: any): React.ReactElement {
+    const beat = scene.beats[sideStoryBeatIndex(scene)]
+    const isNarrator = !beat || beat.speaker === 'narrator'
+    const isUser = !!beat && beat.speaker === 'user'
+    const member = isNarrator || isUser ? null : scene.cast.find((row: any) => row.id === beat.speaker)
+    const plateLabel = isUser ? '主人' : isNarrator ? '旁白' : (member ? member.name : '???')
+    const plateColor = isUser ? '#ff9cc8' : isNarrator ? '#8fb4dd' : (member ? member.color : '#8fb4dd')
+    const atEnd = sideStoryAtEnd(scene)
+    // The server offers choices only at the interlude the master is standing in,
+    // so their presence decides what this panel shows.
+    const offered = Array.isArray(scene.choices) ? scene.choices : []
+    let controls: React.ReactElement
+    if (offered.length === 0 && !atEnd) {
+      controls = React.createElement('div', { className: 'whg-choices' },
+        React.createElement('button', {
+          className: 'whg-choice',
+          disabled: busy,
+          onClick: () => { act('side-story', { op: 'advance' }) },
+          type: 'button',
+        }, '继续 ▸'))
+    } else if (offered.length === 0) {
+      controls = React.createElement('div', { className: 'whg-choices' },
+        React.createElement('button', {
+          className: 'whg-choice',
+          disabled: busy,
+          onClick: () => { act('side-story', { op: 'close' }) },
+          type: 'button',
+        }, '回到日常'))
+    } else {
+      // Deltas stay hidden until the choice is made; the closing beat reveals
+      // who warmed up and who did not.
+      const speak = () => {
+        const spoken = skitText.trim()
+        if (!spoken || busy) return
+        setSkitText('')
+        act('side-story', { op: 'speak', text: spoken })
+      }
+      controls = React.createElement(React.Fragment, null,
+        React.createElement('div', { className: 'whg-choices' },
+          offered.map((choice: any, index: number) => React.createElement('button', {
+            key: choice.id || index,
+            className: 'whg-choice',
+            disabled: busy,
+            onClick: () => { act('side-story', { op: 'choose', choiceId: choice.id }) },
+            type: 'button',
+          }, choice.text))),
+        // The master may say something of her own instead of picking a line.
+        React.createElement('div', { className: 'whg-input-row' },
+          React.createElement('input', {
+            className: 'whg-input',
+            value: skitText,
+            placeholder: '或者，你自己开口说……',
+            disabled: busy,
+            onChange: (event: any) => { setSkitText(event.target.value) },
+            onKeyDown: (event: any) => { if (event.key === 'Enter') speak() },
+          }),
+          React.createElement('button', {
+            className: 'whg-send',
+            disabled: busy || !skitText.trim(),
+            onClick: speak,
+            type: 'button',
+          }, '说'),
+        ),
+      )
+    }
+    const sources = (scene.sources || []).length
+      ? React.createElement('div', { className: 'whg-side-sources' },
+        scene.sources.map((row: any) => React.createElement('a', {
+          key: row.url,
+          href: row.url,
+          rel: 'noreferrer noopener',
+          target: '_blank',
+        }, row.title)))
+      : null
+    return React.createElement('div', { id: 'whg-panel', className: 'whg-panel' },
+      React.createElement('div', { className: 'whg-plate', style: { background: plateColor } }, plateLabel),
+      React.createElement('div', { className: 'whg-side-seed' },
+        React.createElement('span', { className: 'whg-side-badge' }, '小剧场 · 工坊传闻'),
+        scene.seed && scene.seed.summary ? scene.seed.summary : '今天工坊里有点热闹。'),
+      React.createElement('div', {
+        key: 'side-' + scene.id + '-' + scene.cursor,
+        className: 'whg-line-now ' + (isUser ? 'user' : isNarrator ? 'narrator' : 'heroine'),
+      }, beat ? beat.text : ''),
+      controls,
+      sources,
+    )
+  }
+
   function dialogue(): React.ReactElement {
+    const activeScene = sideStoryScene()
+    if (activeScene) return sideStoryDialogue(activeScene)
     const last = lastLine()
     const plateLabel = last
       ? (last.who === 'heroine' ? s.name : last.who === 'user' ? '主人' : '旁白')
@@ -2803,6 +3176,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
       dialogue(),
       archiveDrawer(),
       cgModal(),
+      sideStoryToast(),
     )
   }
 
@@ -2835,6 +3209,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     dialogue(),
     archiveDrawer(),
     cgModal(),
+    sideStoryToast(),
   )
 }
 

@@ -172,6 +172,10 @@ Runtime data is split into two layers; treat both as private data:
 
 - Ordinary dialogue is sent to the model provider selected in DSH.
 - Generating a level-up CG sends a text prompt to DashScope.
+- With skit web sourcing enabled (the default), the plugin searches through DSH's web capability. The query is built only from the model name a character stands for plus topic words: it contains **none** of your conversation, workspace contents, or any Harness text.
+- Search results are used for that one skit; the summary and source links are stored in the skit log (inside the save), while page bodies are never written to disk.
+- Choosing "local task categories only" under Settings → Plugins → plugin config → skit sourcing disables networking entirely: no search request is made.
+- Generating a group CG sends the characters' appearance descriptions and the skit's situation to DashScope as a text prompt. It only runs when you click it.
 - User-uploaded backgrounds and sprites remain in the global save and are not included in either external request.
 - Raw Harness text is never written to a Galgame save. Global state keeps only fixed category and status cues, opaque deduplication fingerprints, and last-mention times; external requests likewise receive only fixed category and status cues.
 

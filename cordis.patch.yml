@@ -10,6 +10,10 @@
         dashscopeApiKey: ''
         dashscopeModel: 'qwen-image-3.0'
         dashscopeSize: '1920*1080'
+        # 小剧场联网检索的时效窗口（天）。只影响取材新鲜度，不改变发出的内容。
+        sideStoryRecencyDays: 14
+        # 小剧场两场之间的冷却，单位分钟。设为 0 则不限制。
+        sideStoryCooldownMinutes: 30
         # Default galgame dialogue route. Set chatModel to '' to follow the
         # active workspace model instead.
         chatProvider: 'deepseek-official'

@@ -192,6 +192,68 @@ const LEGACY_GLOBAL_SAVE_VERSION = 1
 const WORKSPACE_SAVE_KIND = 'dsh-whale-galgame-workspace'
 const WORKSPACE_SAVE_VERSION = 2
 const LEGACY_WORKSPACE_SAVE_VERSION = 1
+
+// Side stories are events, not a grind: one run per cooldown window, at most a
+// single affection step per character, and no CG on a side-story level-up.
+// Anti-farming is really the per-character ±1 clamp against a 30+15×(Lv-1)
+// curve; the cooldown only keeps a skit feeling like an event and caps cost.
+// Six hours turned out to be punishing, so the default is a short window and
+// operators can set 0 to remove it entirely.
+const SIDE_STORY_COOLDOWN_DEFAULT_MINUTES = 30
+const SIDE_STORY_COOLDOWN_MAX_MINUTES = 24 * 60
+const SIDE_STORY_MIN_CAST = 2
+const SIDE_STORY_MAX_CAST = 3
+const SIDE_STORY_MAX_BEATS = 10
+const SIDE_STORY_BEAT_LIMIT = 40
+// Storage headroom so a sentence can finish instead of being sliced mid-word.
+const SIDE_STORY_BEAT_HARD_LIMIT = 60
+const SIDE_STORY_HISTORY_LIMIT = 10
+const SIDE_STORY_TRANSCRIPT_LIMIT = 20
+
+// Rotating frames keep consecutive skits from sharing a shape. Without them the
+// model reliably opens on "旁白：工坊里飘着一个说法" every single time.
+// What each character stands in for when the skit goes looking for gossip. The
+// query carries nothing but these words: never the master's chat, her work, or
+// anything read out of the Harness session.
+const SIDE_STORY_SEARCH_TERMS: Record<string, string> = {
+  deepseek: 'DeepSeek 模型',
+  claude: 'Claude 模型',
+  chatgpt: 'ChatGPT GPT 模型',
+  gemini: 'Gemini 模型',
+  kimi: 'Kimi 模型',
+  grok: 'Grok 模型',
+}
+
+// Serious material makes a terrible comedy sketch regardless of policy, and the
+// skit is generated with nobody reviewing it first. Anything here routes the
+// run back to the local activity seed instead.
+const SIDE_STORY_TOPIC_BLOCKLIST = [
+  '诉讼', '起诉', '控告', '侵权', '监管', '处罚', '罚款', '封禁', '调查',
+  '裁员', '离职', '解雇', '辞职', '收购', '融资', '股价', '财报', '亏损',
+  '事故', '泄露', '漏洞', '越狱', '滥用', '造谣', '死亡', '自杀', '战争',
+  'lawsuit', 'sue', 'court', 'regulat', 'fine', 'ban', 'probe', 'antitrust',
+  'layoff', 'fired', 'resign', 'acquisition', 'ipo', 'stock', 'revenue',
+  'breach', 'leak', 'exploit', 'jailbreak', 'abuse', 'death', 'war',
+]
+
+const SIDE_STORY_FRAMES = [
+  '午后茶歇，有人正在收拾茶具',
+  '有人刚从外面回来，带回一句闲话',
+  '两个人正为了谁来擦窗户争执不下',
+  '深夜，只剩一盏灯还亮着',
+  '有人偷看了主人的屏幕，被当场抓住',
+  '大扫除进行到一半，翻出了旧东西',
+  '晚饭做多了，几个人围着一锅汤',
+  '外面在下雨，谁都出不去',
+]
+const SIDE_STORY_TWISTS = [
+  '有人把话理解成了完全不同的意思',
+  '有人为了维护同伴反而把事情说得更糟',
+  '有人突然自曝了一件更丢脸的事',
+  '有人开始跟别人比谁更惨',
+  '话题不知怎么拐到了主人身上',
+  '有人认真过头，把玩笑当成了正经事',
+]
 const GLOBAL_SAVE_SEGMENTS = ['storages', 'dsh-whale-galgame', 'global.json'] as const
 const SESSION_LOOKUP_TIMEOUT_MS = 800
 const MODEL_LIST_TIMEOUT_MS = 1500
@@ -211,6 +273,7 @@ const ACTIVITY_CACHE_MS = 60 * 1000
 const ACTIVITY_SESSION_LIMIT = 16
 const ACTIVITY_EVENT_LIMIT = 240
 const MAX_GLOBAL_ACTIVITIES = 64
+const EMOTION_KEYS = ['cheerful', 'shy', 'serious', 'confused', 'angry', 'frightened', 'exasperated', 'starry']
 const MAX_USAGE_FINGERPRINTS = 2048
 const PROFILE_FIELDS = ['displayName', 'address', 'greeting', 'persona', 'tone', 'visual'] as const
 const PROFILE_LIMITS: Record<(typeof PROFILE_FIELDS)[number], number> = {
@@ -485,6 +548,17 @@ export function apply(
   const llm = ctx.llm
   const cfg = {
     enabled: config.enabled !== false,
+    sideStoryRecencyDays: (() => {
+      const raw = Number(config.sideStoryRecencyDays)
+      return Number.isFinite(raw) && raw >= 1 ? Math.min(Math.round(raw), 365) : 14
+    })(),
+    sideStoryCooldownMs: (() => {
+      const raw = Number(config.sideStoryCooldownMinutes)
+      const minutes = Number.isFinite(raw) && raw >= 0
+        ? Math.min(raw, SIDE_STORY_COOLDOWN_MAX_MINUTES)
+        : SIDE_STORY_COOLDOWN_DEFAULT_MINUTES
+      return Math.round(minutes * 60 * 1000)
+    })(),
     dashscopeBaseUrl: typeof config.dashscopeBaseUrl === 'string' && config.dashscopeBaseUrl
       ? config.dashscopeBaseUrl
       : (typeof process !== 'undefined' && process.env.DASHSCOPE_BASE_URL
@@ -511,6 +585,8 @@ export function apply(
   let workspaceRegistry: any
   let agentDefaultModel: any
   let sessionQuery: any
+  let webSeam: any = null
+  let lastSideStoryFailure = ''
   let dshHomePath: ((...segments: string[]) => string) | null = typeof ctx.dshHomePath === 'function'
     ? ctx.dshHomePath.bind(ctx)
     : null
@@ -525,6 +601,12 @@ export function apply(
     })
     ctx.inject(['sessionQuery'], (scope: any) => {
       sessionQuery = scope.sessionQuery
+    })
+    // Optional on purpose. Declaring 'web' in the module-level `inject` would
+    // make it a hard dependency, and a profile without the web seam would fail
+    // to load the whole plugin instead of just losing one seed source.
+    ctx.inject(['web'], (scope: any) => {
+      webSeam = scope.web
     })
   }
 
@@ -677,6 +759,10 @@ export function apply(
     'cg',
     'relationshipLastActiveAt',
     'activityFeed',
+    // Skit state is global game progress, not a workspace marker. Without this
+    // entry composeState routes it to the workspace save, which only stores a
+    // source marker, so the cooldown and history would never reach disk.
+    'sideStory',
     'modelOnline',
     'characterModelLabel',
     'chatModelLabel',
@@ -696,6 +782,8 @@ export function apply(
     'chatProvider',
     'chatModel',
     'customBgName',
+    'sideStoryCooldownMinutes',
+    'sideStorySeedSource',
   ] as const
 
   function freshGlobalState(): any {
@@ -720,6 +808,10 @@ export function apply(
       lastModel: combined.lastModel,
       fallbackUsed: combined.fallbackUsed,
       fallbackReason: combined.fallbackReason,
+      // Side-story run state. Purely additive, so the save version stays at 2:
+      // an older build reading this file ignores the field instead of latching
+      // the whole save as an unrecognized version.
+      sideStory: normalizeSideStory(null),
       // Claims record which global choices have already been established.
       // Legacy workspace imports may fill an unclaimed field once, but can
       // never overwrite a value chosen in the new global store.
@@ -933,17 +1025,37 @@ export function apply(
     return prefix + '-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 9)
   }
 
+  /**
+   * Per-character affection deltas for one choice. Main-line choices leave this
+   * empty and settle through `effect` on the speaking character alone; side
+   * stories fill it so one choice can move the whole cast.
+   */
+  function normalizeChoiceEffects(raw: any): Record<string, number> {
+    const out: Record<string, number> = {}
+    if (!raw || typeof raw !== 'object') return out
+    for (const id of ROSTER_IDS) {
+      const value = (raw as any)[id]
+      if (value === 1 || value === -1 || value === 0) out[id] = value
+    }
+    return out
+  }
+
   function normalizeChoice(choice: any, index = 0): any {
     if (typeof choice === 'string') {
       return { id: makeId('legacy-choice-' + index), text: choice.trim().slice(0, 30), effect: 0 }
     }
     if (!choice || typeof choice !== 'object' || typeof choice.text !== 'string' || !choice.text.trim()) return null
     const effect = choice.effect === 1 ? 1 : choice.effect === -1 ? -1 : 0
-    return {
+    const base: any = {
       id: typeof choice.id === 'string' && choice.id ? choice.id : makeId('choice-' + index),
       text: choice.text.trim().slice(0, 30),
       effect,
     }
+    // Main-line choices settle on the speaking character alone and stay exactly
+    // as they were on disk; only a multi-character choice carries the map.
+    const effects = normalizeChoiceEffects(choice.effects)
+    if (Object.keys(effects).length > 0) base.effects = effects
+    return base
   }
 
   function shuffleOnce<T>(items: T[]): T[] {
@@ -1059,6 +1171,219 @@ export function apply(
     return [...byFingerprint.values()]
       .sort((left, right) => right.time - left.time || left.fingerprint.localeCompare(right.fingerprint))
       .slice(0, MAX_GLOBAL_ACTIVITIES)
+  }
+
+  /**
+   * Models overshoot the 40-character budget constantly. A hard slice leaves
+   * sentences chopped mid-word on screen, so trim back to the last sentence
+   * ending inside the allowance and mark an elision when there is none.
+   */
+  function trimBeatText(raw: string): string {
+    const text = raw.trim()
+    if (text.length <= SIDE_STORY_BEAT_LIMIT) return text
+    const window = text.slice(0, SIDE_STORY_BEAT_HARD_LIMIT)
+    const stops = ['。', '！', '？', '～', '…', '」', '】', '.', '!', '?']
+    let cut = -1
+    for (const stop of stops) cut = Math.max(cut, window.lastIndexOf(stop))
+    // Only honour a break that keeps most of the line; otherwise elide.
+    if (cut >= Math.floor(SIDE_STORY_BEAT_LIMIT * 0.6)) return window.slice(0, cut + 1)
+    return window.slice(0, SIDE_STORY_BEAT_LIMIT - 1) + '…'
+  }
+
+  /**
+   * The cast brief hands the model lowercase roster ids, and it sometimes writes
+   * one straight into the narration ("grok凑过来"). Swap those back to display
+   * names. Case-sensitive on purpose: real model names appear capitalised
+   * ("听说 Kimi 慢"), and those are legitimate rumour material to keep.
+   */
+  function humanizeRosterIds(text: string): string {
+    let out = text
+    for (const id of ROSTER_IDS) {
+      const name = effectiveProfileFor(id).displayName
+      if (!name || name === id) continue
+      out = out.replace(new RegExp('(^|[^A-Za-z0-9-])' + id + '(?![A-Za-z0-9-])', 'g'), '$1' + name)
+    }
+    return out
+  }
+
+  function normalizeSideStoryBeat(raw: any): any | null {
+    if (!raw || typeof raw !== 'object' || typeof raw.text !== 'string') return null
+    const text = trimBeatText(humanizeRosterIds(raw.text))
+    if (!text) return null
+    const speaker = raw.speaker === 'narrator' || raw.speaker === 'user' || ROSTER[raw.speaker]
+      ? raw.speaker
+      : null
+    if (!speaker) return null
+    const emotion = typeof raw.emotion === 'string' && EMOTION_KEYS.indexOf(raw.emotion) >= 0
+      ? raw.emotion
+      : 'cheerful'
+    return speaker === 'narrator' || speaker === 'user' ? { speaker, text } : { speaker, text, emotion }
+  }
+
+  /**
+   * @param slot - which interlude these belong to. Ids are scoped to it because
+   * one scene now carries several choice sets, and `makeId` alone can repeat
+   * inside the same millisecond.
+   */
+  function normalizeSideStoryChoiceList(raw: any, cast: string[], slot: number): any[] {
+    const rows = Array.isArray(raw) ? raw : []
+    return rows
+      .map((choice: any, index: number) => {
+        const normalized = normalizeChoice(choice, index)
+        if (!normalized) return null
+        const restoredId = choice && typeof choice.id === 'string' && choice.id ? choice.id : ''
+        normalized.id = restoredId || makeId('choice-' + slot + '-' + index)
+        // Effects may only touch the cast, and only by a single step.
+        const source = (choice && choice.effects) || {}
+        const effects: Record<string, number> = {}
+        for (const id of cast) {
+          const value = source[id]
+          if (value === 1 || value === -1) effects[id] = value
+        }
+        // How the cast answers this particular line. Without it the master
+        // speaks into a void and the scene just stalls.
+        const reply = (choice && Array.isArray(choice.reply) ? choice.reply : [])
+          .map((beat: any) => normalizeSideStoryBeat(beat))
+          .filter((beat: any) => beat && beat.speaker !== 'user'
+            && (beat.speaker === 'narrator' || cast.indexOf(beat.speaker) >= 0))
+          .slice(0, 2)
+        return reply.length ? { ...normalized, effects, reply } : null
+      })
+      .filter(Boolean)
+      .slice(0, 3)
+  }
+
+  /**
+   * The model writes acts; the runtime plays one flat beat list. Flattening here
+   * keeps the cursor a simple index while still giving the master more than one
+   * place to speak: each act boundary becomes an interlude anchored to the beat
+   * it follows.
+   */
+  function normalizeSideStoryScene(raw: any): any | null {
+    if (!raw || typeof raw !== 'object') return null
+    const cast = Array.isArray(raw.cast)
+      ? [...new Set(raw.cast.filter((id: any) => typeof id === 'string' && ROSTER[id]))].slice(0, SIDE_STORY_MAX_CAST)
+      : []
+    if (cast.length < SIDE_STORY_MIN_CAST) return null
+
+    const beats: any[] = []
+    const interludes: any[] = []
+    const acceptBeat = (beat: any) => beat
+      && (beat.speaker === 'narrator' || beat.speaker === 'user' || cast.indexOf(beat.speaker) >= 0)
+
+    if (Array.isArray(raw.acts)) {
+      for (const act of raw.acts) {
+        if (!act || typeof act !== 'object') continue
+        const actBeats = (Array.isArray(act.beats) ? act.beats : [])
+          .map((beat: any) => normalizeSideStoryBeat(beat))
+          .filter(acceptBeat)
+        if (!actBeats.length) continue
+        for (const beat of actBeats) {
+          if (beats.length >= SIDE_STORY_MAX_BEATS) break
+          beats.push(beat)
+        }
+        const choices = normalizeSideStoryChoiceList(act.choices, cast, interludes.length)
+        if (choices.length === 3) {
+          interludes.push({ at: beats.length - 1, consumed: false, choices })
+        }
+      }
+    } else {
+      // Restored saves and older payloads carry the flat shape.
+      for (const beat of (Array.isArray(raw.beats) ? raw.beats : []).map((b: any) => normalizeSideStoryBeat(b)).filter(acceptBeat)) {
+        if (beats.length >= SIDE_STORY_MAX_BEATS + 8) break
+        beats.push(beat)
+      }
+      const restored = Array.isArray(raw.interludes) ? raw.interludes : []
+      for (const row of restored) {
+        if (!row || typeof row !== 'object') continue
+        const at = Math.floor(Number(row.at))
+        if (!Number.isFinite(at) || at < 0 || at >= beats.length) continue
+        const choices = normalizeSideStoryChoiceList(row.choices, cast, interludes.length)
+        if (row.consumed === true) interludes.push({ at, consumed: true, choices: [] })
+        else if (choices.length === 3) interludes.push({ at, consumed: false, choices })
+      }
+    }
+    if (!beats.length) return null
+    // A skit with no place for the master to speak is exactly the passive
+    // cutscene this feature is not supposed to be.
+    if (!interludes.length) return null
+
+    const seedKind = raw.seed && (raw.seed.kind === 'activity' || raw.seed.kind === 'manual' || raw.seed.kind === 'web')
+      ? raw.seed.kind
+      : 'activity'
+    const seedSummary = raw.seed && typeof raw.seed.summary === 'string' ? raw.seed.summary.trim().slice(0, 120) : ''
+    const sources = (Array.isArray(raw.sources) ? raw.sources : [])
+      .filter((row: any) => row && typeof row.url === 'string' && /^https?:\/\//i.test(row.url))
+      .slice(0, 5)
+      .map((row: any) => ({
+        url: row.url,
+        title: typeof row.title === 'string' && row.title.trim() ? row.title.trim().slice(0, 80) : row.url,
+      }))
+    const cursor = Math.max(0, Math.min(beats.length - 1, Math.floor(Number(raw.cursor) || 0)))
+    return {
+      id: typeof raw.id === 'string' && raw.id ? raw.id : makeId('side-story'),
+      createdAt: Math.max(0, Math.floor(Number(raw.createdAt) || 0)),
+      seed: { kind: seedKind, summary: seedSummary },
+      frame: typeof raw.frame === 'string' ? raw.frame.slice(0, 40) : '',
+      twist: typeof raw.twist === 'string' ? raw.twist.slice(0, 40) : '',
+      subject: ROSTER[raw.subject] ? raw.subject : cast[0],
+      sources,
+      cast,
+      beats,
+      interludes,
+      // Effects accumulate across interludes so the closing line reports the
+      // whole scene, not just the last thing the master said.
+      applied: (() => {
+        const out: Record<string, number> = {}
+        const source = raw.applied && typeof raw.applied === 'object' ? raw.applied : {}
+        for (const id of cast) {
+          const value = Math.round(Number(source[id]))
+          if (Number.isFinite(value) && value !== 0) out[id] = value
+        }
+        return out
+      })(),
+      cursor,
+      settled: raw.settled === true,
+    }
+  }
+
+
+  function normalizeSideStory(raw: any): any {
+    const history = (Array.isArray(raw && raw.history) ? raw.history : [])
+      .filter((row: any) => row && typeof row === 'object' && typeof row.digest === 'string' && row.digest)
+      .slice(-SIDE_STORY_HISTORY_LIMIT)
+      .map((row: any) => ({
+        at: Math.max(0, Math.floor(Number(row.at) || 0)),
+        digest: String(row.digest).slice(0, 120),
+        frame: typeof row.frame === 'string' ? row.frame.slice(0, 40) : '',
+        subject: ROSTER[row.subject] ? row.subject : '',
+        twist: typeof row.twist === 'string' ? row.twist.slice(0, 40) : '',
+        cast: Array.isArray(row.cast) ? row.cast.filter((id: any) => ROSTER[id]).slice(0, SIDE_STORY_MAX_CAST) : [],
+      }))
+    const transcripts = (Array.isArray(raw && raw.transcripts) ? raw.transcripts : [])
+      .filter((row: any) => row && typeof row === 'object' && Array.isArray(row.lines) && row.lines.length)
+      .slice(-SIDE_STORY_TRANSCRIPT_LIMIT)
+      .map((row: any) => ({
+        id: typeof row.id === 'string' && row.id ? row.id : makeId('skit'),
+        at: Math.max(0, Math.floor(Number(row.at) || 0)),
+        seed: typeof row.seed === 'string' ? row.seed.slice(0, 120) : '',
+        cast: Array.isArray(row.cast) ? row.cast.filter((id: any) => ROSTER[id]).slice(0, SIDE_STORY_MAX_CAST) : [],
+        cgId: typeof row.cgId === 'string' ? row.cgId : '',
+        lines: row.lines
+          .filter((line: any) => line && typeof line.text === 'string' && line.text)
+          .slice(0, (SIDE_STORY_MAX_BEATS + 6))
+          .map((line: any) => ({
+            who: line.who === 'user' || line.who === 'heroine' ? line.who : 'narrator',
+            name: typeof line.name === 'string' ? line.name.slice(0, 24) : '',
+            text: String(line.text).slice(0, SIDE_STORY_BEAT_LIMIT + 8),
+          })),
+      }))
+    return {
+      lastRunAt: Math.max(0, Math.floor(Number(raw && raw.lastRunAt) || 0)),
+      scene: normalizeSideStoryScene(raw && raw.scene),
+      history,
+      transcripts,
+    }
   }
 
   function mergeGlobalActivityFeed(rows: readonly HarnessActivity[], sourceKey: string): boolean {
@@ -1621,6 +1946,17 @@ export function apply(
     if (p.chatMode === 'manual' && (!p.chatProvider || !p.chatModel)) {
       p.chatMode = cfg.chatModel ? 'configured' : 'main'
     }
+
+    // The cordis config supplies the first value; once the user touches the
+    // setting the preference wins, so a GUI edit is not undone on restart.
+    // 'activity' is the fully offline setting: no web request is ever made.
+    if (p.sideStorySeedSource !== 'activity' && p.sideStorySeedSource !== 'auto') {
+      p.sideStorySeedSource = 'auto'
+    }
+    const cooldown = Number(p.sideStoryCooldownMinutes)
+    p.sideStoryCooldownMinutes = Number.isFinite(cooldown) && cooldown >= 0
+      ? Math.min(Math.round(cooldown), SIDE_STORY_COOLDOWN_MAX_MINUTES)
+      : Math.round(cfg.sideStoryCooldownMs / 60000)
     return p
   }
 
@@ -1978,7 +2314,12 @@ export function apply(
     return { decay, gain, changed }
   }
 
-  function checkLevelUp(charId: string, c: any): boolean {
+  /**
+   * @param options.skipCg - level up without queueing a CG. Side stories settle
+   * up to three characters at once; generating an image per character would
+   * spike cost and latency, so the level lands and the gift does not.
+   */
+  function checkLevelUp(charId: string, c: any, options: { skipCg?: boolean } = {}): boolean {
     if (!c.level) c.level = 1
     const cap = affectionCap(c.level)
     if (c.affection >= cap) {
@@ -1988,8 +2329,11 @@ export function apply(
       c.choices = []
       c.chatLines.push({
         who: 'narrator',
-        text: '（好感度已满！' + profile.displayName + ' 的等级提升至 Lv.' + c.level + '！正在为' + profile.address + '准备礼物……）',
+        text: options.skipCg === true
+          ? '（好感度已满！' + profile.displayName + ' 的等级提升至 Lv.' + c.level + '！）'
+          : '（好感度已满！' + profile.displayName + ' 的等级提升至 Lv.' + c.level + '！正在为' + profile.address + '准备礼物……）',
       })
+      if (options.skipCg === true) return true
       const cgId = makeId('cg')
       c.cgs.push({
         id: cgId,
@@ -2009,6 +2353,41 @@ export function apply(
       return true
     }
     return false
+  }
+
+  /**
+   * Client-facing side-story payload. The cast is enriched with the display
+   * fields the stage needs; bundled sprite keys only, since custom sprite bytes
+   * are served through the sprite-data action rather than this polled payload.
+   */
+  function sideStoryView(): any {
+    const state = sideStoryState()
+    const scene = state.scene
+    return {
+      cooldownMs: sideStoryCooldownRemaining(),
+      available: !!llm,
+      scene: scene
+        ? {
+          id: scene.id,
+          seed: scene.seed,
+          sources: scene.sources,
+          cursor: scene.cursor,
+          settled: scene.settled,
+          beats: scene.beats,
+          // Only the interlude the master is standing in is offered; the later
+          // one stays hidden until playback reaches it.
+          choices: (pendingSideStoryInterlude(scene) || { choices: [] }).choices,
+          interludeCount: scene.interludes.length,
+          interludesLeft: scene.interludes.filter((row: any) => !row.consumed).length,
+          cast: scene.cast.map((id: string) => ({
+            id,
+            name: effectiveProfileFor(id).displayName,
+            color: ROSTER[id].color,
+            sprite: ROSTER[id].sprite,
+          })),
+        }
+        : null,
+    }
   }
 
   function view(includeGreeting = true): any {
@@ -2064,6 +2443,7 @@ export function apply(
       affection: c.affection,
       history: c.chatLines,
       choices: (c.choices || []).slice(0, 3),
+      sideStory: sideStoryView(),
       chatUnlocked: true,
       modelOnline: s.modelOnline === true,
       characterModelLabel: s.characterModelLabel || '',
@@ -2276,6 +2656,10 @@ export function apply(
       configuredSelection: configuredChatSelection(),
       hasCustomBg: typeof s.bg === 'string' && s.bg.startsWith('data:'),
       customBgName: typeof p.customBgName === 'string' ? p.customBgName : '',
+      sideStoryCooldownMinutes: Number(p.sideStoryCooldownMinutes) || 0,
+      sideStoryCooldownMax: SIDE_STORY_COOLDOWN_MAX_MINUTES,
+      sideStorySeedSource: p.sideStorySeedSource === 'activity' ? 'activity' : 'auto',
+      sideStoryWebAvailable: !!webSeam,
     }
   }
 
@@ -2412,7 +2796,7 @@ export function apply(
     ])
   }
 
-  const EMOTION_LABELS = ['cheerful', 'shy', 'serious', 'confused', 'angry', 'frightened', 'exasperated', 'starry']
+  const EMOTION_LABELS = EMOTION_KEYS
 
   async function classifyEmotion(text: string, signal?: AbortSignal): Promise<string> {
     if (!llm) return 'normal'
@@ -2501,21 +2885,518 @@ export function apply(
     return fallbackChoicesFor()
   }
 
+  function sideStoryState(): any {
+    ensureState()
+    if (!s.sideStory || typeof s.sideStory !== 'object') s.sideStory = normalizeSideStory(null)
+    return s.sideStory
+  }
+
+  function sideStoryCooldownRemaining(now = Date.now()): number {
+    const last = Math.max(0, Number(sideStoryState().lastRunAt) || 0)
+    if (!last) return 0
+    const minutes = Number(ensurePreferences().sideStoryCooldownMinutes)
+    const window = (Number.isFinite(minutes) && minutes >= 0 ? minutes : 0) * 60 * 1000
+    if (window <= 0) return 0
+    return Math.max(0, last + window - now)
+  }
+
+  /**
+   * The current heroine always headlines; the rest of the cast is drawn from the
+   * roster, preferring characters who did not appear in the last few runs so the
+   * same pairing does not repeat.
+   */
+  function pickSideStoryCast(): string[] {
+    ensureState()
+    const lead = ROSTER[s.current] ? s.current : ROSTER_IDS[0]
+    const recent = new Set<string>()
+    for (const row of sideStoryState().history.slice(-2)) {
+      for (const id of row.cast || []) recent.add(id)
+    }
+    const others = ROSTER_IDS.filter((id) => id !== lead)
+    const fresh = shuffleOnce(others.filter((id) => !recent.has(id)))
+    const stale = shuffleOnce(others.filter((id) => recent.has(id)))
+    return [lead, ...fresh, ...stale].slice(0, SIDE_STORY_MAX_CAST)
+  }
+
+  /**
+   * v1 seeds come from the local activity feed only: the classified category is
+   * already safe to send (no Harness text ever leaves the plugin), and a story
+   * about what the master did today lands better than a generic one.
+   */
+  function sideStorySeed(): { kind: string; summary: string; hint: string } | null {
+    ensureState()
+    const feed = Array.isArray(s.activityFeed) ? s.activityFeed : []
+    const latest = feed[0]
+    if (!latest || typeof latest.label !== 'string' || !latest.label) return null
+    const status = latest.status === 'completed'
+      ? '刚告一段落'
+      : latest.status === 'blocked'
+        ? '卡住了'
+        : latest.status === 'paused'
+          ? '暂停了'
+          : '还在进行'
+    return {
+      kind: 'activity',
+      summary: '主人最近在忙「' + latest.label + '」，' + status,
+      hint: typeof latest.chatHint === 'string' ? latest.chatHint : '',
+    }
+  }
+
+  /**
+   * Providers often hand back "标题 - 标题" because a page repeats its own title
+   * in og:title. Collapse the duplicate so the seed line does not read broken.
+   */
+  function dedupeSourceTitle(raw: string): string {
+    const title = String(raw || '').trim()
+    const parts = title.split(/\s+[-–—|]\s+/)
+    if (parts.length >= 2) {
+      const head = parts[0].trim()
+      if (head && parts.slice(1).some((part) => part.trim().startsWith(head.slice(0, Math.min(12, head.length))))) {
+        return head
+      }
+    }
+    const half = Math.floor(title.length / 2)
+    if (half > 6 && title.slice(0, half).trim() === title.slice(half).trim()) return title.slice(0, half).trim()
+    return title
+  }
+
+  function sideStoryTopicBlocked(text: string): boolean {
+    const haystack = text.toLowerCase()
+    return SIDE_STORY_TOPIC_BLOCKLIST.some((word) => haystack.includes(word.toLowerCase()))
+  }
+
+  /**
+   * Looks for what the outside world is saying about one of the characters.
+   * Returns null for every ordinary failure — no provider, nothing recent, or a
+   * topic too serious to play for laughs — so the caller falls back to the local
+   * activity seed rather than the button appearing broken.
+   */
+  async function sideStoryWebSeed(subject: string, signal?: AbortSignal): Promise<any | null> {
+    if (!webSeam || typeof webSeam.search !== 'function') return null
+    const term = SIDE_STORY_SEARCH_TERMS[subject]
+    if (!term) return null
+    let result: any = null
+    try {
+      result = await webSeam.search({
+        // Character-facing words only. Nothing from the master's session ever
+        // reaches this string.
+        query: term + ' 最近的评价、更新、使用体验和玩梗讨论',
+        maxResults: 8,
+      }, signal)
+    } catch (err) {
+      // WEB_PROVIDER_UNAVAILABLE and friends are an ordinary outcome here.
+      return null
+    }
+    const sources = Array.isArray(result && result.sources) ? result.sources : []
+    if (!sources.length) return null
+
+    const cutoff = Date.now() - Math.max(1, cfg.sideStoryRecencyDays) * 24 * 60 * 60 * 1000
+    const fresh = sources.filter((row: any) => {
+      if (!row || typeof row.url !== 'string') return false
+      if (typeof row.publishedAt !== 'string' || !row.publishedAt) return true // undated: keep, ranked lower
+      const at = Date.parse(row.publishedAt)
+      return !Number.isFinite(at) || at >= cutoff
+    })
+    if (!fresh.length) return null
+
+    const usable = fresh.filter((row: any) => !sideStoryTopicBlocked(
+      String(row.title || '') + ' ' + String(row.snippet || ''),
+    ))
+    // If the serious material dominates, this is not a day for a comedy sketch.
+    if (usable.length < Math.ceil(fresh.length / 2)) return null
+
+    const provider = typeof result.content === 'string' ? result.content.trim() : ''
+    if (provider && sideStoryTopicBlocked(provider)) return null
+
+    const headline = usable[0]
+    const summary = '听说外面在聊 ' + term + '：'
+      + dedupeSourceTitle(String(headline.title || headline.snippet || '有点新动静')).slice(0, 60)
+    const material = usable.slice(0, 3)
+      .map((row: any, index: number) => (index + 1) + '. ' + dedupeSourceTitle(String(row.title || ''))
+        + (row.snippet ? '：' + String(row.snippet).trim().slice(0, 120) : ''))
+      .join('\n')
+    return {
+      kind: 'web',
+      subject,
+      summary: summary.slice(0, 120),
+      hint: '外界的原话大意如下，只能当作传闻转述，不得断言为事实：\n' + material,
+      sources: usable.slice(0, 3).map((row: any) => ({
+        url: row.url,
+        title: typeof row.title === 'string' && row.title.trim() ? dedupeSourceTitle(row.title) : row.url,
+      })),
+    }
+  }
+
+  /**
+   * Who the rumour is about. The current heroine always headlines the stage, but
+   * if she is also always the subject the skits all end up shaped the same way,
+   * so the subject rotates through the cast and avoids recent repeats.
+   */
+  function pickSideStorySubject(cast: string[]): string {
+    const recent = new Set(sideStoryState().history.slice(-2).map((row: any) => row.subject).filter(Boolean))
+    const fresh = shuffleOnce(cast.filter((id) => !recent.has(id)))
+    return fresh[0] || shuffleOnce(cast.slice())[0] || cast[0]
+  }
+
+  /**
+   * Seed resolution is a chain, not a switch: a topic the master typed wins,
+   * then the web seam, then the local activity feed. Any link may be missing —
+   * the feature must never be dead because one of them is.
+   */
+  async function resolveSideStorySeed(subject: string, manualTopic: string, signal?: AbortSignal): Promise<any | null> {
+    const topic = typeof manualTopic === 'string' ? manualTopic.trim().slice(0, 60) : ''
+    if (topic) {
+      return { kind: 'manual', subject, summary: '主人提起：' + topic, hint: '', sources: [] }
+    }
+    if (ensurePreferences().sideStorySeedSource !== 'activity') {
+      const fromWeb = await sideStoryWebSeed(subject, signal)
+      if (fromWeb) return fromWeb
+    }
+    const local = sideStorySeed()
+    return local ? { ...local, subject, sources: [] } : null
+  }
+
+  function sideStoryCastBrief(cast: string[]): string {
+    return cast.map((id) => {
+      const profile = effectiveProfileFor(id)
+      return '- ' + id + '（' + profile.displayName + '）：' + profile.persona + ' 语气：' + profile.tone
+    }).join('\n')
+  }
+
+  function sideStorySystemPrompt(cast: string[], subject: string, frame: string, twist: string): string {
+    return '你是「深海女仆工坊」的小剧场编剧。工坊里的女仆们是同事关系，不是任何真实公司的代言人。\n'
+      + '主人（玩家）此刻就在房间里，她们是当着主人的面聊天，可以直接对主人说话。\n'
+      + '本场登场角色（只能用这些 id，不得出现其他角色）：\n' + sideStoryCastBrief(cast) + '\n'
+      + '本场情境：' + frame + '。开场不要用「工坊里飘着一个说法」这类套话，直接从这个情境切入。\n'
+      + '本场传闻的对象是 ' + effectiveProfileFor(subject).displayName + '，话题要落在她身上，别默认围着最先出场的人转。\n'
+      + '本场的转折方式：' + twist + '。\n'
+      + '写成三幕（acts），每幕都是几拍台词，前两幕结束时主人开口：\n'
+      + '· 第一幕（起承）：从情境切入，把话题引到传闻上，当事人做出符合人设的反应。\n'
+      + '· 第二幕（转）：按上面的转折方式让场面失控，笑点在这里。\n'
+      + '· 第三幕（合）：收尾，只有台词，没有 choices。\n'
+      + '角色之间必须真的在对话，这条最容易写砸：\n'
+      + '1. 至少有两处是角色直接接另一个角色的话茬——点名、反驳、拆台、附和都行。\n'
+      + '2. 不许写成每人轮流对着主人说一句话，那样她们等于没有互相看见。\n'
+      + '3. 本场每一位角色都必须至少开口一次，配角不能只当背景板。\n'
+      + '前两幕的 choices 是主人此刻开口说的话，每幕恰好三条：\n'
+      + '1. 用主人的第一人称口吻直接写出要说的话，不超过 20 字。\n'
+      + '2. 不得写成角色的台词，不得用第三人称谈论主人，不得写括号里的角色动作。\n'
+      + '   「我帮你把 bug 抓出来」对；「主人最棒了（鲸鱼娘拍拍）」错，因为那是角色在说话。\n'
+      + '3. 三条分别是：亲近安慰 / 中立打圆场 / 促狭补刀。补刀可以毒舌但要好笑，不能伤人。\n'
+      + '4. 每条 choice 的 reply 是 1 到 2 拍，是角色对主人这句话的即时反应，说话人只能是本场角色或 narrator。\n'
+      + '其余硬性要求：\n'
+      + '1. 涉及外界评价时一律用「听说」「好像有人讲」这类传闻措辞，绝不断言为事实。\n'
+      + '2. 基调轻松有趣，可以互相调侃，但不得刻薄、不得人身攻击、不得影射真实公司或真实个人。\n'
+      + '3. 每拍不超过 ' + SIDE_STORY_BEAT_LIMIT + ' 字；三幕的台词合计不超过 ' + SIDE_STORY_MAX_BEATS + ' 拍。\n'
+      + '4. choices 的 effects 只能包含本场角色 id，值只能是 1 或 -1，且至少影响两个角色。\n'
+      + '严格只输出 JSON 对象，不要 Markdown、不要解释：\n'
+      + '{"acts":[{"beats":[{"speaker":"narrator","text":"..."},{"speaker":"<id>","text":"...","emotion":"cheerful"}],'
+      + '"choices":[{"text":"主人要说的话","effects":{"<id>":1,"<id>":-1},'
+      + '"reply":[{"speaker":"<id>","text":"...","emotion":"shy"}]}]},'
+      + '{"beats":[...],"choices":[...]},{"beats":[...]}]}\n'
+      + 'emotion 只能取：' + EMOTION_KEYS.join('、') + '。speaker 只能是 narrator 或本场角色 id。'
+  }
+
+  /**
+   * Recently played angles, handed to the model as something to avoid. A hard
+   * "no fresh seed" gate would just make the button look broken when the master
+   * has been working on one thing all day.
+   */
+  function recentSideStoryHint(): string {
+    const recent = sideStoryState().history.slice(-3).map((row: any) => row.digest).filter(Boolean)
+    if (!recent.length) return ''
+    return '最近已经演过这些角度，这次换一个切入点：' + recent.join('；') + '\n'
+  }
+
+  async function generateSideStoryScene(seed: any, cast: string[], signal?: AbortSignal): Promise<any | null> {
+    if (!llm) return null
+    let sel: any = null
+    try {
+      const selection = Promise.resolve(pickModel())
+      sel = signal ? await waitWithAbort(selection, signal, 'side story model selection aborted') : await selection
+    } catch (err) {
+      return null
+    }
+    if (!sel || !sel.model) return null
+    // Rotate away from whatever the last couple of skits used, so two runs in a
+    // row cannot open the same way.
+    const recent = sideStoryState().history.slice(-2)
+    const recentFrames = new Set(recent.map((row: any) => row.frame).filter(Boolean))
+    const recentTwists = new Set(recent.map((row: any) => row.twist).filter(Boolean))
+    const frame = shuffleOnce(SIDE_STORY_FRAMES.filter((row) => !recentFrames.has(row)))[0] || SIDE_STORY_FRAMES[0]
+    // The twist is the comedic engine; repeating it two runs running is exactly
+    // what makes the skits feel templated, so it rotates like the frame does.
+    const twist = shuffleOnce(SIDE_STORY_TWISTS.filter((row) => !recentTwists.has(row)))[0] || SIDE_STORY_TWISTS[0]
+    try {
+      const effort = await pickEffort(sel, signal)
+      const out = await streamText({
+        provider: sel.provider,
+        model: sel.model,
+        reasoningEffort: effort,
+        messages: [{
+          role: 'user',
+          content: [{ type: 'text', text: '今天工坊里流传的说法：' + seed.summary + '\n' + (seed.hint || '') + '\n' + recentSideStoryHint() + '请据此写这场小剧场。' }],
+          source: { kind: 'user' },
+        }],
+        system: sideStorySystemPrompt(cast, seed.subject || cast[0], frame, twist),
+        temperature: 0.9,
+        // Three acts with two choice sets and their replies runs 2.5-4k tokens.
+        // The old 1200 budget silently truncated the JSON mid-array, which
+        // surfaced as an intermittent "generation-failed".
+        maxTokens: 4000,
+      }, signal)
+      const match = out.match(/\{[\s\S]*\}/)
+      if (!match) {
+        lastSideStoryFailure = '模型没有返回 JSON（前 80 字：' + out.slice(0, 80) + '）'
+        return null
+      }
+      let parsed: any
+      try {
+        parsed = JSON.parse(match[0])
+      } catch (err: any) {
+        lastSideStoryFailure = 'JSON 解析失败：' + (err && err.message ? err.message : String(err))
+        return null
+      }
+      const scene = normalizeSideStoryScene({
+        ...parsed,
+        frame,
+        twist,
+        subject: seed.subject || cast[0],
+        sources: seed.sources || [],
+        id: makeId('side-story'),
+        createdAt: Date.now(),
+        seed: { kind: seed.kind, summary: seed.summary },
+        cast,
+        cursor: 0,
+        settled: false,
+      })
+      if (!scene) {
+        const acts = Array.isArray(parsed.acts) ? parsed.acts.length : 0
+        const withChoices = Array.isArray(parsed.acts)
+          ? parsed.acts.filter((act: any) => act && Array.isArray(act.choices) && act.choices.length === 3).length
+          : 0
+        lastSideStoryFailure = '剧本不合规范：acts=' + acts + '，含三选项的幕=' + withChoices
+      }
+      return scene
+    } catch (err: any) {
+      lastSideStoryFailure = '生成异常：' + (err && err.message ? err.message : String(err))
+      console.error('whale-galgame side story gen failed:', err)
+      return null
+    }
+  }
+
+  /**
+   * Applies one side-story choice across the cast. Each character moves by at
+   * most a single step so a multi-character scene cannot outpace the main-line
+   * affection curve.
+   */
+  /**
+   * Archives the finished skit under its own log. It deliberately does NOT touch
+   * any character's `chatLines`: the main dialogue box renders the tail of that
+   * array, so writing here would replace the heroine's last line with a skit
+   * beat the moment a skit ended.
+   */
+  function recordSideStoryTranscript(scene: any): void {
+    const state = sideStoryState()
+    const lines = scene.beats.map((beat: any) => {
+      if (beat.speaker === 'narrator') return { who: 'narrator', name: '旁白', text: beat.text }
+      if (beat.speaker === 'user') return { who: 'user', name: '主人', text: beat.text }
+      return { who: 'heroine', name: effectiveProfileFor(beat.speaker).displayName, text: beat.text }
+    })
+    state.transcripts = [
+      ...state.transcripts,
+      {
+        id: scene.id,
+        at: Date.now(),
+        seed: scene.seed.summary || '',
+        cast: scene.cast.slice(),
+        lines,
+      },
+    ].slice(-SIDE_STORY_TRANSCRIPT_LIMIT)
+  }
+
+  /** The interlude the master is standing in right now, if any. */
+  function pendingSideStoryInterlude(scene: any): any | null {
+    return (scene.interludes || []).find((row: any) => !row.consumed && row.at === scene.cursor) || null
+  }
+
+  /** Deterministic closing line, so the outcome is revealed after the fact rather than spoiled on the buttons. */
+  function sideStoryOutcomeText(scene: any, effects: Record<string, number>): string {
+    const closer = scene.cast
+      .filter((id: string) => effects[id] > 0)
+      .map((id: string) => effectiveProfileFor(id).displayName)
+    const cooler = scene.cast
+      .filter((id: string) => effects[id] < 0)
+      .map((id: string) => effectiveProfileFor(id).displayName)
+    const parts: string[] = []
+    if (closer.length) parts.push(closer.join('、') + ' 好像更亲近了一点')
+    if (cooler.length) parts.push(cooler.join('、') + ' 有点无语')
+    return parts.length ? '（' + parts.join('；') + '。）' : '（大家各自散了。）'
+  }
+
+  /**
+   * Settles one interlude: the master's line and the cast's answer are spliced
+   * in where she spoke, later interludes shift by however many beats that added,
+   * and the scene only closes once every interlude has been used.
+   */
+  function settleSideStoryChoice(scene: any, choice: any): { applied: boolean; leveled: string[] } {
+    const interlude = pendingSideStoryInterlude(scene)
+    if (!interlude) return { applied: false, leveled: [] }
+    if (!choice || typeof choice.text !== 'string' || !choice.text) return { applied: false, leveled: [] }
+    const effects = choice.effects || {}
+    const leveled: string[] = []
+    for (const id of scene.cast) {
+      const delta = effects[id]
+      if (delta !== 1 && delta !== -1) continue
+      const c = s.characters[id]
+      if (!c) continue
+      c.affection = Math.max(0, c.affection + delta)
+      // Side-story level-ups deliberately skip CG generation: a three-character
+      // scene could otherwise trigger three image calls at once.
+      if (checkLevelUp(id, c, { skipCg: true })) leveled.push(id)
+      scene.applied[id] = (scene.applied[id] || 0) + delta
+    }
+
+    const inserted = [
+      { speaker: 'user', text: choice.text },
+      ...(choice.reply || []).map((beat: any) => ({ ...beat })),
+    ]
+    const at = interlude.at
+    scene.beats = [...scene.beats.slice(0, at + 1), ...inserted, ...scene.beats.slice(at + 1)]
+    interlude.consumed = true
+    interlude.choices = []
+    for (const row of scene.interludes) {
+      if (row !== interlude && row.at > at) row.at += inserted.length
+    }
+    scene.cursor = at + 1
+
+    if (scene.interludes.every((row: any) => row.consumed)) {
+      scene.beats = [...scene.beats, { speaker: 'narrator', text: sideStoryOutcomeText(scene, scene.applied) }]
+      scene.settled = true
+      recordSideStoryTranscript(scene)
+    }
+    return { applied: true, leveled }
+  }
+
+  async function generateSideStoryFreeReply(scene: any, text: string, signal?: AbortSignal): Promise<any> {
+    const neutral = {
+      effects: {},
+      reply: [{ speaker: scene.cast[0], text: '……主人这么说，我记住了。', emotion: 'serious' }],
+    }
+    if (!llm) return neutral
+    let sel: any = null
+    try {
+      sel = await Promise.resolve(pickModel())
+    } catch (err) {
+      return neutral
+    }
+    if (!sel || !sel.model) return neutral
+    try {
+      const recap = scene.beats
+        .filter((beat: any) => beat.speaker !== 'user')
+        .map((beat: any) => (beat.speaker === 'narrator' ? '旁白' : effectiveProfileFor(beat.speaker).displayName) + '：' + beat.text)
+        .join('\n')
+      const out = await streamText({
+        provider: sel.provider,
+        model: sel.model,
+        reasoningEffort: await pickEffort(sel, signal),
+        messages: [{
+          role: 'user',
+          content: [{ type: 'text', text: '刚才这场小剧场：\n' + recap + '\n\n主人开口说：' + text + '\n请写出角色们的回应。' }],
+          source: { kind: 'user' },
+        }],
+        system: '你是「深海女仆工坊」的小剧场编剧，正在续写结尾。\n'
+          + '本场登场角色（只能用这些 id）：\n' + sideStoryCastBrief(scene.cast) + '\n'
+          + '主人刚刚说了一句话，请写角色们对这句话的回应，并判断这句话让谁更亲近、让谁无语。\n'
+          + '要求：reply 是 1 到 2 拍，说话人只能是本场角色或 narrator；每拍不超过 '
+          + SIDE_STORY_BEAT_LIMIT + ' 字；基调轻松，不得刻薄或人身攻击。\n'
+          + 'effects 只能包含本场角色 id，值只能是 1 或 -1；主人说得体贴就给 1，说得扎心就给 -1，'
+          + '平淡的话可以留空。\n'
+          + '严格只输出 JSON：{"effects":{"<id>":1},"reply":[{"speaker":"<id>","text":"...","emotion":"shy"}]}',
+        temperature: 0.9,
+        maxTokens: 500,
+      }, signal)
+      const match = out.match(/\{[\s\S]*\}/)
+      if (!match) return neutral
+      const parsed = JSON.parse(match[0])
+      const effects: Record<string, number> = {}
+      for (const id of scene.cast) {
+        const value = parsed && parsed.effects ? parsed.effects[id] : undefined
+        if (value === 1 || value === -1) effects[id] = value
+      }
+      const reply = (Array.isArray(parsed && parsed.reply) ? parsed.reply : [])
+        .map((beat: any) => normalizeSideStoryBeat(beat))
+        .filter((beat: any) => beat && beat.speaker !== 'user'
+          && (beat.speaker === 'narrator' || scene.cast.indexOf(beat.speaker) >= 0))
+        .slice(0, 2)
+      return reply.length ? { effects, reply } : neutral
+    } catch (err) {
+      console.error('whale-galgame side story free reply failed:', err)
+      return neutral
+    }
+  }
+
+
+  /**
+   * Group photo for a finished skit. Manually triggered from the archive rather
+   * than fired on close: a three-character prompt is the least reliable thing
+   * DashScope does here, and nobody wants a surprise image bill for every skit.
+   */
+  async function generateSkitCg(skitId: string, cgId: string): Promise<void> {
+    const record = findCg(cgId)
+    if (!record) return
+    const skit = sideStoryState().transcripts.find((row: any) => row.id === skitId)
+    if (!skit) {
+      record.status = 'failed'
+      record.error = '找不到这场小剧场的记录'
+      await save('global').catch(() => undefined)
+      return
+    }
+    const who = skit.cast.map((id: string) => effectiveProfileFor(id).visual).filter(Boolean)
+    const names = skit.cast.map((id: string) => effectiveProfileFor(id).displayName).join('、')
+    const prompt = [
+      '精美galgame风格合影CG插画，横向16:9构图，唯美光效，高清细节，无文字无边框',
+      '同框 ' + skit.cast.length + ' 位角色，彼此有互动和眼神交流，不是各自站开',
+      ...who.map((visual: string, index: number) => '角色' + (index + 1) + '：' + visual),
+      '场景：深海女仆工坊，' + (skit.seed || '寻常的一天'),
+      '气氛轻松愉快，像刚闹完一场的合影',
+    ].join('，')
+    await renderCgFromPrompt(record, prompt, '合影 · ' + names)
+  }
+
   async function generateCg(charId: string, level: number, cgId: string): Promise<void> {
     const record = findCg(cgId)
     if (!record) return
+    let prompt = ''
     try {
       const profile = effectiveProfileFor(charId)
       await refreshActivityCache()
       const scopedActivity = globalActivityCandidates()
       const theme = scopedActivity.length > 0 ? activityCgTheme(scopedActivity[0]) : ''
-      const prompt = [
+      prompt = [
         '精美galgame风格特殊CG插画，横向16:9桌面壁纸构图，唯美光效，高清细节，无文字无边框',
         '角色：' + profile.visual + '，表情幸福温柔',
         '场景：深海女仆工坊，烛光与月光',
         '等级 Lv.' + level + ' 的纪念CG',
         theme ? '画面元素呼应对方最近的经历与工作：' + theme : '温暖浪漫的日常氛围',
       ].join('，')
+    } catch (err: any) {
+      record.status = 'failed'
+      record.dataUrl = null
+      record.error = err && err.message ? err.message : String(err)
+      await save('global').catch(() => undefined)
+      return
+    }
+    await renderCgFromPrompt(record, prompt, '')
+  }
+
+  /**
+   * Shared DashScope round-trip: two attempts, download to a data URL, then
+   * persist whatever happened onto the CG record. Character CGs and skit group
+   * photos differ only in their prompt.
+   */
+  async function renderCgFromPrompt(record: any, prompt: string, label: string): Promise<void> {
+    try {
       let dataUrl: string | null = null
       let lastError: any = null
       for (let attempt = 0; attempt < 2 && !dataUrl; attempt++) {
@@ -2575,6 +3456,7 @@ export function apply(
       record.dataUrl = null
       record.error = err && err.message ? err.message : String(err)
     }
+    if (label && record.status === 'ready') record.label = label
     const capturedRuntime = splitStorageActive() ? currentWorkspaceRuntime() : null
     try {
       await runSerializedStateTask(() => capturedRuntime
@@ -2972,6 +3854,7 @@ export function apply(
       Number(combined.tokens && combined.tokens.lastActiveAt) || 0,
     )
     next.activityFeed = normalizeActivityFeed(combined.activityFeed)
+    next.sideStory = normalizeSideStory(combined.sideStory)
     next.preferences = normalizePreferences({ ...combined.preferences })
     next.modelOnline = combined.modelOnline === true
     next.characterModelLabel = typeof combined.characterModelLabel === 'string' ? combined.characterModelLabel : ''
@@ -3041,6 +3924,7 @@ export function apply(
       ? { cgId: data.cg.cgId }
       : null
     combined.activityFeed = version === GLOBAL_SAVE_VERSION ? normalizeActivityFeed(data.activityFeed) : []
+    combined.sideStory = version === GLOBAL_SAVE_VERSION ? data.sideStory : null
     combined.modelOnline = data.modelOnline === true
     combined.characterModelLabel = typeof data.characterModelLabel === 'string' ? data.characterModelLabel : ''
     combined.chatModelLabel = typeof data.chatModelLabel === 'string' ? data.chatModelLabel : ''
@@ -3713,6 +4597,21 @@ export function apply(
 
         if (has('enabled') && typeof input.enabled === 'boolean') p.enabled = input.enabled
         if (has('petEnabled') && typeof input.petEnabled === 'boolean') p.petEnabled = input.petEnabled
+        if (has('sideStorySeedSource')) {
+          if (input.sideStorySeedSource === 'auto' || input.sideStorySeedSource === 'activity') {
+            p.sideStorySeedSource = input.sideStorySeedSource
+          } else {
+            errors.push('小剧场取材来源必须是 auto 或 activity')
+          }
+        }
+        if (has('sideStoryCooldownMinutes')) {
+          const minutes = Number(input.sideStoryCooldownMinutes)
+          if (Number.isFinite(minutes) && minutes >= 0 && minutes <= SIDE_STORY_COOLDOWN_MAX_MINUTES) {
+            p.sideStoryCooldownMinutes = Math.round(minutes)
+          } else {
+            errors.push('小剧场冷却必须是 0 到 ' + SIDE_STORY_COOLDOWN_MAX_MINUTES + ' 之间的分钟数')
+          }
+        }
 
         let nextCharacterMode = p.characterMode
         if (has('characterMode')) {
@@ -4104,6 +5003,130 @@ export function apply(
           clearTimeout(timer)
         }
       }
+      case 'side-story': {
+        if (ensurePreferences().enabled === false) return view()
+        const op = typeof args.op === 'string' ? args.op : 'start'
+        if (op === 'close') {
+          return await runSerializedStateTask(async () => {
+            sideStoryState().scene = null
+            await save('global')
+            return view()
+          })
+        }
+        if (op === 'advance') {
+          return await runSerializedStateTask(async () => {
+            const scene = sideStoryState().scene
+            // A settled scene still has 合 queued behind the master's line, so
+            // advancing stays available until the cursor reaches the last beat —
+            // but never past an interlude that is still waiting on her.
+            if (scene && !pendingSideStoryInterlude(scene) && scene.cursor < scene.beats.length - 1) {
+              scene.cursor = scene.cursor + 1
+              await save('global')
+            }
+            return view()
+          })
+        }
+        if (op === 'choose' || op === 'speak') {
+          // Free input runs one extra generation so the cast answers what the
+          // master actually typed; a preset choice already carries its 合.
+          let resolved: any = null
+          if (op === 'speak') {
+            const spoken = typeof args.text === 'string' ? args.text.trim().slice(0, SIDE_STORY_BEAT_LIMIT) : ''
+            if (!spoken) return view()
+            const pending = sideStoryState().scene
+            if (!pending || pending.settled) return view()
+            const outcome = await generateSideStoryFreeReply(pending, spoken)
+            resolved = { text: spoken, effects: outcome.effects, reply: outcome.reply }
+          }
+          return await runSerializedStateTask(async () => {
+            const state = sideStoryState()
+            const scene = state.scene
+            if (!scene || scene.settled) return view()
+            const interlude = pendingSideStoryInterlude(scene)
+            const choice = op === 'speak'
+              ? resolved
+              : (interlude ? interlude.choices : []).find((row: any) => row && row.id === args.choiceId)
+            const outcome = settleSideStoryChoice(scene, choice)
+            if (!outcome.applied) return view()
+            if (scene.settled) {
+              state.history = [
+                ...state.history,
+                { at: Date.now(), digest: scene.seed.summary, frame: scene.frame || '', twist: scene.twist || '', subject: scene.subject || '', cast: scene.cast.slice() },
+              ].slice(-SIDE_STORY_HISTORY_LIMIT)
+            }
+            await save('global')
+            return view()
+          })
+        }
+        // op === 'start'
+        const remaining = sideStoryCooldownRemaining()
+        if (remaining > 0) return { ...view(), sideStoryError: 'cooldown' }
+        const existing = sideStoryState().scene
+        if (existing && !existing.settled) return view()
+        await refreshActivityCache()
+        const cast = pickSideStoryCast()
+        const subject = pickSideStorySubject(cast)
+        const seed = await resolveSideStorySeed(subject, typeof args.topic === 'string' ? args.topic : '')
+        if (!seed) return { ...view(), sideStoryError: 'no-seed' }
+        lastSideStoryFailure = ''
+        // One retry: a malformed or over-long JSON payload is a coin flip, and
+        // a second draft costs far less than the button appearing broken.
+        let scene = await generateSideStoryScene(seed, cast)
+        if (!scene) scene = await generateSideStoryScene(seed, cast)
+        if (!scene) return { ...view(), sideStoryError: 'generation-failed', sideStoryErrorDetail: lastSideStoryFailure }
+        return await runSerializedStateTask(async () => {
+          const state = sideStoryState()
+          state.scene = scene
+          state.lastRunAt = Date.now()
+          await save('global')
+          return view()
+        })
+      }
+      case 'skit-cg': {
+        if (!cfg.dashscopeApiKey) return { ok: false, error: 'no-key' }
+        const skitId = typeof args.skitId === 'string' ? args.skitId : ''
+        return await runSerializedStateTask(async () => {
+          const skit = sideStoryState().transcripts.find((row: any) => row.id === skitId)
+          if (!skit) return { ok: false, error: 'not-found' }
+          if (skit.cgId) return { ok: true, cgId: skit.cgId }
+          const owner = skit.cast[0]
+          const c = s.characters[owner]
+          if (!c) return { ok: false, error: 'not-found' }
+          const cgId = makeId('cg')
+          c.cgs.push({
+            id: cgId,
+            status: 'generating',
+            dataUrl: null,
+            prompt: null,
+            charId: owner,
+            level: c.level || 1,
+            at: Date.now(),
+            seen: true,
+            savedAsBg: false,
+            error: null,
+          })
+          skit.cgId = cgId
+          await save('global')
+          void generateSkitCg(skitId, cgId)
+          return { ok: true, cgId }
+        })
+      }
+      case 'side-story-log': {
+        const rows = sideStoryState().transcripts.slice().reverse().map((row: any) => ({
+          id: row.id,
+          at: row.at,
+          seed: row.seed,
+          cast: row.cast.map((id: string) => ({
+            id,
+            name: effectiveProfileFor(id).displayName,
+            color: ROSTER[id] ? ROSTER[id].color : '#8fd8ef',
+          })),
+          lines: row.lines,
+          cgId: row.cgId || '',
+          cgStatus: row.cgId ? ((findCg(row.cgId) || {}).status || 'missing') : '',
+        }))
+        return { skits: rows, cgAvailable: !!cfg.dashscopeApiKey }
+      }
       case 'sprite-data': {
         ensureState()
         if (ensurePreferences().enabled !== false) syncHeroine()
@@ -4443,7 +5466,7 @@ export function apply(
       'pet-set',
       'reset',
     ])
-    if (action === 'chat') return runSerializedChatTask(runtime, execute)
+    if (action === 'chat' || action === 'side-story') return runSerializedChatTask(runtime, execute)
     return mutating.has(action) ? runSerializedStateTask(execute) : execute()
   }
 
