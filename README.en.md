@@ -2,11 +2,17 @@
 
 [简体中文](README.md) · **English** · [日本語](README.ja.md) · [한국어](README.ko.md)
 
-Recent Harness work can shape what a character says next.
+## Overview
 
-`dsh-whale-galgame` adds a dedicated multi-character Galgame view to DeepSeek Harness Web. For each originating workspace, local deterministic rules classify recent activity into 11 task categories, including debugging, writing, and research, then merge a safe result that contains no source text into one global event feed. When you chat in the Galgame, the current character can naturally acknowledge that work. Raw Harness task text stays in the local classification step; the reply model receives only fixed category and status cues, while tool arguments, tool results, and assistant message bodies are excluded from this awareness path.
+Between Harness tasks, discover an “extraordinary” coworker relationship with the model girls～(∠・ω< )⌒★
 
-DeepSeek, Claude, GPT, Gemini, Kimi, and Grok map to six independent roles. The displayed role is selected separately from the model that writes replies. The current role; each role's relationship progress, profile, dialogue history, reply choices, consumed-task memory, custom sprite, CG gallery, and background; and the token-settlement balance and plugin preferences all form one continuous state shared across workspaces. Workspaces and sessions identify only where Harness events came from and provide collection/deduplication keys: switching workspaces neither restarts the story nor makes the same role mention the same event again. Affection responds to three shuffled reply types, newly observed Harness token usage while the plugin is running, and long absences; levels have no cap. With a DashScope key, level-ups can generate 1920 × 1080 landscape CGs themed to recent work. The desktop pet can be disabled and opens the Galgame view when clicked.
+`dsh-whale-galgame` is a standalone multi-character Galgame interface plugin built for DeepSeek Harness Web. By blending naturally into your daily workflow, it turns impersonal AI interactions into warm, lasting companionship:
+
+- **Six model girls with distinct personalities**: DeepSeek (the whale girl), Claude, GPT, Gemini, Kimi, and Grok, each with independent sprites, affection, memories, and backgrounds.
+- **Appearance and model are decoupled**: Like the whale-girl sprite but want an in-depth conversation with Claude or GPT? Mix and match the character image and underlying reply model freely.
+- **Side Story mode**: Go beyond one-to-one Q&A with multi-character daily scenes, work-recap skits, and dedicated milestone stories.
+- **A bond system that grows with you**: Daily interaction and accumulated work tokens both raise affection, unlocking more intimate dialogue styles and AI-generated commemorative CGs.
+- **A lightweight, lovable desktop pet**: Keep it in a corner of the screen and click once to jump into the Galgame view.
 
 ![dsh-whale-galgame running in DSH Web](docs/screenshots/galgame-overview.jpg)
 
@@ -16,6 +22,7 @@ DeepSeek, Claude, GPT, Gemini, Kimi, and Grok map to six independent roles. The 
 
 - Choose the displayed character separately from the reply model. A role can follow the workspace model or be pinned; replies can use the default `deepseek-v4-flash`, follow the workspace, or use a model listed by DSH.
 - The six roles keep separate affection, level, profile, dialogue history, reply choices, consumed-task memory, custom sprite, CG gallery, and background data, all shared globally across workspaces; the current role, token balance, and plugin preferences remain continuous too.
+- Side Story branches support more than one-to-one interaction: trigger themed daily skits between characters, humorous work recaps, and milestone-story replays.
 - Each turn offers close, neutral, and distant reply options in shuffled positions. Free-text input remains available.
 - Switching roles also switches to that role's built-in background. The whale-girl still defaults to the deep-sea palace; her new seaside study is an optional built-in alternative. A user upload or saved CG overrides role defaults until a built-in background is restored.
 - Manage the background, per-role sprite, dialogue archive, CG gallery, and desktop pet from the interface. Clicking the pet opens the `galgame` tab.
@@ -140,6 +147,14 @@ Custom profiles are stored separately for all six roles and shared across every 
 
 Custom profile text cannot override the plugin's safety constraints or its one-sentence reply limit.
 
+### Side Story
+
+Side Story gives the model girls a more theatrical space for narrative scenes:
+
+- **Situational skits and daily interactions**: Beyond regular conversation, trigger playful exchanges between model girls, short work-break stories, and scenario-specific scenes.
+- **Work-event recap skits**: Turn recent tasks into lighthearted recap scenes, such as “the whale girl's late-night debugging appreciation party.”
+- **Story archive and replay**: Unlocked Side Story scenes are archived automatically and can be revisited at any time in the dialogue history.
+
 ### Built-in desktop pet
 
 The desktop pet ships inside this plugin; no separate installation is needed. It is enabled by default for new installations and appears in the lower-right corner of the main DSH interface. Clicking it opens the `galgame` tab. The **Desktop pet · On/Off** control in the Galgame top bar is an independent visibility switch. **Enable plugin** under Settings → Plugins → Plugin configuration controls the whole plugin; disabling it hides the pet and pauses Galgame dialogue and affection settlement.
@@ -206,7 +221,7 @@ Finally, thank you to the people who made specific artwork and implementation kn
 
 - **上善** created the original whale-girl character: [Pixiv](https://www.pixiv.net/users/62155430) · [Bilibili](https://space.bilibili.com/4456176).
 - **ZipZipPipe** added DeepSeek elements to that character in the maid whale-girl redesign: [Pixiv](https://www.pixiv.net/users/18604994) · [Bilibili](https://space.bilibili.com/4168597).
-- **Small-tailqwq** published the deep-sea palace background, whale-girl standing sprite, and Galgame UI decorations reused here in [dsh-deep-whale](https://github.com/Small-tailqwq/dsh-deep-whale), together with the full attribution chain. This project built eight additional expression images from that material.
+- **Small-tailqwq** provided the deep-sea palace background used by this plugin through the open-source project [dsh-deep-whale](https://github.com/Small-tailqwq/dsh-deep-whale).
 - **f0909172434 / [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet)** released the DSH whale-girl desktop pet under MIT. This plugin's pet feature is a derivative of that project, and its `pet-spritesheet.webp` is identical to the upstream atlas. This project changed the plugin integration and visual styling and added the click-to-open-Galgame interaction.
 - The Claude-, GPT-, Gemini-, Kimi-, and Grok-inspired sprites, six daily-life role backgrounds, and the Galgame UI are unofficial, AI-assisted project artwork. They are not official character designs, partnerships, or endorsements from the named companies.
 
@@ -214,10 +229,8 @@ If these open-source materials and implementations help you, consider starring [
 
 DeepSeek, Claude, ChatGPT/GPT, Gemini, Kimi, Grok, and related marks belong to their respective owners. This is an unofficial community plugin and is not affiliated with, partnered with, or endorsed by those owners.
 
-## Related projects
+## Related dsh Galgame projects
 
-- [gal-view](https://github.com/Ayase34/gal-view)
-- [dsh-galgame](https://github.com/Lanxing6480/dsh-galgame)
-- Upstream desktop-pet project (already built in; no separate installation needed): [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet)
-
-If you enjoy these projects, consider giving their repositories a Star.
+- [gal-view](https://github.com/Ayase34/gal-view) - A Galgame-style conversation view for the DSH Web GUI, with a visual editor for scene elements
+- [dsh-galgame](https://github.com/Lanxing6480/dsh-galgame) - Galgame mode interface plugin
+- [AutoWebUI](https://github.com/FynnReinhardt/deepseek-harness-galgame) - DSH Galgame mode
