@@ -43,3 +43,35 @@ test('available reply choices are not hidden by the latest line author', () => {
   assert.match(dialogue, /const showChoices = Array\.isArray\(s\.choices\) && s\.choices\.length > 0/)
   assert.doesNotMatch(dialogue, /last\.who === 'heroine' && s\.choices/)
 })
+
+test('plugin-owned settings remain discoverable inside the Plugins section', () => {
+  const registration = section(
+    '// The plugin owns its settings through /whale-galgame-api',
+    "ctx.effect(() => () => {",
+  )
+
+  assert.match(registration, /slots\.inject\('settings\.plugins\.tab'/)
+  assert.match(registration, /name:\s*'settings\.plugins\.tab'/)
+  assert.match(registration, /id:\s*'whale-galgame'/)
+  assert.match(registration, /label:\s*'鲸鱼娘'/)
+  assert.doesNotMatch(registration, /settings\.plugin\.item/)
+})
+
+test('plugin settings expose a dedicated pet visibility switch', () => {
+  const settings = section('function PluginSettingsCard()', 'function App(')
+  const app = section('function App(', 'export const name')
+
+  assert.match(settings, /const petEnabled = !settings \|\| settings\.petEnabled !== false/)
+  assert.match(settings, /React\.createElement\('strong', null, '显示桌宠'\)/)
+  assert.match(settings, /'aria-checked': petEnabled/)
+  assert.match(settings, /'aria-label': '显示桌宠'/)
+  assert.match(settings, /onClick: \(\) => save\(\{ petEnabled: !petEnabled \}\)/)
+  assert.match(settings, /关闭后仍可从会话顶部的 galgame 页签进入，并在这里重新开启。/)
+  assert.match(settings, /window\.addEventListener\('whg:pet-setting', onPetSetting\)/)
+  assert.match(settings, /Object\.prototype\.hasOwnProperty\.call\(patch, 'petEnabled'\)/)
+  assert.match(settings, /new CustomEvent\('whg:pet-setting', \{ detail: nextSettings\.petEnabled \}\)/)
+  assert.match(app, /window\.addEventListener\('whg:pet-setting', onPetSetting\)/)
+  assert.match(app, /setS\(\(prev: any\) => prev \? \{ \.\.\.prev, petEnabled: enabled \} : prev\)/)
+  assert.match(app, /const petEnabled = !!s && s\.enabled !== false && s\.petEnabled !== false/)
+  assert.match(app, /React\.createElement\(Pet/)
+})

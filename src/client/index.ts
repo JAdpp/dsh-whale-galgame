@@ -225,6 +225,7 @@ const CSS = [
   '.whg-disabled-card h2{margin:0 0 8px;color:#eefaff;font-family:"STSong","Songti SC",Georgia,serif;font-size:23px}',
   '.whg-disabled-card p{margin:0;color:#8fb1c5;font-size:13px;line-height:1.7}',
   // ── native DSH plugin-settings card ────────────────────────────────────
+  '.whg-settings-tab-list{max-width:760px;margin:0;padding:0;list-style:none}',
   '.whg-settings-card{list-style:none;border:1px solid var(--dsw-alias-border-l2);border-radius:12px;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary);overflow:hidden}',
   '.whg-settings-card[data-open="true"]{border-color:color-mix(in srgb,var(--dsw-alias-label-dimmed) 70%,#d7b66c);background:var(--dsw-alias-bg-layer-2)}',
   '.whg-settings-head{appearance:none;width:100%;display:flex;align-items:center;gap:12px;padding:14px 16px;border:0;background:transparent;color:inherit;cursor:pointer;text-align:left;font-family:inherit}',
@@ -763,6 +764,17 @@ function PluginSettingsCard(): React.ReactElement {
   }, [])
 
   useEffect(() => {
+    const onPetSetting = (event: Event) => {
+      const enabled = (event as CustomEvent).detail
+      if (typeof enabled === 'boolean') {
+        setSettings((prev: any) => prev ? { ...prev, petEnabled: enabled } : prev)
+      }
+    }
+    window.addEventListener('whg:pet-setting', onPetSetting)
+    return () => window.removeEventListener('whg:pet-setting', onPetSetting)
+  }, [])
+
+  useEffect(() => {
     if (!open) return undefined
     let alive = true
     api('settings-get').then((nextSettings) => {
@@ -794,6 +806,10 @@ function PluginSettingsCard(): React.ReactElement {
       }
       setSettings(nextSettings)
       setMessage('已保存')
+      if (Object.prototype.hasOwnProperty.call(patch, 'petEnabled')
+        && typeof nextSettings?.petEnabled === 'boolean') {
+        window.dispatchEvent(new CustomEvent('whg:pet-setting', { detail: nextSettings.petEnabled }))
+      }
       window.dispatchEvent(new CustomEvent('whg:settings-changed', {
         detail: { settings: nextSettings, view: viewFromResult(result), sourceSessionId: null },
       }))
@@ -812,6 +828,7 @@ function PluginSettingsCard(): React.ReactElement {
     ? 'model:' + selectionKey(settings.chatSelection)
     : settings && settings.chatMode === 'main' ? 'main' : 'configured'
   const enabled = !settings || settings.enabled !== false
+  const petEnabled = !settings || settings.petEnabled !== false
   const configuredModel = optionText(
     (options && options.configuredSelection) || (settings && settings.configuredSelection),
     '插件配置模型',
@@ -827,7 +844,7 @@ function PluginSettingsCard(): React.ReactElement {
     },
       React.createElement('span', { className: 'whg-settings-heading' },
         React.createElement('span', { className: 'whg-settings-name' }, '鲸鱼娘 Galgame'),
-        React.createElement('span', { className: 'whg-settings-desc' }, '控制插件启用状态，以及出场角色与台词模型。'),
+        React.createElement('span', { className: 'whg-settings-desc' }, '控制插件、桌宠显示、出场角色与台词模型。'),
       ),
       React.createElement('span', { className: 'whg-settings-status' }, loading ? '读取中' : error ? '不可用' : enabled ? '已启用' : '已关闭'),
       React.createElement('span', { className: 'whg-settings-chevron', 'aria-hidden': 'true' }, '▼'),
@@ -847,6 +864,21 @@ function PluginSettingsCard(): React.ReactElement {
             role: 'switch',
             type: 'button',
           }, enabled ? '已开启' : '已关闭'),
+        ),
+        React.createElement('div', { className: 'whg-settings-row' },
+          React.createElement('span', { className: 'whg-settings-copy' },
+            React.createElement('strong', null, '显示桌宠'),
+            React.createElement('small', null, '关闭后仍可从会话顶部的 galgame 页签进入，并在这里重新开启。'),
+          ),
+          React.createElement('button', {
+            'aria-checked': petEnabled,
+            'aria-label': '显示桌宠',
+            className: 'whg-settings-toggle',
+            disabled: loading || saving || !settings,
+            onClick: () => save({ petEnabled: !petEnabled }),
+            role: 'switch',
+            type: 'button',
+          }, petEnabled ? '已显示' : '已隐藏'),
         ),
         React.createElement('label', { className: 'whg-settings-row' },
           React.createElement('span', { className: 'whg-settings-copy' },
@@ -3159,7 +3191,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
         React.createElement('div', { className: 'whg-disabled' },
           React.createElement('div', { className: 'whg-disabled-card' },
             React.createElement('h2', null, '鲸鱼娘 Galgame 已关闭'),
-            React.createElement('p', null, '在左侧“设置 → 插件 → 插件配置”中展开鲸鱼娘 Galgame，即可重新开启。'),
+            React.createElement('p', null, '在左侧“设置 → 插件 → 鲸鱼娘”中展开鲸鱼娘 Galgame，即可重新开启。'),
           ),
         ),
       )
@@ -3254,10 +3286,13 @@ export function apply(ctx: any): void {
     }),
   ))
 
-  // Public DSH extension point: Settings → Plugins → Plugin configuration.
-  slots.inject('settings.plugin.item', () => slots.register(
-    { name: 'settings.plugin.item', id: 'whale-galgame', order: 30 },
-    () => React.createElement(PluginSettingsCard),
+  // The plugin owns its settings through /whale-galgame-api rather than a
+  // DSH settings namespace, so expose it as a feature-owned Plugins tab.
+  slots.inject('settings.plugins.tab', () => slots.register(
+    { name: 'settings.plugins.tab', id: 'whale-galgame', order: 20, label: '鲸鱼娘' },
+    () => React.createElement('ul', { className: 'whg-settings-tab-list' },
+      React.createElement(PluginSettingsCard),
+    ),
   ))
 
   ctx.effect(() => () => {

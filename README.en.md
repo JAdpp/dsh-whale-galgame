@@ -130,7 +130,7 @@ package is prebuilt and runs no install-time scripts.
 
 The Galgame top bar controls the displayed character and actual dialogue model. It also accepts a background or a sprite for the current role. PNG, JPEG, WebP, and AVIF are supported, with a 12 MB browser-side limit per file.
 
-Settings → Plugins → Plugin configuration contains the plugin toggle and the default character and reply-model choices. Disabling the plugin pauses Galgame dialogue and affection settlement without deleting existing data.
+Settings → Plugins → Whale Girl (`鲸鱼娘`) contains the plugin toggle, a separate desktop-pet visibility switch, and the default character and reply-model choices. Hiding the pet still leaves the `galgame` conversation tab available for restoring it. Disabling the whole plugin pauses Galgame dialogue and affection settlement without deleting existing data.
 
 ### Customize a character profile
 
@@ -157,7 +157,7 @@ Side Story gives the model girls a more theatrical space for narrative scenes:
 
 ### Built-in desktop pet
 
-The desktop pet ships inside this plugin; no separate installation is needed. It is enabled by default for new installations and appears in the lower-right corner of the main DSH interface. Clicking it opens the `galgame` tab. The **Desktop pet · On/Off** control in the Galgame top bar is an independent visibility switch. **Enable plugin** under Settings → Plugins → Plugin configuration controls the whole plugin; disabling it hides the pet and pauses Galgame dialogue and affection settlement.
+The desktop pet ships inside this plugin; no separate installation is needed. It is enabled by default for new installations and appears in the lower-right corner of the main DSH interface. Clicking it opens the `galgame` tab. **Desktop pet · On/Off** in the Galgame top bar and **Show desktop pet** under Settings → Plugins → Whale Girl (`鲸鱼娘`) stay synchronized and affect only pet visibility; the `galgame` tab remains available if the pet is hidden. **Enable plugin** controls the whole plugin; disabling it hides the pet and pauses Galgame dialogue and affection settlement.
 
 ## Optional generated CGs
 
@@ -189,7 +189,7 @@ Runtime data is split into two layers; treat both as private data:
 - Generating a level-up CG sends a text prompt to DashScope.
 - With skit web sourcing enabled (the default), the plugin searches through DSH's web capability. The query is built only from the model name a character stands for plus topic words: it contains **none** of your conversation, workspace contents, or any Harness text.
 - Search results are used for that one skit; the summary and source links are stored in the skit log (inside the save), while page bodies are never written to disk.
-- Choosing "local task categories only" under Settings → Plugins → plugin config → skit sourcing disables networking entirely: no search request is made.
+- Choosing "local task categories only" under Settings → Plugins → Whale Girl (`鲸鱼娘`) → skit sourcing disables networking entirely: no search request is made.
 - Generating a group CG sends the characters' appearance descriptions and the skit's situation to DashScope as a text prompt. It only runs when you click it.
 - User-uploaded backgrounds and sprites remain in the global save and are not included in either external request.
 - Raw Harness text is never written to a Galgame save. Global state keeps only fixed category and status cues, opaque deduplication fingerprints, and last-mention times; external requests likewise receive only fixed category and status cues.
