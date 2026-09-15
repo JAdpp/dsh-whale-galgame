@@ -57,6 +57,13 @@ test('plugin-owned settings remain discoverable inside the Plugins section', () 
   assert.doesNotMatch(registration, /settings\.plugin\.item/)
 })
 
+test('other plugins keep ownership of their skins', () => {
+  assert.doesNotMatch(source, /data-dsh-maid-atelier/)
+  assert.doesNotMatch(source, /data-skin-owner/)
+  assert.doesNotMatch(source, /attributeFilter/)
+  assert.match(source, /body\[data-whale-galgame-active\] \[data-slot="conversation\.composer"\]/)
+})
+
 test('plugin settings expose a dedicated pet visibility switch', () => {
   const settings = section('function PluginSettingsCard()', 'function App(')
   const app = section('function App(', 'export const name')

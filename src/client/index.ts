@@ -247,13 +247,10 @@ const CSS = [
   '.whg-settings-message.error{color:var(--dsw-alias-label-error,#c33)}',
   '@keyframes whgArchiveFade{from{opacity:0}to{opacity:1}}',
   '@keyframes whgArchiveSlide{from{transform:translateX(36px);opacity:.6}to{transform:none;opacity:1}}',
-  // ── real skin toggling while the galgame tab is active ──────────────────
+  // ── workspace chrome hidden while the galgame tab is active ─────────────
+  // Skins belong to their own plugins: never touch their attributes or nodes.
   'body[data-whale-galgame-active] [data-slot="conversation.composer"],body[data-whale-galgame-active] [data-slot="conversation.composer.dock"]{display:none !important}',
   'body[data-whale-galgame-active] .whg-pet{display:none !important}',
-  // boot-time guard: the skin applies first; these rules suppress it in the
-  // same frame until the galgame tab actually becomes active (no JS tick delay)
-  'body[data-dsh-maid-atelier]:not([data-whale-galgame-active]) [data-skin-owner="maid-atelier"]{display:none !important}',
-  'body[data-dsh-maid-atelier]:not([data-whale-galgame-active]){background-image:none !important}',
   '@media (max-width:900px){.whg-top{gap:6px;padding:10px 12px;flex-wrap:wrap}.whg-title{font-size:14px}.whg-chip{padding:3px 8px}.whg-spacer{display:none}.whg-top-actions{width:100%;justify-content:flex-end}.whg-btn{padding:5px 9px;font-size:12px}.whg-archive{width:min(470px,calc(100% - 12px))}.whg-archive-spine{display:none}}',
   '@media (max-width:560px){.whg-chip-wrap{max-width:calc(50% - 4px)}.whg-chip{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.whg-picker{position:fixed;top:92px;right:10px;left:10px;width:auto;max-height:55vh}.whg-top-actions{gap:5px;overflow-x:auto;padding-bottom:2px}.whg-archive{width:100%;border-left:0}.whg-archive-head{padding:18px 16px 14px}.whg-archive-body{padding:14px 14px 24px}.whg-gallery{grid-template-columns:1fr}.whg-history-row{grid-template-columns:38px minmax(0,1fr);gap:8px}.whg-archive-title{font-size:21px}.whg-profile-head-fields,.whg-profile-main-fields,.whg-profile-secondary-fields{grid-template-columns:1fr}.whg-profile-section-head{align-items:flex-start;flex-direction:column;gap:3px}.whg-profile-message{flex-basis:100%;text-align:left}.whg-settings-row{grid-template-columns:1fr;gap:8px}.whg-settings-toggle{justify-self:start}.whg-settings-head{padding:13px}.whg-settings-body{margin:0 13px}}',
   '@media (prefers-reduced-motion:reduce){.whg-archive-scrim,.whg-archive{animation:none}.whg-gallery-card:hover{transform:none}}',
@@ -448,35 +445,7 @@ function selectMode(state: any): string {
   return 'idle'
 }
 
-// ── real maid-atelier skin toggling + composer hiding ─────────────────────
-let skinBgCaptured: string | null = null
-
-function ensureSkin(active: boolean): void {
-  const owned = document.querySelectorAll('[data-skin-owner="maid-atelier"]')
-  if (active) {
-    document.body.setAttribute('data-dsh-maid-atelier', '')
-    if (skinBgCaptured !== null) {
-      document.body.style.backgroundImage = skinBgCaptured
-      document.body.style.backgroundSize = 'cover'
-      document.body.style.backgroundPosition = 'center top'
-      document.body.style.backgroundAttachment = 'fixed'
-      document.body.style.backgroundRepeat = 'no-repeat'
-    }
-    owned.forEach((node) => {
-      (node as HTMLElement).style.display = ''
-    })
-  } else {
-    if (document.body.hasAttribute('data-dsh-maid-atelier')) {
-      if (skinBgCaptured === null) skinBgCaptured = document.body.style.backgroundImage || ''
-      document.body.removeAttribute('data-dsh-maid-atelier')
-      document.body.style.backgroundImage = ''
-    }
-    owned.forEach((node) => {
-      (node as HTMLElement).style.display = 'none'
-    })
-  }
-}
-
+// ── composer hiding ────────────────────────────────────────────────────────
 const composerHiddenEls = new Map<HTMLElement, string>()
 
 function setComposerHidden(hidden: boolean): void {
@@ -1097,8 +1066,8 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     return () => clearTimeout(t)
   }, [])
 
-  // while the galgame tab is actually visible: deep-sea maid immersion +
-  // hide the workspace composer (restored the moment the tab hides)
+  // while the galgame tab is actually visible: hide the workspace composer
+  // (restored the moment the tab hides)
   useEffect(() => {
     if (props.variant !== 'tab') return
     const sync = () => {
@@ -1106,12 +1075,10 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
       const visible = !!el && el.offsetParent !== null
       if (visible) {
         document.body.dataset.whaleGalgameActive = ''
-        ensureSkin(true)
         setComposerHidden(true)
         syncTabLayout(true)
       } else {
         delete document.body.dataset.whaleGalgameActive
-        ensureSkin(false)
         setComposerHidden(false)
         syncTabLayout(false)
       }
@@ -1121,7 +1088,6 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     return () => {
       clearInterval(id)
       delete document.body.dataset.whaleGalgameActive
-      ensureSkin(false)
       setComposerHidden(false)
       syncTabLayout(false)
     }
@@ -3298,40 +3264,8 @@ export function apply(ctx: any): void {
   ctx.effect(() => () => {
     style.remove()
   }, 'dsh-whale-galgame: pet + galgame overlay')
-  // global enforcer: the real skin stays off unless the galgame tab is active
-  const enforcer = setInterval(() => {
-    ensureSkin(document.body.hasAttribute('data-whale-galgame-active'))
-  }, 1500)
-  // immediate sweep at apply time (covers "skin applied before us" ordering)
-  if (!document.body.hasAttribute('data-whale-galgame-active')) {
-    ensureSkin(false)
-  }
-  // same-frame interception: strip the skin attribute the moment it appears
-  // (unless the galgame tab is active), and hide every decoration node the
-  // skin inserts while inactive — no visible flash at boot
-  const skinAttrObserver = new MutationObserver(() => {
-    if (!document.body.hasAttribute('data-whale-galgame-active')) {
-      ensureSkin(false)
-    }
-  })
-  skinAttrObserver.observe(document.body, { attributes: true, attributeFilter: ['data-dsh-maid-atelier'] })
-  const skinNodeObserver = new MutationObserver((records) => {
-    if (document.body.hasAttribute('data-whale-galgame-active')) return
-    for (const r of records) {
-      for (const n of Array.from(r.addedNodes)) {
-        const el = n as HTMLElement
-        if (el && el.nodeType === 1 && typeof el.getAttribute === 'function' && el.getAttribute('data-skin-owner') === 'maid-atelier') {
-          el.style.display = 'none'
-        }
-      }
-    }
-  })
-  skinNodeObserver.observe(document.body, { childList: true, subtree: true })
   ctx.effect(() => () => {
-    clearInterval(enforcer)
-    skinAttrObserver.disconnect()
-    skinNodeObserver.disconnect()
-    ensureSkin(false)
+    delete document.body.dataset.whaleGalgameActive
     setComposerHidden(false)
-  }, 'dsh-whale-galgame: skin enforcer')
+  }, 'dsh-whale-galgame: composer restore')
 }
