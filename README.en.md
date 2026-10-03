@@ -155,6 +155,8 @@ Side Story gives the model girls a more theatrical space for narrative scenes:
 - **Work-event recap skits**: Turn recent tasks into lighthearted recap scenes, such as “the whale girl's late-night debugging appreciation party.”
 - **Story archive and replay**: Unlocked Side Story scenes are archived automatically and can be revisited at any time in the dialogue history.
 
+![Multi-character Side Story in action: the whale girl, Kimi, and GPT sharing a scene with reply choices](docs/screenshots/side-story-multi-character.png)
+
 ### Built-in desktop pet
 
 The desktop pet ships inside this plugin; no separate installation is needed. It is enabled by default for new installations and appears in the lower-right corner of the main DSH interface. Clicking it opens the `galgame` tab. **Desktop pet · On/Off** in the Galgame top bar and **Show desktop pet** under Settings → Plugins → Whale Girl (`鲸鱼娘`) stay synchronized and affect only pet visibility; the `galgame` tab remains available if the pet is hidden. **Enable plugin** controls the whole plugin; disabling it hides the pet and pauses Galgame dialogue and affection settlement.
