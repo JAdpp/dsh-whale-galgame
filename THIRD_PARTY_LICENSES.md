@@ -22,9 +22,17 @@ This project directly adapts the upstream desktop-pet state animation, 16-direct
 
 `assets/default/pet-spritesheet.webp` is a byte-identical copy of the upstream `assets/spritesheet.webp` (SHA-256 `234f24a97c18195a00c6093da0090773e675993c169e92e7e13a24c37b323fa2`) and remains under the same MIT terms.
 
+## ZipZipPipe model-girl sprites
+
+- Creator: ZipZipPipe ([Pixiv](https://www.pixiv.net/users/18604994) · [Bilibili](https://space.bilibili.com/4168597))
+- Original post: [Bilibili](https://www.bilibili.com/opus/1233069202138464289)
+- Applicable terms: [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)
+
+`assets/default/claude-zipzippipe.webp`, `assets/default/gpt-zipzippipe.webp`, and `assets/default/grok-zipzippipe.webp` are adaptations of those originals: the white background was removed, each image was cropped to the figure, and it was converted to WebP. The adaptations are distributed under the same license.
+
 ## Project-produced role artwork
 
-The five non-DeepSeek standing sprites and six `bg-*.webp` role backgrounds are unofficial, AI-assisted artwork newly produced for this project, not third-party company art. They are distributed under CC BY-NC-SA 4.0 to the extent the maintainer holds the applicable rights. The six backgrounds map to DeepSeek, Claude, GPT, Gemini, Kimi, and Grok; the DeepSeek seaside-study scene is an optional built-in alternative, while the other five are their roles' defaults. See [NOTICE.md](NOTICE.md) for the exact file-by-file map.
+The Gemini and Kimi standing sprites and six `bg-*.webp` role backgrounds are unofficial, AI-assisted artwork newly produced for this project, not third-party company art. They are distributed under CC BY-NC-SA 4.0 to the extent the maintainer holds the applicable rights. The six backgrounds map to DeepSeek, Claude, GPT, Gemini, Kimi, and Grok; the DeepSeek seaside-study scene is an optional built-in alternative, while the other five are their roles' defaults. See [NOTICE.md](NOTICE.md) for the exact file-by-file map.
 
 ## Creator profiles
 

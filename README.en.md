@@ -48,13 +48,13 @@ The installed plugin embeds 22 runtime visual assets: six character sprites, sev
 <table>
   <tr>
     <td align="center"><img src="assets/default/maid-left.webp" width="180" alt="Default DeepSeek whale-girl sprite"><br><strong>DeepSeek · Whale Girl</strong></td>
-    <td align="center"><img src="assets/default/claude-amber-manuscript-mediator-v5.webp" width="180" alt="Default Claude-inspired character sprite, nickname 克洛德"><br><strong>Claude · 克洛德</strong></td>
-    <td align="center"><img src="assets/default/gpt-recursive-weaver-v7.webp" width="180" alt="Default GPT-inspired character sprite, nickname 小吉"><br><strong>GPT · 小吉</strong></td>
+    <td align="center"><img src="assets/default/claude-zipzippipe.webp" width="180" alt="Default Claude-inspired character sprite, nickname 克洛德"><br><strong>Claude · 克洛德</strong></td>
+    <td align="center"><img src="assets/default/gpt-zipzippipe.webp" width="180" alt="Default GPT-inspired character sprite, nickname 小吉"><br><strong>GPT · 小吉</strong></td>
   </tr>
   <tr>
     <td align="center"><img src="assets/default/gemini-dual-prism-translator-v4.webp" width="180" alt="Default Gemini-inspired character sprite, nickname 双子"><br><strong>Gemini · 双子</strong></td>
     <td align="center"><img src="assets/default/kimi-lunar-scroll-navigator-v5.webp" width="180" alt="Default Kimi-inspired character sprite, nickname 月见"><br><strong>Kimi · 月见</strong></td>
-    <td align="center"><img src="assets/default/grok-cosmic-signal-ranger-v5.webp" width="180" alt="Default Grok-inspired character sprite, nickname 洛可"><br><strong>Grok · 洛可</strong></td>
+    <td align="center"><img src="assets/default/grok-zipzippipe.webp" width="180" alt="Default Grok-inspired character sprite, nickname 洛可"><br><strong>Grok · 洛可</strong></td>
   </tr>
 </table>
 
@@ -240,7 +240,9 @@ Finally, thank you to the people who made specific artwork and implementation kn
 - **ZipZipPipe** added DeepSeek elements to that character in the maid whale-girl redesign: [Pixiv](https://www.pixiv.net/users/18604994) · [Bilibili](https://space.bilibili.com/4168597).
 - **Small-tailqwq** provided the deep-sea palace background used by this plugin through the open-source project [dsh-deep-whale](https://github.com/Small-tailqwq/dsh-deep-whale).
 - **f0909172434 / [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet)** released the DSH whale-girl desktop pet under MIT. This plugin's pet feature is a derivative of that project, and its `pet-spritesheet.webp` is identical to the upstream atlas. This project changed the plugin integration and visual styling and added the click-to-open-Galgame interaction.
-- The Claude-, GPT-, Gemini-, Kimi-, and Grok-inspired sprites, six daily-life role backgrounds, and the Galgame UI are unofficial, AI-assisted project artwork. They are not official character designs, partnerships, or endorsements from the named companies.
+- **ZipZipPipe** drew the default Claude, GPT, and Grok model-girl sprites ([original post](https://www.bilibili.com/opus/1233069202138464289)), licensed under CC BY-NC-SA 4.0 for noncommercial use with derivatives shared alike. This project only removed the white background, cropped each image to the figure, and converted it to WebP; the adapted images are offered under the same CC BY-NC-SA 4.0 terms.
+- The Gemini- and Kimi-inspired sprites, six daily-life role backgrounds, and the Galgame UI are unofficial, AI-assisted project artwork.
+- All model-girl designs are unofficial fan characters, not official character designs, partnerships, or endorsements from the named companies.
 
 If these open-source materials and implementations help you, consider starring [dsh-deep-whale](https://github.com/Small-tailqwq/dsh-deep-whale) and [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet), or following 上善 and ZipZipPipe on Pixiv or Bilibili. Please report installation, runtime, or compatibility problems to [this repository's Issues](https://github.com/JAdpp/dsh-whale-galgame/issues) rather than asking the artists to troubleshoot plugin code.
 

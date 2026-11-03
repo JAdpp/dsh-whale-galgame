@@ -48,13 +48,13 @@ Galgame 답변 모델과 CG 생성 서비스에는 미리 정해진 작업 분�
 <table>
   <tr>
     <td align="center"><img src="assets/default/maid-left.webp" width="180" alt="DeepSeek 고래 소녀 기본 이미지"><br><strong>DeepSeek · 고래 소녀</strong></td>
-    <td align="center"><img src="assets/default/claude-amber-manuscript-mediator-v5.webp" width="180" alt="Claude 모델 소녀 克洛德 기본 이미지"><br><strong>Claude · 克洛德</strong></td>
-    <td align="center"><img src="assets/default/gpt-recursive-weaver-v7.webp" width="180" alt="GPT 모델 소녀 小吉 기본 이미지"><br><strong>GPT · 小吉</strong></td>
+    <td align="center"><img src="assets/default/claude-zipzippipe.webp" width="180" alt="Claude 모델 소녀 克洛德 기본 이미지"><br><strong>Claude · 克洛德</strong></td>
+    <td align="center"><img src="assets/default/gpt-zipzippipe.webp" width="180" alt="GPT 모델 소녀 小吉 기본 이미지"><br><strong>GPT · 小吉</strong></td>
   </tr>
   <tr>
     <td align="center"><img src="assets/default/gemini-dual-prism-translator-v4.webp" width="180" alt="Gemini 모델 소녀 双子 기본 이미지"><br><strong>Gemini · 双子</strong></td>
     <td align="center"><img src="assets/default/kimi-lunar-scroll-navigator-v5.webp" width="180" alt="Kimi 모델 소녀 月见 기본 이미지"><br><strong>Kimi · 月见</strong></td>
-    <td align="center"><img src="assets/default/grok-cosmic-signal-ranger-v5.webp" width="180" alt="Grok 모델 소녀 洛可 기본 이미지"><br><strong>Grok · 洛可</strong></td>
+    <td align="center"><img src="assets/default/grok-zipzippipe.webp" width="180" alt="Grok 모델 소녀 洛可 기본 이미지"><br><strong>Grok · 洛可</strong></td>
   </tr>
 </table>
 
@@ -239,7 +239,9 @@ npm run verify
 - **ZipZipPipe**는 이 고래 소녀에 DeepSeek 요소를 더해 메이드 고래 소녀로 2차 창작했습니다: [Pixiv](https://www.pixiv.net/users/18604994) · [Bilibili](https://space.bilibili.com/4168597).
 - **Small-tailqwq**는 오픈소스 프로젝트 [dsh-deep-whale](https://github.com/Small-tailqwq/dsh-deep-whale)에서 이 플러그인이 사용하는 심해 궁전 배경을 제공했습니다.
 - **f0909172434 / [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet)**은 DSH용 고래 소녀 데스크톱 펫을 MIT 라이선스로 공개했습니다. 이 플러그인의 펫 기능은 해당 프로젝트를 바탕으로 2차 개발했으며, `pet-spritesheet.webp`는 업스트림 아틀라스와 동일합니다. 이 프로젝트에서는 플러그인 통합 방식과 화면 스타일을 수정하고, 펫을 클릭하면 Galgame 화면이 열리는 동작을 추가했습니다.
-- Claude, GPT, Gemini, Kimi, Grok 캐릭터 이미지 5개, 일상 장면 배경 6개, Galgame UI는 이 프로젝트에서 만든 비공식 AI 보조 소재입니다. 해당 기업의 공식 캐릭터, 제휴 또는 보증을 뜻하지 않습니다.
+- **ZipZipPipe**는 Claude, GPT, Grok 모델 소녀의 기본 캐릭터 이미지를 그렸습니다([원본 게시물](https://www.bilibili.com/opus/1233069202138464289)). CC BY-NC-SA 4.0으로 비상업적 이용이 허락되며, 2차 창작은 같은 라이선스로 공유해야 합니다. 이 프로젝트는 흰 배경 제거, 인물 기준 자르기, WebP 변환만 했으며 수정한 이미지도 CC BY-NC-SA 4.0으로 제공합니다.
+- Gemini, Kimi 캐릭터 이미지 2개, 일상 장면 배경 6개, Galgame UI는 이 프로젝트에서 만든 비공식 AI 보조 소재입니다.
+- 모든 모델 소녀 디자인은 비공식 팬 캐릭터이며 해당 기업의 공식 캐릭터, 제휴 또는 보증을 뜻하지 않습니다.
 
 이 오픈소스 소재와 구현이 도움이 되었다면 [dsh-deep-whale](https://github.com/Small-tailqwq/dsh-deep-whale)와 [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet)에 Star를 눌러 주시거나 Pixiv 또는 Bilibili에서 上善과 ZipZipPipe를 팔로우해 주세요. 설치, 실행 또는 호환성 문제는 소재 제작자에게 플러그인 코드를 문의하는 대신 [이 저장소의 Issues](https://github.com/JAdpp/dsh-whale-galgame/issues)에 남겨 주세요.
 

@@ -26,11 +26,11 @@ Only this allowlisted set is part of the public default art pack.
 | `bg-gemini-twin-creative-studio` | `bg-gemini-twin-creative-studio.webp` | Gemini twin creative-studio default background |
 | `bg-kimi-moonlit-reading-study` | `bg-kimi-moonlit-reading-study.webp` | Kimi moonlit reading-study default background |
 | `bg-grok-electronics-studio` | `bg-grok-electronics-studio.webp` | Grok electronics-studio default background |
-| `claude-amber-manuscript-mediator-v5` | `claude-amber-manuscript-mediator-v5.webp` | Claude-inspired role sprite |
-| `gpt-recursive-weaver-v7` | `gpt-recursive-weaver-v7.webp` | GPT-inspired role sprite |
+| `claude-zipzippipe` | `claude-zipzippipe.webp` | Claude role sprite by ZipZipPipe |
+| `gpt-zipzippipe` | `gpt-zipzippipe.webp` | GPT role sprite by ZipZipPipe |
 | `gemini-dual-prism-translator-v4` | `gemini-dual-prism-translator-v4.webp` | Gemini-inspired role sprite |
 | `kimi-lunar-scroll-navigator-v5` | `kimi-lunar-scroll-navigator-v5.webp` | Kimi-inspired role sprite |
-| `grok-cosmic-signal-ranger-v5` | `grok-cosmic-signal-ranger-v5.webp` | Grok-inspired role sprite |
+| `grok-zipzippipe` | `grok-zipzippipe.webp` | Grok role sprite by ZipZipPipe |
 
 ## Sources and modifications
 
@@ -47,9 +47,12 @@ Only this allowlisted set is part of the public default art pack.
   `234f24a97c18195a00c6093da0090773e675993c169e92e7e13a24c37b323fa2`).
   It remains under the upstream MIT License. This plugin modifies the pet's
   integration and interaction, not the atlas image itself.
-- The Claude-, GPT-, Gemini-, Kimi-, and Grok-inspired standing sprites are
-  unofficial, AI-assisted concept art created for this project. They do not
-  contain or reproduce official model-company artwork or exact logos.
+- The Claude, GPT, and Grok standing sprites are by ZipZipPipe
+  ([original post](https://www.bilibili.com/opus/1233069202138464289)) under CC BY-NC-SA 4.0. This project removed the
+  white background, cropped them to the figure, and converted them to WebP.
+- The Gemini- and Kimi-inspired standing sprites are unofficial, AI-assisted
+  concept art created for this project. They do not contain or reproduce
+  official model-company artwork or exact logos.
 - The six `bg-*.webp` role backgrounds are new, AI-assisted project artwork.
   Claude, GPT, Gemini, Kimi, and Grok use their matching background by default.
   DeepSeek keeps the upstream deep-sea palace as its default, with the new

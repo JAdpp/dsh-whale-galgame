@@ -46,13 +46,13 @@
 <table>
   <tr>
     <td align="center"><img src="assets/default/maid-left.webp" width="180" alt="DeepSeek 鲸鱼娘默认立绘"><br><strong>DeepSeek · 鲸鱼娘</strong></td>
-    <td align="center"><img src="assets/default/claude-amber-manuscript-mediator-v5.webp" width="180" alt="Claude 模型娘克洛德默认立绘"><br><strong>Claude · 克洛德</strong></td>
-    <td align="center"><img src="assets/default/gpt-recursive-weaver-v7.webp" width="180" alt="GPT 模型娘小吉默认立绘"><br><strong>GPT · 小吉</strong></td>
+    <td align="center"><img src="assets/default/claude-zipzippipe.webp" width="180" alt="Claude 模型娘克洛德默认立绘"><br><strong>Claude · 克洛德</strong></td>
+    <td align="center"><img src="assets/default/gpt-zipzippipe.webp" width="180" alt="GPT 模型娘小吉默认立绘"><br><strong>GPT · 小吉</strong></td>
   </tr>
   <tr>
     <td align="center"><img src="assets/default/gemini-dual-prism-translator-v4.webp" width="180" alt="Gemini 模型娘双子默认立绘"><br><strong>Gemini · 双子</strong></td>
     <td align="center"><img src="assets/default/kimi-lunar-scroll-navigator-v5.webp" width="180" alt="Kimi 模型娘月见默认立绘"><br><strong>Kimi · 月见</strong></td>
-    <td align="center"><img src="assets/default/grok-cosmic-signal-ranger-v5.webp" width="180" alt="Grok 模型娘洛可默认立绘"><br><strong>Grok · 洛可</strong></td>
+    <td align="center"><img src="assets/default/grok-zipzippipe.webp" width="180" alt="Grok 模型娘洛可默认立绘"><br><strong>Grok · 洛可</strong></td>
   </tr>
 </table>
 
@@ -231,7 +231,9 @@ npm run verify
 - **ZipZipPipe**在鲸鱼娘形象上加入 DeepSeek 元素，完成女仆鲸鱼娘二创：[Pixiv](https://www.pixiv.net/users/18604994) · [Bilibili](https://space.bilibili.com/4168597)。
 - **Small-tailqwq** 在开源项目 [dsh-deep-whale](https://github.com/Small-tailqwq/dsh-deep-whale) 中提供了本插件沿用的深海宫殿背景。
 - **f0909172434 / [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet)** 以 MIT 许可开源了 DSH 鲸鱼娘桌宠。本插件的桌宠功能基于该项目二次开发，`pet-spritesheet.webp` 与上游相同；本项目调整了插件集成方式与界面样式，并加入点击桌宠进入 Galgame 界面的交互。
-- Claude、GPT、Gemini、Kimi、Grok 五张模型娘立绘、六张角色日常背景和 Galgame UI 为本项目制作的非官方 AI 辅助素材，不代表相关厂商的官方形象、合作或背书。
+- **ZipZipPipe**绘制了 Claude、GPT、Grok 三位模型娘的默认立绘（[原作动态](https://www.bilibili.com/opus/1233069202138464289)），按 CC BY-NC-SA 4.0 授权非商业使用、二创以相同协议共享。本项目只做了去除白底、按人物裁切并转为 WebP 的处理，改编后的图片同样按 CC BY-NC-SA 4.0 提供。
+- Gemini、Kimi 两张模型娘立绘、六张角色日常背景和 Galgame UI 为本项目制作的非官方 AI 辅助素材。
+- 所有模型娘形象都是非官方同人形象，不代表相关厂商的官方形象、合作或背书。
 
 如果这些开源素材和实现对你有帮助，欢迎给 [dsh-deep-whale](https://github.com/Small-tailqwq/dsh-deep-whale) 与 [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet) 点个 Star，也可以在 Pixiv 或 Bilibili 关注上善与 ZipZipPipe。插件安装、运行或兼容性问题请提交到[本仓库 Issues](https://github.com/JAdpp/dsh-whale-galgame/issues)，不要打扰素材作者排查插件代码。
 

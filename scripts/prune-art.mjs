@@ -23,10 +23,10 @@ const keep = [
   'bg-gemini-twin-creative-studio',
   'bg-kimi-moonlit-reading-study',
   'bg-grok-electronics-studio',
-  'claude-amber-manuscript-mediator-v5',
+  'claude-zipzippipe',
   'gemini-dual-prism-translator-v4',
-  'gpt-recursive-weaver-v7',
-  'grok-cosmic-signal-ranger-v5',
+  'gpt-zipzippipe',
+  'grok-zipzippipe',
   'kimi-lunar-scroll-navigator-v5',
 ]
 

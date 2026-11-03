@@ -48,13 +48,13 @@ Galgame の返信モデルと CG 生成サービスに渡されるのは、固�
 <table>
   <tr>
     <td align="center"><img src="assets/default/maid-left.webp" width="180" alt="DeepSeek 鯨娘のデフォルト立ち絵"><br><strong>DeepSeek · 鯨娘</strong></td>
-    <td align="center"><img src="assets/default/claude-amber-manuscript-mediator-v5.webp" width="180" alt="Claude モデル娘・克洛德のデフォルト立ち絵"><br><strong>Claude · 克洛德</strong></td>
-    <td align="center"><img src="assets/default/gpt-recursive-weaver-v7.webp" width="180" alt="GPT モデル娘・小吉のデフォルト立ち絵"><br><strong>GPT · 小吉</strong></td>
+    <td align="center"><img src="assets/default/claude-zipzippipe.webp" width="180" alt="Claude モデル娘・克洛德のデフォルト立ち絵"><br><strong>Claude · 克洛德</strong></td>
+    <td align="center"><img src="assets/default/gpt-zipzippipe.webp" width="180" alt="GPT モデル娘・小吉のデフォルト立ち絵"><br><strong>GPT · 小吉</strong></td>
   </tr>
   <tr>
     <td align="center"><img src="assets/default/gemini-dual-prism-translator-v4.webp" width="180" alt="Gemini モデル娘・双子のデフォルト立ち絵"><br><strong>Gemini · 双子</strong></td>
     <td align="center"><img src="assets/default/kimi-lunar-scroll-navigator-v5.webp" width="180" alt="Kimi モデル娘・月见のデフォルト立ち絵"><br><strong>Kimi · 月见</strong></td>
-    <td align="center"><img src="assets/default/grok-cosmic-signal-ranger-v5.webp" width="180" alt="Grok モデル娘・洛可のデフォルト立ち絵"><br><strong>Grok · 洛可</strong></td>
+    <td align="center"><img src="assets/default/grok-zipzippipe.webp" width="180" alt="Grok モデル娘・洛可のデフォルト立ち絵"><br><strong>Grok · 洛可</strong></td>
   </tr>
 </table>
 
@@ -239,7 +239,9 @@ npm run verify
 - **ZipZipPipe**はその鯨娘に DeepSeek 要素を加え、メイド鯨娘として二次創作しました：[Pixiv](https://www.pixiv.net/users/18604994) · [Bilibili](https://space.bilibili.com/4168597)。
 - **Small-tailqwq**は、オープンソースプロジェクト [dsh-deep-whale](https://github.com/Small-tailqwq/dsh-deep-whale) で、本プラグインが利用する深海宮殿の背景を提供しました。
 - **f0909172434 / [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet)** は、DSH 用の鯨娘デスクトップペットを MIT ライセンスで公開しました。本プラグインのペット機能は同プロジェクトを基に二次開発したもので、`pet-spritesheet.webp` は上流のアトラスと同一です。本プロジェクトではプラグインへの統合方法と表示スタイルを変更し、ペットのクリックで Galgame 画面を開く操作を追加しました。
-- Claude、GPT、Gemini、Kimi、Grok の立ち絵 5 点、6 点の日常シーン背景、Galgame UI は、本プロジェクトによる非公式の AI 支援素材です。各社の公式キャラクター、提携、承認を示すものではありません。
+- **ZipZipPipe**は Claude、GPT、Grok のモデル娘デフォルト立ち絵を描きました（[元の投稿](https://www.bilibili.com/opus/1233069202138464289)）。CC BY-NC-SA 4.0 で非営利利用が許諾され、二次創作は同一ライセンスでの共有が条件です。本プロジェクトでは白背景の除去、人物に合わせたトリミング、WebP への変換のみを行い、改変後の画像も CC BY-NC-SA 4.0 で提供します。
+- Gemini と Kimi の立ち絵 2 点、6 点の日常シーン背景、Galgame UI は、本プロジェクトによる非公式の AI 支援素材です。
+- すべてのモデル娘は非公式の二次創作キャラクターであり、各社の公式キャラクター、提携、承認を示すものではありません。
 
 これらのオープンソース素材や実装が役立った場合は、[dsh-deep-whale](https://github.com/Small-tailqwq/dsh-deep-whale) と [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet) に Star を付けたり、Pixiv または Bilibili で上善と ZipZipPipe をフォローしたりしていただけるとうれしいです。インストール、動作、互換性の問題は、素材作者ではなく[本リポジトリの Issues](https://github.com/JAdpp/dsh-whale-galgame/issues) へ報告してください。
 
