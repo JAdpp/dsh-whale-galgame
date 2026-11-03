@@ -6,7 +6,7 @@
 
 Harness で作業する合間に、モデル娘との「ひと味違う」同僚関係を見つけてみませんか～(∠・ω< )⌒★
 
-`dsh-whale-galgame` は、DeepSeek Harness Web 専用の独立したマルチキャラクター Galgame インターフェースプラグインです。日々のワークフローへ自然に溶け込み、無機質な AI とのやり取りを温かく長く続くつながりへ変えます。
+`dsh-whale-galgame` は、DeepSeek Harness Web / Desktop 向けの独立したマルチキャラクター Galgame インターフェースプラグインです。日々のワークフローへ自然に溶け込み、無機質な AI とのやり取りを温かく長く続くつながりへ変えます。
 
 - **個性豊かな 6 人のモデル娘**：DeepSeek（鯨娘）、Claude、GPT、Gemini、Kimi、Grok に対応し、立ち絵、好感度、記憶、背景はそれぞれ独立しています。
 - **外見と中身を分離**：鯨娘の立ち絵が好きでも、Claude や GPT とじっくり話したい？ キャラクター画像と内部の返信モデルを自由に組み合わせられます。
@@ -92,6 +92,21 @@ dsh --profile web
 ~~~
 
 ソースからのインストールで `pnpm dsh` を使う場合も、引数は同じです。
+
+### DeepSeek Harness Desktop
+
+Desktop は完全な Web アプリを Electron ウィンドウで動かすため、同じパッケージがそのまま動作します。Desktop は専用の `desktop` profile を使います。
+
+1. DeepSeek Harness Desktop を一度起動して初期化し、**Application → Manage dsh Command** から同梱の `dsh` コマンドをインストールします。
+2. Desktop を完全に終了（トレイを含む）してから実行します。
+
+~~~sh
+dsh plugin --profile desktop add dsh-whale-galgame
+~~~
+
+3. Desktop を再度開きます。更新・削除は `add` を `update` / `remove` に置き換え、同じく Desktop を終了してから実行します。
+
+Desktop の **Plugins** ページからパッケージ名でインストールすることもできます。全画面の Galgame 表示は Windows のカスタムタイトルバーと macOS の信号ボタンを避けるため、ウィンドウ操作は妨げられません。セーブ・好感度・CG は `$DSH_HOME` に保存され、Desktop と Web で共有されます。
 
 ### 更新・削除
 

@@ -254,6 +254,22 @@ const CSS = [
   '@media (max-width:900px){.whg-top{gap:6px;padding:10px 12px;flex-wrap:wrap}.whg-title{font-size:14px}.whg-chip{padding:3px 8px}.whg-spacer{display:none}.whg-top-actions{width:100%;justify-content:flex-end}.whg-btn{padding:5px 9px;font-size:12px}.whg-archive{width:min(470px,calc(100% - 12px))}.whg-archive-spine{display:none}}',
   '@media (max-width:560px){.whg-chip-wrap{max-width:calc(50% - 4px)}.whg-chip{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.whg-picker{position:fixed;top:92px;right:10px;left:10px;width:auto;max-height:55vh}.whg-top-actions{gap:5px;overflow-x:auto;padding-bottom:2px}.whg-archive{width:100%;border-left:0}.whg-archive-head{padding:18px 16px 14px}.whg-archive-body{padding:14px 14px 24px}.whg-gallery{grid-template-columns:1fr}.whg-history-row{grid-template-columns:38px minmax(0,1fr);gap:8px}.whg-archive-title{font-size:21px}.whg-profile-head-fields,.whg-profile-main-fields,.whg-profile-secondary-fields{grid-template-columns:1fr}.whg-profile-section-head{align-items:flex-start;flex-direction:column;gap:3px}.whg-profile-message{flex-basis:100%;text-align:left}.whg-settings-row{grid-template-columns:1fr;gap:8px}.whg-settings-toggle{justify-self:start}.whg-settings-head{padding:13px}.whg-settings-body{margin:0 13px}}',
   '@media (prefers-reduced-motion:reduce){.whg-archive-scrim,.whg-archive{animation:none}.whg-gallery-card:hover{transform:none}}',
+  // ── DSH Desktop window chrome ──────────────────────────────────────────
+  // Windows Desktop draws native caption buttons over the top
+  // --dsh-windows-titlebar-height strip; keep window-covering layers below it
+  // so the close button never hides the galgame controls and the strip still
+  // drags the window. Plain Web never sets data-windows-titlebar.
+  'html[data-windows-titlebar]:not([data-fullscreen]){--whg-frame-top:var(--dsh-windows-titlebar-height,40px)}',
+  '.whg-root,.whg-cg-backdrop{top:var(--whg-frame-top,0px)}',
+  '@media (max-width:560px){.whg-picker{top:calc(92px + var(--whg-frame-top,0px))}}',
+  // macOS Desktop: traffic lights sit at x 16..68 of the window's top-left.
+  // Leave them room, subtract the overlay from the header drag rows it
+  // covers, and let the galgame top bar drag the window (buttons inside stay
+  // clickable through the shell's global no-drag rule).
+  'html[data-platform="darwin"]:not([data-fullscreen]) .whg-root>.whg-top{padding-left:88px}',
+  'html[data-platform="darwin"] .whg-root,html[data-platform="darwin"] .whg-cg-backdrop{-webkit-app-region:no-drag}',
+  'html[data-platform="darwin"] .whg-root>.whg-top{-webkit-app-region:drag}',
+  'html[data-platform="darwin"] .whg-root>.whg-top :is(button,input,select,textarea,[role="listbox"],[role="dialog"],.whg-picker){-webkit-app-region:no-drag}',
 ].join('\n')
 
 function art(key: any): string | undefined {
