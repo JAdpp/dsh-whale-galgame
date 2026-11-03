@@ -6,7 +6,7 @@
 
 在Harness执行工作的间隙，探寻你与模型娘间“非比寻常”的同事关系～(∠・ω< )⌒★
 
-`dsh-whale-galgame` 是专为 DeepSeek Harness Web 打造的独立多角色 Galgame 界面插件。通过无缝融入日常工作流，它让冰凉的 AI 交互化作温暖长情的陪伴：
+`dsh-whale-galgame` 是专为 DeepSeek Harness Web 与 Desktop 打造的独立多角色 Galgame 界面插件。通过无缝融入日常工作流，它让冰凉的 AI 交互化作温暖长情的陪伴：
 
 - **6 位性格各异的模型娘**：支持 DeepSeek（鲸鱼娘）、Claude、GPT、Gemini、Kimi 与 Grok，立绘、好感度、记忆与背景相互独立。
 - **外观与内核解耦**：喜欢鲸鱼娘的机甲，又想用 Claude 或 GPT 进行深度对话（NTR?）角色形象与底层回复模型可随心搭配。
@@ -90,6 +90,21 @@ dsh --profile web
 ~~~
 
 如果源码安装提供的是 `pnpm dsh`，保留相同参数即可。
+
+### DeepSeek Harness Desktop（桌面版）
+
+桌面版就是把完整的 Web 端装进 Electron 窗口，插件代码与 Web 端完全相同，无需另装版本。桌面版使用自己专属的 `desktop` profile：
+
+1. 先打开一次 DeepSeek Harness Desktop 完成初始化，然后在 **应用 → 管理 dsh 命令** 中安装桌面版自带的 `dsh` 命令。
+2. 彻底退出桌面版（包括托盘），再运行：
+
+~~~sh
+dsh plugin --profile desktop add dsh-whale-galgame
+~~~
+
+3. 重新打开桌面版即可。更新或卸载时把上面的 `add` 换成 `update` / `remove`，同样需要先退出桌面版。
+
+也可以直接在桌面版的 **插件** 页面按包名安装。Windows 自绘标题栏和 macOS 红绿灯按钮会自动避让，全屏 Galgame 不会挡住窗口的最小化/关闭按钮。存档、好感度与 CG 都保存在 `$DSH_HOME` 下，桌面版和 Web 端共用同一份数据。
 
 ### 更新与卸载
 

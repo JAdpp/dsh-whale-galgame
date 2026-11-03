@@ -6,7 +6,7 @@
 
 Between Harness tasks, discover an “extraordinary” coworker relationship with the model girls～(∠・ω< )⌒★
 
-`dsh-whale-galgame` is a standalone multi-character Galgame interface plugin built for DeepSeek Harness Web. By blending naturally into your daily workflow, it turns impersonal AI interactions into warm, lasting companionship:
+`dsh-whale-galgame` is a standalone multi-character Galgame interface plugin built for DeepSeek Harness Web and Desktop. By blending naturally into your daily workflow, it turns impersonal AI interactions into warm, lasting companionship:
 
 - **Six model girls with distinct personalities**: DeepSeek (the whale girl), Claude, GPT, Gemini, Kimi, and Grok, each with independent sprites, affection, memories, and backgrounds.
 - **Appearance and model are decoupled**: Like the whale-girl sprite but want an in-depth conversation with Claude or GPT? Mix and match the character image and underlying reply model freely.
@@ -92,6 +92,21 @@ dsh --profile web
 ~~~
 
 If a source installation exposes the command as `pnpm dsh`, keep the same arguments.
+
+### DeepSeek Harness Desktop
+
+Desktop runs the complete Web application inside an Electron window, so the same package works unchanged. Desktop uses its own reserved `desktop` profile:
+
+1. Open DeepSeek Harness Desktop once to initialize it, then install its bundled `dsh` command through **Application → Manage dsh Command**.
+2. Fully quit Desktop (including the tray), then run:
+
+~~~sh
+dsh plugin --profile desktop add dsh-whale-galgame
+~~~
+
+3. Reopen Desktop. To update or remove, replace `add` with `update` or `remove`, again with Desktop closed.
+
+You can also install the package by name from Desktop's **Plugins** page. The fullscreen Galgame view keeps clear of the Windows custom caption and the macOS traffic lights, so window controls stay usable. Saves, affection, and CGs live under `$DSH_HOME`, so Desktop and Web share the same data.
 
 ### Update and remove
 
