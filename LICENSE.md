@@ -32,7 +32,8 @@ Twenty-one of the 22 image files under [`assets/default/`](assets/default/README
 
 - the whale-girl standing sprite and deep-sea palace background carried forward from `dsh-deep-whale`;
 - the eight project-prepared whale-girl expression variants;
-- the five unofficial, AI-assisted Claude-, GPT-, Gemini-, Kimi-, and Grok-inspired default standing sprites.
+- the Claude, GPT, and Grok default standing sprites by ZipZipPipe, adapted (background removed, cropped, converted to WebP) from the CC BY-NC-SA 4.0 originals;
+- the two unofficial, AI-assisted Gemini- and Kimi-inspired default standing sprites;
 - the six new, AI-assisted role backgrounds created for this project.
 
 For AI-assisted or otherwise project-produced visual material, this license grant applies only to the extent that the maintainer holds the applicable rights. It does not grant rights in third-party names, marks, upstream character contributions, or model output beyond what applicable law and the relevant service terms permit.

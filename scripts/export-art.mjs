@@ -24,10 +24,10 @@ const files = {
   'bg-gemini-twin-creative-studio': ['image/webp', 'bg-gemini-twin-creative-studio.webp'],
   'bg-kimi-moonlit-reading-study': ['image/webp', 'bg-kimi-moonlit-reading-study.webp'],
   'bg-grok-electronics-studio': ['image/webp', 'bg-grok-electronics-studio.webp'],
-  'claude-amber-manuscript-mediator-v5': ['image/webp', 'claude-amber-manuscript-mediator-v5.webp'],
+  'claude-zipzippipe': ['image/webp', 'claude-zipzippipe.webp'],
   'gemini-dual-prism-translator-v4': ['image/webp', 'gemini-dual-prism-translator-v4.webp'],
-  'gpt-recursive-weaver-v7': ['image/webp', 'gpt-recursive-weaver-v7.webp'],
-  'grok-cosmic-signal-ranger-v5': ['image/webp', 'grok-cosmic-signal-ranger-v5.webp'],
+  'gpt-zipzippipe': ['image/webp', 'gpt-zipzippipe.webp'],
+  'grok-zipzippipe': ['image/webp', 'grok-zipzippipe.webp'],
   'kimi-lunar-scroll-navigator-v5': ['image/webp', 'kimi-lunar-scroll-navigator-v5.webp'],
 }
 
