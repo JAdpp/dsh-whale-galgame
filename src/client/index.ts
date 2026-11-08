@@ -33,6 +33,20 @@ const CSS = [
   '.whg-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:brightness(.94)}',
   '.whg-bg-fallback{background:linear-gradient(180deg,#0a1e3d,#06203f)}',
   '.whg-vignette{position:absolute;inset:0;background:linear-gradient(180deg,rgba(3,8,20,.4) 0%,rgba(3,8,20,0) 28%,rgba(3,8,20,0) 55%,rgba(3,8,20,.82) 100%);pointer-events:none}',
+  '.whg-ambience{position:absolute;inset:0;z-index:1;overflow:hidden;pointer-events:none;color:var(--whg-ambience-color,#fff1d3);animation-play-state:running}',
+  '.whg-ambience[data-paused="true"]{animation-play-state:paused}.whg-ambience *{animation-play-state:inherit!important}',
+  '.whg-particle{position:absolute;bottom:-18px;left:var(--whg-x);width:var(--whg-size);height:var(--whg-size);border:1px solid currentColor;box-sizing:border-box;border-radius:50%;background:currentColor;opacity:0;box-shadow:0 0 8px currentColor;animation:whgParticleRise var(--whg-duration) var(--whg-delay) linear infinite}',
+  '.whg-ambience[data-variant="bubble"] .whg-particle{background:transparent;box-shadow:inset 1px 1px 3px currentColor,0 0 5px currentColor}',
+  '.whg-ambience[data-variant="star"] .whg-particle{border:0;clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%);animation-name:whgStarRise}',
+  '.whg-ambience[data-variant="circuit"] .whg-particle{border-radius:1px;box-shadow:0 0 9px currentColor}',
+  '@keyframes whgParticleRise{0%{opacity:0;transform:translate(0,0)}15%,70%{opacity:.35}100%{opacity:0;transform:translate(var(--whg-drift),-105vh)}}',
+  '@keyframes whgStarRise{0%,19%,23%,58%,62%,100%{opacity:0}21%,60%{opacity:.65}0%{transform:translateY(0)}100%{transform:translateY(-105vh)}}',
+  '.whg-caustics{position:absolute;inset:-15%;opacity:.1;mix-blend-mode:screen;background:radial-gradient(ellipse at 23% 34%,transparent 20%,currentColor 21%,transparent 24%),radial-gradient(ellipse at 72% 63%,transparent 27%,currentColor 28%,transparent 31%);background-size:63% 72%,78% 63%;filter:blur(9px);animation:whgCaustics 28s ease-in-out infinite alternate}',
+  '@keyframes whgCaustics{from{transform:translate(-3%,-2%) rotate(-5deg) scale(1)}to{transform:translate(4%,3%) rotate(5deg) scale(1.08)}}',
+  '.whg-ui-hidden>:not(.whg-bg):not(.whg-crossfade-bg):not(.whg-vignette):not(.whg-stage):not(.whg-ambience):not(.whg-restore-hint){visibility:hidden;pointer-events:none}',
+  '.whg-restore-hint{position:absolute;bottom:5%;left:0;right:0;z-index:7;text-align:center;color:rgba(225,239,247,.4);font-size:12px;letter-spacing:.12em;pointer-events:none;animation:whgRestoreHint 3s ease forwards}',
+  '@keyframes whgRestoreHint{0%,70%{opacity:1}100%{opacity:0}}',
+  '@media (prefers-reduced-motion:reduce){.whg-ambience{display:none}.whg-particle,.whg-caustics,.whg-restore-hint{animation:none}}',
   '.whg-top{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:10px;padding:14px 20px;z-index:5}',
   '.whg-title{font-size:17px;font-weight:800;letter-spacing:1px;color:#dcecff;text-shadow:0 2px 12px rgba(0,20,60,.9)}',
   '.whg-chip-wrap{position:relative;display:flex;min-width:0}',
@@ -136,7 +150,10 @@ const CSS = [
   '.whg-portrait .whg-emotion-bubble{left:76%;top:5%}',
   '.whg-blush{position:absolute;left:14%;top:16%;width:72%;height:28%;background:radial-gradient(ellipse at center,rgba(255,120,160,.9),transparent 70%);border-radius:50%;mix-blend-mode:screen;transition:opacity .5s ease}',
   '.whg-sprite-fallback{height:100%;display:flex;align-items:center;font-size:20vh;filter:drop-shadow(0 18px 40px rgba(0,10,30,.6))}',
-  '.whg-panel{position:absolute;left:5vw;right:5vw;bottom:2.6vh;min-height:26vh;max-height:38vh;background:linear-gradient(180deg,rgba(8,20,42,.9),rgba(4,12,28,.94));border:1px solid rgba(140,200,255,.22);border-radius:22px;backdrop-filter:blur(12px);padding:26px 30px 18px;z-index:4;box-shadow:0 24px 60px rgba(0,8,24,.6);display:flex;flex-direction:column}',
+  '.whg-panel{--whg-brass:#d7b66c;--whg-accent:#8fd8ef;position:absolute;left:5vw;right:5vw;bottom:2.6vh;min-height:26vh;max-height:38vh;background:linear-gradient(180deg,rgba(7,30,45,.96),rgba(3,17,31,.98));border:1px solid rgba(215,182,108,.48);border-radius:22px;backdrop-filter:blur(12px);padding:26px 30px 18px;z-index:4;box-shadow:0 24px 60px rgba(0,8,24,.6),inset 0 1px var(--whg-accent);display:flex;flex-direction:column}',
+  '.whg-panel:before,.whg-panel:after{content:"";position:absolute;left:8px;right:8px;height:10px;border-left:2px solid var(--whg-brass);border-right:2px solid var(--whg-brass);pointer-events:none}',
+  '.whg-panel:before{top:8px;background:linear-gradient(var(--whg-brass),var(--whg-brass)) left top/10px 2px no-repeat,linear-gradient(var(--whg-brass),var(--whg-brass)) right top/10px 2px no-repeat}',
+  '.whg-panel:after{bottom:8px;background:linear-gradient(var(--whg-brass),var(--whg-brass)) left bottom/10px 2px no-repeat,linear-gradient(var(--whg-brass),var(--whg-brass)) right bottom/10px 2px no-repeat}',
   '.whg-plate{position:absolute;top:-17px;left:26px;padding:6px 20px;border-radius:999px;font-weight:800;font-size:15px;color:#04121f;letter-spacing:2px;box-shadow:0 4px 16px rgba(0,10,30,.4)}',
   '.whg-plate.user{background:#ff9cc8}',
   '.whg-plate.narrator{background:#8fb4dd}',
@@ -144,13 +161,20 @@ const CSS = [
   '.whg-level{position:absolute;top:14px;right:24px;display:flex;align-items:center;gap:8px;font-size:12px;color:#a9c6e8}',
   '.whg-level-track{width:140px;height:6px;border-radius:3px;background:rgba(255,255,255,.14);overflow:hidden}',
   '.whg-level-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,#4aa8ff,#ff7ab8);transition:width .6s ease}',
-  '.whg-line-now{font-size:clamp(16px,1.7vw,22px);line-height:1.8;animation:whgIn .45s ease;padding-top:6px}',
-  '.whg-line-now.narrator{color:#8fb4dd;font-style:italic;font-size:clamp(14px,1.4vw,18px)}',
+  '.whg-line-now{font-family:"LXGW WenKai","霞鹜文楷","LXGW WenKai Screen","Source Han Serif SC","思源宋体","Noto Serif SC","Songti SC","STSong","SimSun",serif;font-size:clamp(16px,1.7vw,22px);line-height:1.8;animation:whgIn .45s ease;padding-top:6px}',
+  '.whg-panel[data-font="system"] .whg-line-now{font-family:system-ui,"Segoe UI","Microsoft YaHei",sans-serif}',
+  '.whg-line-now.narrator{color:#9aafc1;letter-spacing:.06em;font-size:clamp(14px,1.4vw,18px)}',
   '.whg-line-now.user{color:#ffd9ec}',
   '.whg-line-now{cursor:pointer;white-space:pre-wrap}',
-  '.whg-text-speed{position:absolute;top:8px;right:14px;padding:4px 9px;font-size:11px}',
+  '.whg-text-speed{position:absolute;top:8px;right:14px;font-size:11px;z-index:6}',
+  '.whg-settings-trigger{padding:4px 9px;font-size:14px;color:#e6d2a3;border-color:rgba(215,182,108,.48)}',
+  '.whg-display-popover.whg-picker{box-sizing:border-box;top:auto;bottom:calc(100% + 8px);left:auto;right:0;width:min(300px,calc(100vw - 52px));max-height:min(430px,60vh);padding:12px;font-size:13px}',
+  '.whg-display-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;color:#dbe9ee}',
+  '.whg-display-row select{max-width:130px;padding:4px 8px;border:1px solid rgba(215,182,108,.45);border-radius:6px;background:#092536;color:#f1e2bf;font:inherit}',
+  '.whg-display-row input{accent-color:#d7b66c;min-width:0;max-width:125px}.whg-display-row:has(input:disabled){opacity:.5}',
+  '.whg-display-row :is(button,input,select):focus-visible{outline:2px solid #d7b66c;outline-offset:3px}',
   '.whg-level{right:112px}',
-  '.whg-type-cursor{display:inline-block;margin-left:8px;color:#b7dbf4;font-size:14px;animation:whgCursorBlink .7s steps(2,end) infinite}',
+  '.whg-type-cursor{display:inline-block;margin-left:8px;color:var(--whg-accent,#b7dbf4);font-size:14px;animation:whgCursorBlink .7s steps(2,end) infinite}',
   '.whg-advance-cursor{animation:whgCursorFloat 1.8s ease-in-out infinite}',
   '@keyframes whgCursorBlink{50%{opacity:0}}',
   '@keyframes whgCursorFloat{50%{transform:translateY(4px)}}',
@@ -189,13 +213,15 @@ const CSS = [
   '@keyframes whgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}',
   '.whg-fallback-note{font-size:11px;color:#e8b04b;margin-top:6px}',
   '.whg-choices{display:flex;flex-direction:column;gap:8px;margin-top:10px}',
-  '.whg-choice{background:rgba(140,200,255,.1);border:1px solid rgba(140,200,255,.35);color:#dcebff;border-radius:14px;padding:9px 16px;font-size:clamp(13px,1.3vw,16px);cursor:pointer;text-align:left;line-height:1.5;font-family:inherit}',
-  '.whg-choice:hover{background:rgba(140,200,255,.22);border-color:rgba(160,215,255,.65)}',
+  '.whg-choice{background:rgba(215,182,108,.06);border:1px solid rgba(215,182,108,.32);color:#e3edf2;border-radius:14px;padding:9px 16px;font-size:clamp(13px,1.3vw,16px);cursor:pointer;text-align:left;line-height:1.5;font-family:inherit}',
+  '.whg-choice:hover,.whg-choice:focus-visible{background:rgba(215,182,108,.13);border-color:rgba(215,182,108,.65);border-left-color:var(--whg-accent);box-shadow:inset 2px 0 var(--whg-accent)}',
+  '.whg-panel .whg-choice:focus-visible,.whg-send:focus-visible{outline:2px solid var(--whg-brass);outline-offset:2px}',
   '.whg-choice:disabled{opacity:.5;cursor:default}',
   '.whg-input-row{display:flex;gap:8px;margin-top:10px}',
   '.whg-input{flex:1;background:rgba(255,255,255,.09);border:1px solid rgba(140,200,255,.32);color:#eaf5ff;border-radius:14px;padding:10px 14px;font-size:clamp(13px,1.3vw,16px);outline:none;font-family:inherit;min-width:0}',
   '.whg-input:focus{border-color:rgba(160,215,255,.75)}',
-  '.whg-send{background:linear-gradient(135deg,#2f7fd6,#7a5fd6);border:none;color:#fff;border-radius:14px;padding:0 20px;font-size:14px;cursor:pointer;font-weight:700;font-family:inherit}',
+  '.whg-send{background:linear-gradient(135deg,#174456,#0c293b);border:1px solid rgba(215,182,108,.5);color:#f1e2bf;border-radius:14px;padding:0 20px;font-size:14px;cursor:pointer;font-weight:700;font-family:inherit}',
+  '.whg-send:hover,.whg-send:focus-visible{background:linear-gradient(135deg,#265264,#173b4d);border-color:var(--whg-brass);box-shadow:inset 0 0 12px rgba(215,182,108,.1)}',
   '.whg-send:disabled{opacity:.5;cursor:default}',
   '@media (max-height:700px){.whg-sprite-wrap,.whg-root-tab .whg-sprite-wrap{height:min(84vh,100%);transform:translateY(2vh) scale(1.1)}.whg-sprite-wrap.whg-portrait,.whg-root-tab .whg-sprite-wrap.whg-portrait{height:32vh;margin-bottom:48vh;transform:translateY(0) scale(1.1)}.whg-panel,.whg-root-tab .whg-panel{box-sizing:border-box;min-height:28vh;max-height:44vh;bottom:1vh;padding:38px 22px 12px}.whg-line-now{min-height:0;overflow-y:auto;font-size:16px;line-height:1.55}.whg-choices{min-height:0;overflow-y:auto;gap:5px;margin-top:8px}.whg-choice{padding:6px 10px}.whg-input-row{flex-shrink:0;margin-top:8px}.whg-cast-slot,.whg-cast-slot[data-lead="true"]{height:84vh}}',
   '@media (max-width:720px),(max-aspect-ratio:3/4){.whg-sprite-wrap,.whg-root-tab .whg-sprite-wrap{height:min(78vh,100%);transform:translateY(3vh) scale(1.1)}.whg-sprite-wrap.whg-portrait,.whg-root-tab .whg-sprite-wrap.whg-portrait{height:32vh;margin-bottom:50vh;transform:translateY(0) scale(1.1)}.whg-panel,.whg-root-tab .whg-panel{box-sizing:border-box;left:10px;right:10px;bottom:1vh;min-height:28vh;max-height:46vh;padding:42px 14px 12px}.whg-plate{left:14px;max-width:calc(100% - 64px);box-sizing:border-box;overflow-wrap:anywhere;padding:6px 14px;font-size:13px;letter-spacing:1px}.whg-level{top:18px;left:14px;right:auto;gap:5px;font-size:10px}.whg-level-track{width:clamp(36px,12vw,80px)}.whg-text-speed{top:15px;right:12px;font-size:10px;padding:3px 7px}.whg-line-now{min-height:0;overflow-y:auto;font-size:16px;line-height:1.6}.whg-choices{min-height:0;overflow-y:auto;gap:5px;margin-top:8px}.whg-choice{padding:6px 10px;font-size:12px}.whg-input-row{flex-shrink:0;margin-top:8px}.whg-input{min-width:0}.whg-send{padding:0 12px}.whg-cast-slot,.whg-cast-slot[data-lead="true"]{height:78vh}}',
@@ -228,6 +254,11 @@ const CSS = [
   '.whg-archive-empty{display:grid;place-items:center;min-height:220px;padding:24px;color:#8fb1c5;text-align:center;font-size:13px;line-height:1.8;border:1px dashed rgba(143,216,239,.22);border-radius:14px;background:rgba(1,10,20,.18)}',
   '.whg-archive-error{padding:14px;border:1px solid rgba(255,154,154,.3);border-radius:12px;background:rgba(102,25,35,.2);color:#ffc1c1;font-size:13px;line-height:1.6}',
   '.whg-archive-error .whg-btn{display:block;margin-top:10px}',
+  '.whg-history-replay{grid-column:1/-1;display:grid;grid-template-columns:48px minmax(0,1fr);gap:10px;width:100%;min-width:0;padding:0;border:0;background:transparent;color:inherit;text-align:left;font:inherit;cursor:pointer}',
+  '.whg-history-replay:focus-visible{outline:2px solid #d7b66c;outline-offset:4px;border-radius:4px}',
+  '.whg-history-emotion{display:inline-block;margin-left:8px;padding:1px 6px;border:1px solid rgba(215,182,108,.35);border-radius:8px;color:#e7ce96;font-size:12px}',
+  '.whg-history-expression{grid-column:1/-1;display:flex;align-items:center;gap:12px;min-width:0;margin-top:10px;padding:12px;border:1px solid rgba(215,182,108,.4);border-radius:10px;background:rgba(215,182,108,.07);color:#f1e2bf;font-size:18px;line-height:1.6;overflow-wrap:anywhere}',
+  '.whg-history-expression img{width:70px;height:100px;object-fit:contain;flex:none}',
   '.whg-history{display:flex;flex-direction:column;gap:12px;user-select:text}',
   '.whg-history-row{display:grid;grid-template-columns:48px minmax(0,1fr);gap:10px;align-items:start}',
   '.whg-skit-log{display:flex;flex-direction:column;gap:20px}',
@@ -240,7 +271,7 @@ const CSS = [
   '.whg-history-who{padding-top:8px;color:#85bbca;font:700 10px/1.3 Consolas,monospace;letter-spacing:1px;text-align:right}',
   '.whg-history-text{margin:0;padding:9px 12px;border-left:2px solid rgba(127,208,255,.4);background:rgba(4,22,36,.56);color:#dff3ff;font-size:13px;line-height:1.7;white-space:pre-wrap;word-break:break-word}',
   '.whg-history-row.user .whg-history-text{border-left-color:#ff9cc8;color:#ffe4f1}',
-  '.whg-history-row.narrator .whg-history-text{border-left-color:#748ea8;color:#9eb6ca;font-style:italic}',
+  '.whg-history-row.narrator .whg-history-text{border-left-color:#748ea8;color:#9eb6ca;letter-spacing:.06em}',
   '.whg-gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}',
   '.whg-gallery-card{position:relative;min-width:0;overflow:hidden;padding:0;border:1px solid rgba(143,216,239,.24);border-radius:12px;background:#061725;color:#eaf7ff;cursor:pointer;text-align:left}',
   '.whg-gallery-card:hover{border-color:rgba(215,182,108,.65);transform:translateY(-1px)}',
@@ -563,16 +594,329 @@ const TEXT_SPEEDS = [
 function readTextSpeed(): number {
   try {
     const saved = localStorage.getItem('whg-text-speed')
-    const index = TEXT_SPEEDS.findIndex((speed) => speed.label === saved)
+    const label = saved ?? JSON.parse(localStorage.getItem('whg-display-settings') || '{}').textSpeed
+    const index = TEXT_SPEEDS.findIndex((speed) => speed.label === label)
     return index < 0 ? 1 : index
   } catch {
     return 1
   }
 }
 
+type DisplaySettings = { font: 'literary' | 'system'; ambience: boolean; sound: boolean; volume: number; bgm: boolean }
+const DEFAULT_DISPLAY_SETTINGS: DisplaySettings = { font: 'literary', ambience: true, sound: false, volume: 50, bgm: false }
+
+function readDisplaySettings(): DisplaySettings {
+  try {
+    const saved = JSON.parse(localStorage.getItem('whg-display-settings') || '{}')
+    return {
+      font: saved.font === 'system' ? 'system' : 'literary',
+      ambience: typeof saved.ambience === 'boolean' ? saved.ambience : true,
+      sound: saved.sound === true,
+      volume: typeof saved.volume === 'number' && Number.isFinite(saved.volume) ? Math.max(0, Math.min(100, saved.volume)) : 50,
+      bgm: saved.bgm === true,
+    }
+  } catch {
+    return { ...DEFAULT_DISPLAY_SETTINGS }
+  }
+}
+
+// Generated once from fixed integer sequences, never from render-time randomness.
+const AMBIENCE_PARTICLES = Array.from({ length: 12 }, (_, index) => ({
+  x: ((index * 37 + 11) % 100) + '%', size: (2 + (index * 7) % 6) + 'px',
+  duration: (22 + (index * 11) % 25) + 's', delay: (-index * 4.7) + 's',
+  drift: (((index * 29) % 65) - 32) + 'px',
+}))
+
+function ambienceVariant(characterId: string): { variant: string; color: string } {
+  if (characterId === 'deepseek') return { variant: 'bubble', color: '#7fd0ff' }
+  if (characterId === 'kimi') return { variant: 'star', color: '#c6d5ff' }
+  if (characterId === 'grok') return { variant: 'circuit', color: '#25c7d9' }
+  return { variant: 'dust', color: '#fff1d3' }
+}
+
+function Ambience(props: { characterId: string; enabled: boolean; paused: boolean }): React.ReactElement | null {
+  const [reducedMotion, setReducedMotion] = useState(() => window.matchMedia('(prefers-reduced-motion:reduce)').matches)
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-reduced-motion:reduce)')
+    const update = () => setReducedMotion(media.matches)
+    media.addEventListener('change', update)
+    return () => media.removeEventListener('change', update)
+  }, [])
+  if (!props.enabled || reducedMotion) return null
+  const { variant, color } = ambienceVariant(props.characterId)
+  return React.createElement('div', {
+    className: 'whg-ambience', 'aria-hidden': true, 'data-variant': variant, 'data-paused': String(props.paused),
+    style: { '--whg-ambience-color': color } as React.CSSProperties,
+  },
+    React.createElement('div', { className: 'whg-caustics' }),
+    AMBIENCE_PARTICLES.map((particle, index) => React.createElement('span', {
+      key: index, className: 'whg-particle', style: {
+        '--whg-x': particle.x, '--whg-size': particle.size, '--whg-duration': particle.duration,
+        '--whg-delay': particle.delay, '--whg-drift': particle.drift,
+      } as React.CSSProperties,
+    })),
+  )
+}
+
+function useStageVisibility(rootRef: { current: HTMLDivElement | null }, enabled: boolean, scope: string): boolean {
+  const [visible, setVisible] = useState(false)
+  useEffect(() => {
+    const root = rootRef.current
+    if (!root || !enabled) { setVisible(false); return undefined }
+    let intersecting = !!root.getClientRects().length
+    const sync = () => setVisible(intersecting && !!root.getClientRects().length && !document.hidden)
+    const observer = new IntersectionObserver((entries) => {
+      intersecting = entries.some((entry) => entry.isIntersecting)
+      sync()
+    })
+    observer.observe(root)
+    document.addEventListener('visibilitychange', sync)
+    sync()
+    return () => { observer.disconnect(); document.removeEventListener('visibilitychange', sync) }
+  }, [enabled, scope])
+  return enabled && visible
+}
+
+// Shared with Typewriter: mounted but hidden conversations never own shortcuts.
+function stageOwnsKeyboard(node: HTMLElement | null): boolean {
+  const root = node?.closest('.whg-root,.whg-root-tab')
+  if (!root || document.hidden || !root.getClientRects().length) return false
+  const focused = document.activeElement
+  if (focused instanceof HTMLElement && focused !== document.body && focused !== document.documentElement) {
+    return root.contains(focused)
+  }
+  const roots = Array.from(document.querySelectorAll<HTMLElement>('.whg-root,.whg-root-tab'))
+    .filter((item) => {
+      const rect = item.getBoundingClientRect()
+      return item.getClientRects().length && rect.bottom > 0 && rect.right > 0
+        && rect.top < window.innerHeight && rect.left < window.innerWidth && getComputedStyle(item).visibility !== 'hidden'
+    })
+  return root === (roots.find((item) => item.classList.contains('whg-root')) || roots[roots.length - 1])
+}
+
+function canScrollUp(target: EventTarget | null, panel: HTMLElement): boolean {
+  let node = target instanceof Element ? target : null
+  while (node && panel.contains(node)) {
+    if (node instanceof HTMLElement && node.scrollHeight > node.clientHeight && node.scrollTop > 0
+      && /auto|scroll/.test(getComputedStyle(node).overflowY)) return true
+    if (node === panel) break
+    node = node.parentElement
+  }
+  return false
+}
+
+type SynthSound = 'click' | 'tick' | 'affection' | 'level'
+const AUDIO_MODES: Record<string, { root: number; third: number }> = {
+  deepseek: { root: 146.83, third: 4 }, claude: { root: 174.61, third: 4 },
+  grok: { root: 164.81, third: 3 }, kimi: { root: 130.81, third: 4 },
+  chatgpt: { root: 196, third: 4 }, gemini: { root: 164.81, third: 4 },
+}
+
+function createProgrammaticAudio() {
+  let context: AudioContext | null = null
+  let master: GainNode | null = null
+  let settings = { ...DEFAULT_DISPLAY_SETTINGS }
+  let characterId = 'deepseek'
+  let visible = false
+  let disposed = false
+  let lastTick = -Infinity
+  let bgm: { characterId: string; bus: GainNode; nodes: AudioNode[]; sources: OscillatorNode[] } | null = null
+  const disconnectTimers = new Set<ReturnType<typeof setTimeout>>()
+
+  function stopBgm(): void {
+    if (!context || !bgm) return
+    const old = bgm
+    bgm = null
+    const now = context.currentTime
+    old.bus.gain.cancelScheduledValues(now)
+    old.bus.gain.setValueAtTime(old.bus.gain.value, now)
+    old.bus.gain.linearRampToValueAtTime(0, now + .18)
+    old.sources.forEach((oscillator) => { try { oscillator.stop(now + .2) } catch { /* already stopped */ } })
+    const timer = setTimeout(() => {
+      old.nodes.forEach((node) => node.disconnect())
+      disconnectTimers.delete(timer)
+    }, 240)
+    disconnectTimers.add(timer)
+  }
+
+  function syncBgm(): void {
+    if (!context || !master || disposed) return
+    master.gain.setTargetAtTime(settings.volume / 100, context.currentTime, .04)
+    if (!settings.bgm || !visible || document.hidden || context.state !== 'running') { stopBgm(); return }
+    if (bgm?.characterId === characterId) return
+    stopBgm()
+    const now = context.currentTime
+    const mode = AUDIO_MODES[characterId] || AUDIO_MODES.deepseek
+    const bus = context.createGain()
+    const filter = context.createBiquadFilter()
+    filter.type = 'lowpass'
+    filter.frequency.value = 700
+    filter.Q.value = .5
+    bus.gain.setValueAtTime(0, now)
+    // The BGM bus is 30% of the master volume, with quiet individual pads.
+    bus.gain.linearRampToValueAtTime(.3, now + .6)
+    filter.connect(bus).connect(master)
+    const sources: OscillatorNode[] = []
+    const nodes: AudioNode[] = [bus, filter]
+    const sweep = context.createOscillator()
+    const sweepDepth = context.createGain()
+    sweep.frequency.value = .018
+    sweepDepth.gain.value = 450
+    sweep.connect(sweepDepth).connect(filter.frequency)
+    sources.push(sweep)
+    nodes.push(sweep, sweepDepth)
+    ;[0, mode.third, 7].forEach((semitones, index) => {
+      const oscillator = context!.createOscillator()
+      oscillator.type = index === 1 ? 'triangle' : 'sine'
+      oscillator.frequency.value = mode.root * Math.pow(2, semitones / 12) / 2
+      const envelope = context!.createGain()
+      envelope.gain.value = .035
+      const breath = context!.createOscillator()
+      const depth = context!.createGain()
+      breath.frequency.value = .035 + index * .013
+      depth.gain.value = .025
+      breath.connect(depth).connect(envelope.gain)
+      oscillator.connect(envelope).connect(filter)
+      sources.push(oscillator, breath)
+      nodes.push(oscillator, breath, envelope, depth)
+    })
+    sources.forEach((oscillator) => oscillator.start(now))
+    bgm = { characterId, bus, nodes, sources }
+  }
+
+  // This is called only by pointer/keyboard/change event handlers. Neither
+  // effects nor visibility callbacks may create or resume an AudioContext.
+  function onUserGesture(nextSettings?: DisplaySettings): void {
+    if (nextSettings) settings = nextSettings
+    if (disposed || (!settings.sound && !settings.bgm)) return
+    try {
+      if (!context) {
+        const AudioContext = window.AudioContext || (window as any).webkitAudioContext
+        if (!AudioContext) return
+        context = new AudioContext()
+        master = context!.createGain()
+        master.gain.value = settings.volume / 100
+        master.connect(context!.destination)
+      }
+      if (context!.state === 'suspended') void context!.resume().then(syncBgm).catch(() => {})
+      else syncBgm()
+    } catch { /* unsupported or blocked audio leaves the novel usable */ }
+  }
+
+  function tone(frequency: number, offset: number, duration: number, amplitude: number, type: OscillatorType): void {
+    if (!context || !master) return
+    const now = context.currentTime + offset
+    const oscillator = context.createOscillator()
+    const envelope = context.createGain()
+    oscillator.type = type
+    oscillator.frequency.setValueAtTime(frequency, now)
+    envelope.gain.setValueAtTime(0, now)
+    envelope.gain.linearRampToValueAtTime(amplitude, now + .008)
+    envelope.gain.exponentialRampToValueAtTime(.0001, now + duration)
+    oscillator.connect(envelope).connect(master)
+    oscillator.onended = () => { oscillator.disconnect(); envelope.disconnect() }
+    oscillator.start(now)
+    oscillator.stop(now + duration + .01)
+  }
+
+  function play(kind: SynthSound): void {
+    if (!settings.sound || !visible || document.hidden || !context || context.state !== 'running') return
+    if (kind === 'tick') {
+      if (context.currentTime - lastTick < .05) return
+      lastTick = context.currentTime
+      tone(1050, 0, .025, .004, 'sine')
+    } else if (kind === 'click') tone(420, 0, .06, .045, 'triangle')
+    else if (kind === 'affection') {
+      tone(523.25, 0, .24, .04, 'sine')
+      tone(659.25, .075, .3, .035, 'sine')
+    } else [783.99, 987.77, 1174.66].forEach((frequency, index) => tone(frequency, index * .12, .65, .035, 'sine'))
+  }
+
+  return {
+    onUserGesture, play,
+    configure(next: DisplaySettings, nextCharacter: string, nextVisible: boolean) {
+      disposed = false
+      settings = next; characterId = nextCharacter; visible = nextVisible
+      syncBgm()
+    },
+    dispose() {
+      disposed = true
+      stopBgm()
+      disconnectTimers.forEach(clearTimeout)
+      disconnectTimers.clear()
+      if (context) void context.close().catch(() => {})
+      context = null; master = null
+    },
+  }
+}
+
+function DisplaySettingsPopover(props: {
+  settings: DisplaySettings; speedControl: React.ReactNode; open: boolean
+  onOpenChange: (open: boolean) => void; onChange: (patch: Partial<DisplaySettings>) => void
+}): React.ReactElement {
+  const wrapperRef = useRef<HTMLDivElement | null>(null)
+  const triggerRef = useRef<HTMLButtonElement | null>(null)
+  const popoverRef = useRef<HTMLDivElement | null>(null)
+  const close = () => { props.onOpenChange(false); requestAnimationFrame(() => triggerRef.current?.focus()) }
+  useEffect(() => {
+    if (!props.open) return undefined
+    const frame = requestAnimationFrame(() => popoverRef.current?.querySelector<HTMLElement>('select,button,input')?.focus())
+    const onPointerDown = (event: PointerEvent) => {
+      if (event.target instanceof Node && !wrapperRef.current?.contains(event.target)) close()
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || !wrapperRef.current || !stageOwnsKeyboard(wrapperRef.current)) return
+      event.preventDefault()
+      event.stopPropagation()
+      close()
+    }
+    document.addEventListener('pointerdown', onPointerDown, true)
+    document.addEventListener('keydown', onKeyDown, true)
+    return () => {
+      cancelAnimationFrame(frame)
+      document.removeEventListener('pointerdown', onPointerDown, true)
+      document.removeEventListener('keydown', onKeyDown, true)
+    }
+  }, [props.open])
+  const toggle = (label: string, key: 'ambience' | 'sound' | 'bgm') => React.createElement('label', { className: 'whg-display-row' },
+    label,
+    React.createElement('button', {
+      className: 'whg-btn', type: 'button', role: 'switch', 'aria-label': label, 'aria-checked': props.settings[key],
+      onClick: () => props.onChange({ [key]: !props.settings[key] }),
+    }, props.settings[key] ? '开' : '关'),
+  )
+  return React.createElement('div', { className: 'whg-text-speed', ref: wrapperRef },
+    React.createElement('button', {
+      ref: triggerRef, className: 'whg-btn whg-settings-trigger', type: 'button',
+      'aria-label': '显示设置', 'aria-expanded': props.open, 'aria-haspopup': 'dialog',
+      onClick: () => { if (props.open) close(); else props.onOpenChange(true) },
+    }, '⚙'),
+    props.open ? React.createElement('div', {
+      ref: popoverRef, className: 'whg-picker whg-display-popover', role: 'dialog', 'aria-label': '显示设置',
+    },
+      React.createElement('div', { className: 'whg-picker-head' }, '显示设置',
+        React.createElement('button', { className: 'whg-btn', type: 'button', 'aria-label': '关闭显示设置', onClick: close }, '×')),
+      props.speedControl,
+      React.createElement('label', { className: 'whg-display-row' }, '台词字体',
+        React.createElement('select', {
+          'aria-label': '台词字体', value: props.settings.font,
+          onChange: (event: any) => props.onChange({ font: event.target.value }),
+        }, React.createElement('option', { value: 'literary' }, '文艺'), React.createElement('option', { value: 'system' }, '系统'))),
+      toggle('氛围特效', 'ambience'), toggle('音效', 'sound'),
+      React.createElement('label', { className: 'whg-display-row' }, '音量 · ' + props.settings.volume,
+        React.createElement('input', {
+          type: 'range', min: 0, max: 100, value: props.settings.volume, disabled: !props.settings.sound,
+          'aria-label': '音量', 'aria-valuetext': props.settings.volume + '%',
+          onChange: (event: any) => props.onChange({ volume: Number(event.target.value) }),
+        })),
+      toggle('BGM', 'bgm'),
+    ) : null,
+  )
+}
+
 function Typewriter(props: {
   text: string; lineId: string; speed: number; instant?: boolean
-  canAdvance?: boolean; onAdvance?: () => void; keyboardEnabled: boolean; className: string
+  canAdvance?: boolean; onAdvance?: () => void; onTick?: () => void; keyboardEnabled: boolean; className: string
 }): React.ReactElement {
   const chars = Array.from(props.text)
   // Keeping this component mounted across lines is intentional: an existing
@@ -605,7 +949,10 @@ function Typewriter(props: {
       if (line.count < chars.length) setLine({ ...line, count: chars.length })
       return undefined
     }
-    const timer = setTimeout(() => setLine({ ...line, count: count + 1 }), props.speed)
+    const timer = setTimeout(() => {
+      setLine({ ...line, count: count + 1 })
+      if ((count + 1) % 3 === 0 && lineRef.current?.getClientRects().length) props.onTick?.()
+    }, props.speed)
     return () => clearTimeout(timer)
   }, [props.lineId, props.text, props.speed, props.instant, reducedMotion, line])
 
@@ -622,6 +969,7 @@ function Typewriter(props: {
       if (event.defaultPrevented || event.isComposing || event.repeat || document.hidden
         || !node.getClientRects().length || (event.key !== ' ' && event.key !== 'Enter')) return
       if (target instanceof HTMLElement && (target.closest('input,textarea,button,select') || target.isContentEditable)) return
+      if (!stageOwnsKeyboard(node)) return
       event.preventDefault()
       advance()
     }
@@ -674,6 +1022,11 @@ function CrossfadeImg(props: {
       alt: '', 'aria-hidden': true, draggable: props.draggable,
     }) : null,
   )
+}
+
+const EMOTION_LABELS: Record<string, string> = {
+  normal: '平静', cheerful: '开心', happy: '开心', shy: '害羞', serious: '认真',
+  angry: '生气', confused: '困惑', frightened: '害怕', exasperated: '无奈', starry: '憧憬',
 }
 
 const EMOTION_SYMBOLS: Record<string, string> = {
@@ -1220,6 +1573,20 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
   const [text, setText] = useState('')
   const [skitText, setSkitText] = useState('')
   const [textSpeed, setTextSpeed] = useState(readTextSpeed)
+  const [displaySettings, setDisplaySettings] = useState(readDisplaySettings)
+  const [displayOpen, setDisplayOpen] = useState(false)
+  const [uiHidden, setUiHidden] = useState(false)
+  const [restoreHint, setRestoreHint] = useState(false)
+  const [historyExpression, setHistoryExpression] = useState<number | null>(null)
+  const rootRef = useRef<HTMLDivElement | null>(null)
+  const uiReturnFocus = useRef<HTMLElement | null>(null)
+  const [audio] = useState(createProgrammaticAudio)
+  const stageEnabled = !!s && s.enabled !== false && (props.variant === 'tab' || open)
+  const stageVisible = useStageVisibility(rootRef, stageEnabled, cacheKey)
+  const atmosphereCharacter = String(sideStoryScene()?.cast?.[0]?.id || (s && s.current) || 'deepseek')
+  const rewardCgId = s && s.cg && s.cg.status === 'ready' && s.cg.seen !== true
+    ? String(s.cg.cgId || '').trim()
+    : ''
   const [pendingLine, setPendingLine] = useState<string | null>(null)
   const [affectionFeedback, setAffectionFeedback] = useState<{ id: number; delta: number } | null>(null)
   const [levelUp, setLevelUp] = useState<{ id: number; level: number } | null>(null)
@@ -1290,6 +1657,49 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
   const rewardCgRequestSeq = useRef(0)
 
   useEffect(() => {
+    audio.configure(displaySettings, atmosphereCharacter, stageVisible)
+  }, [audio, displaySettings, atmosphereCharacter, stageVisible])
+
+  useEffect(() => () => audio.dispose(), [audio])
+
+  useEffect(() => {
+    setHistoryExpression(null)
+    setUiHidden(false)
+    setDisplayOpen(false)
+  }, [cacheKey, s && s.current, stageEnabled])
+
+  useEffect(() => {
+    if (!stageVisible) { setUiHidden(false); setDisplayOpen(false) }
+  }, [stageVisible])
+
+  useEffect(() => {
+    if (!uiHidden) { setRestoreHint(false); return undefined }
+    setRestoreHint(true)
+    const timer = setTimeout(() => setRestoreHint(false), 3000)
+    return () => clearTimeout(timer)
+  }, [uiHidden])
+
+  useEffect(() => {
+    const root = rootRef.current
+    if (!stageVisible || !root) return undefined
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.isComposing || event.repeat || event.ctrlKey || event.metaKey || event.altKey
+        || !stageOwnsKeyboard(root)) return
+      const target = document.activeElement
+      if (target instanceof HTMLElement && (target.closest('input,textarea,select,[contenteditable]') || target.isContentEditable)) return
+      if (uiHidden && (event.key === 'Escape' || event.key.toLowerCase() === 'h')) {
+        event.preventDefault()
+        restoreUi()
+      } else if (event.key.toLowerCase() === 'h' && !archivePanel && !pickerPanel && !displayOpen && !levelUp && !(settled && rewardCgId)) {
+        event.preventDefault()
+        hideUi()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [stageVisible, uiHidden, archivePanel, pickerPanel, displayOpen, levelUp, settled, rewardCgId])
+
+  useEffect(() => {
     previousProgress.current = s ? {
       scope: cacheKey, characterId: String(s.current || ''), level: Number(s.level), affection: Number(s.affection), cap: Number(s.cap),
     } : null
@@ -1331,10 +1741,6 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     galleryDetailRequestSeq.current += 1
     rewardCgRequestSeq.current += 1
   }, [props.sessionId])
-
-  const rewardCgId = s && s.cg && s.cg.status === 'ready' && s.cg.seen !== true
-    ? String(s.cg.cgId || '').trim()
-    : ''
 
   useEffect(() => {
     if (!rewardCgId) {
@@ -1675,6 +2081,56 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     return () => cancelAnimationFrame(frame)
   }, [archivePanel, s && s.history && s.history.length])
 
+  function changeDisplaySettings(patch: Partial<DisplaySettings>, speed = textSpeed): void {
+    let next = { ...displaySettings, ...patch }
+    try {
+      localStorage.setItem('whg-display-settings', JSON.stringify({ ...next, textSpeed: TEXT_SPEEDS[speed].label }))
+    } catch { next = { ...DEFAULT_DISPLAY_SETTINGS } }
+    setDisplaySettings(next)
+    audio.configure(next, atmosphereCharacter, stageVisible)
+    audio.onUserGesture(next)
+    if (patch.sound === true) audio.play('click')
+  }
+
+  function hideUi(): void {
+    const focused = document.activeElement
+    uiReturnFocus.current = focused instanceof HTMLElement && rootRef.current?.contains(focused) ? focused : null
+    uiReturnFocus.current?.blur()
+    setDisplayOpen(false)
+    setUiHidden(true)
+  }
+
+  function restoreUi(): void {
+    setUiHidden(false)
+    requestAnimationFrame(() => uiReturnFocus.current?.focus())
+  }
+
+  function onStageClick(event: React.MouseEvent): void {
+    if (!uiHidden) return
+    event.preventDefault()
+    event.stopPropagation()
+    restoreUi()
+  }
+
+  function onStageContextMenu(event: React.MouseEvent): void {
+    const target = event.target
+    if (!(target instanceof Element) || !stageVisible) return
+    if (uiHidden) { event.preventDefault(); restoreUi(); return }
+    if (target.closest('.whg-panel,.whg-top,.whg-archive-scrim,.whg-cg-backdrop,.whg-level-up,.whg-toast')) return
+    event.preventDefault()
+    hideUi()
+  }
+
+  function onPanelWheel(event: React.WheelEvent<HTMLDivElement>): void {
+    if (event.deltaY >= 0 || uiHidden || archivePanel || pickerPanel || displayOpen || levelUp || (settled && rewardCgId)) return
+    if (canScrollUp(event.target, event.currentTarget)) return
+    openArchive('history', event.currentTarget)
+  }
+
+  function playTypeTick(): void {
+    if (stageVisible && !rootRef.current?.classList.contains('whg-ui-hidden') && !archivePanel && !pickerPanel && !displayOpen && !levelUp && !(settled && rewardCgId)) audio.play('tick')
+  }
+
   function act(action: string, args?: any): void {
     if (busy || actionInFlight.current) return
     actionInFlight.current = true
@@ -1682,6 +2138,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     const requestScope = cacheKey
     const before = previousProgress.current
     const isSpeech = action === 'chat' || (action === 'side-story' && args && args.op === 'speak')
+    if (isSpeech || (action === 'side-story' && args && ['choose', 'advance', 'close'].includes(args.op))) audio.play('click')
     const spoken = isSpeech && args && typeof args.text === 'string' ? args.text : null
     if (spoken !== null) setPendingLine(spoken)
     setBusy(true)
@@ -1701,6 +2158,10 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
           const delta = Number(v.affection) - before.affection + (Number(v.level) > before.level ? before.cap : 0)
           if (Number.isFinite(delta) && delta !== 0) setAffectionFeedback({ id: ++feedbackSeq.current, delta })
           if (Number(v.level) > before.level) setLevelUp({ id: ++feedbackSeq.current, level: Number(v.level) })
+          if (stageOwnsKeyboard(rootRef.current) && !rootRef.current?.classList.contains('whg-ui-hidden')) {
+            if (Number(v.level) > before.level) audio.play('level')
+            else if (delta > 0) audio.play('affection')
+          }
         }
         setS(v)
         setApiError(null)
@@ -2332,6 +2793,8 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
 
   function openArchive(kind: 'history' | 'gallery' | 'profile', trigger: HTMLElement): void {
     setPickerPanel(null)
+    setDisplayOpen(false)
+    setHistoryExpression(null)
     if (!archivePanel) archiveReturnFocus.current = trigger
     galleryListRequestSeq.current += 1
     closeGalleryDetail()
@@ -2863,9 +3326,26 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
           history.map((line: any, index: number) => {
             const who = line && line.who === 'heroine' ? s.name : line && line.who === 'user' ? '主人' : '旁白'
             const kind = line && line.who ? String(line.who) : 'narrator'
+            const emotion = line?.emotion === 'happy' ? 'cheerful' : EMOTION_LABELS[line?.emotion] ? line.emotion : 'normal'
+            const symbol = emotion !== 'normal' ? EMOTION_SYMBOLS[emotion] : ''
+            const expressionText = '当时的表情：' + (symbol ? symbol + ' ' : '') + EMOTION_LABELS[emotion]
+            const thumbnail = s.current === 'deepseek' ? art(EMOTION_ART[emotion]) : undefined
             return React.createElement('div', { className: 'whg-history-row ' + kind, key: index + '-' + kind },
-              React.createElement('div', { className: 'whg-history-who' }, who),
-              React.createElement('p', { className: 'whg-history-text' }, line && typeof line.text === 'string' ? line.text : ''),
+              kind === 'heroine' ? React.createElement('button', {
+                className: 'whg-history-replay', type: 'button', 'aria-expanded': historyExpression === index,
+                'aria-label': '回看表情：' + String(line.text || ''),
+                onClick: () => setHistoryExpression(historyExpression === index ? null : index),
+              },
+                React.createElement('span', { className: 'whg-history-who' }, who,
+                  symbol ? React.createElement('span', { className: 'whg-history-emotion', 'aria-label': EMOTION_LABELS[emotion] }, symbol) : null),
+                React.createElement('span', { className: 'whg-history-text' }, line.text || ''),
+              ) : React.createElement(React.Fragment, null,
+                React.createElement('div', { className: 'whg-history-who' }, who),
+                React.createElement('p', { className: 'whg-history-text' }, line && typeof line.text === 'string' ? line.text : '')),
+              kind === 'heroine' && historyExpression === index ? React.createElement('div', { className: 'whg-history-expression', role: 'status' },
+                thumbnail ? React.createElement('img', { src: thumbnail, alt: EMOTION_LABELS[emotion] + '表情差分', loading: 'lazy' }) : null,
+                React.createElement('span', null, expressionText),
+              ) : null,
             )
           }),
         )
@@ -3259,15 +3739,21 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
 
   function textSpeedButton(): React.ReactElement {
     const label = TEXT_SPEEDS[textSpeed].label
-    return React.createElement('button', {
-      className: 'whg-btn whg-text-speed', type: 'button',
-      'aria-label': '文字速度：' + label + '，点击切换下一档',
-      onClick: () => {
-        let next = (textSpeed + 1) % TEXT_SPEEDS.length
-        try { localStorage.setItem('whg-text-speed', TEXT_SPEEDS[next].label) } catch { next = 1 }
-        setTextSpeed(next)
-      },
-    }, '文字 · ' + label)
+    return React.createElement(DisplaySettingsPopover, {
+      settings: displaySettings, open: displayOpen, onChange: changeDisplaySettings,
+      onOpenChange: (next: boolean) => { if (next) setPickerPanel(null); setDisplayOpen(next) },
+      speedControl: React.createElement('label', { className: 'whg-display-row' }, '文字速度',
+        React.createElement('select', {
+          'aria-label': '文字速度：' + label, value: textSpeed,
+          onChange: (event: any) => {
+            let next = Number(event.target.value)
+            if (!Number.isInteger(next) || !TEXT_SPEEDS[next]) next = 1
+            try { localStorage.setItem('whg-text-speed', TEXT_SPEEDS[next].label) } catch { next = 1 }
+            setTextSpeed(next)
+            changeDisplaySettings({}, next)
+          },
+        }, TEXT_SPEEDS.map((speed, index) => React.createElement('option', { key: speed.label, value: index }, speed.label)))),
+    })
   }
 
   function levelMeter(): React.ReactElement {
@@ -3377,7 +3863,10 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
           target: '_blank',
         }, row.title)))
       : null
-    return React.createElement('div', { id: 'whg-panel', className: 'whg-panel' },
+    return React.createElement('div', {
+      id: 'whg-panel', className: 'whg-panel', tabIndex: -1, 'data-font': displaySettings.font, onWheel: onPanelWheel,
+      style: { '--whg-accent': member?.color || plateColor } as React.CSSProperties,
+    },
       React.createElement('div', { className: 'whg-plate' + (isUser ? ' user' : ''), style: { background: plateColor, '--whg-plate-color': plateColor } as React.CSSProperties }, plateLabel),
       textSpeedButton(),
       levelMeter(),
@@ -3388,10 +3877,10 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
         key: 'line-' + s.current,
         lineId: pendingLine !== null ? 'pending-side' : 'side-' + scene.id + '-' + scene.cursor,
         text: pendingLine !== null ? pendingLine : beat ? beat.text : '',
-        speed: TEXT_SPEEDS[textSpeed].ms, instant: pendingLine !== null,
+        speed: TEXT_SPEEDS[textSpeed].ms, instant: pendingLine !== null, onTick: playTypeTick,
         canAdvance: pendingLine === null && !busy && offered.length === 0 && !atEnd,
         onAdvance: () => { act('side-story', { op: 'advance' }) },
-        keyboardEnabled: !busy && !archivePanel && !pickerPanel && !levelUp && !(settled && rewardCgId),
+        keyboardEnabled: !uiHidden && !displayOpen && !busy && !archivePanel && !pickerPanel && !levelUp && !(settled && rewardCgId),
         className: 'whg-line-now ' + (isUser ? 'user' : isNarrator ? 'narrator' : 'heroine'),
       }),
       pendingResponse(scene.cast.map((row: any) => row.name).join('、') || s.name),
@@ -3443,11 +3932,14 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
       key: 'line-' + s.current,
       lineId: pendingLine !== null ? 'pending-chat' : 'now-' + ((s.history || []).length),
       text: last ? last.text : '（点击输入框，开始和' + s.name + '对话吧）',
-      speed: TEXT_SPEEDS[textSpeed].ms, instant: pendingLine !== null,
-      keyboardEnabled: !busy && !archivePanel && !pickerPanel && !levelUp && !(settled && rewardCgId),
+      speed: TEXT_SPEEDS[textSpeed].ms, instant: pendingLine !== null, onTick: playTypeTick,
+      keyboardEnabled: !uiHidden && !displayOpen && !busy && !archivePanel && !pickerPanel && !levelUp && !(settled && rewardCgId),
       className: 'whg-line-now ' + (last ? last.who : 'narrator'),
     })
-    return React.createElement('div', { id: 'whg-panel', className: 'whg-panel' },
+    return React.createElement('div', {
+      id: 'whg-panel', className: 'whg-panel', tabIndex: -1, 'data-font': displaySettings.font, onWheel: onPanelWheel,
+      style: { '--whg-accent': s.color } as React.CSSProperties,
+    },
       React.createElement('div', { className: 'whg-plate' + plateClass, style: { background: plateColor, '--whg-plate-color': plateColor } as React.CSSProperties }, plateLabel),
       textSpeedButton(),
       levelMeter(),
@@ -3535,6 +4027,19 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
   // mounted on its last source until those bytes arrive, including built-in
   // to custom/CG switches.
   const backgroundSrc = nextBackground || lastBackground.current
+  const stageEvents = {
+    ref: rootRef,
+    onPointerDownCapture: () => audio.onUserGesture(),
+    onKeyDownCapture: () => audio.onUserGesture(),
+    onClickCapture: (event: React.MouseEvent) => { audio.onUserGesture(); onStageClick(event) },
+    onContextMenu: onStageContextMenu,
+  }
+  const ambience = React.createElement(Ambience, {
+    characterId: atmosphereCharacter, enabled: displaySettings.ambience, paused: !stageVisible,
+  })
+  const restoreMessage = uiHidden && restoreHint
+    ? React.createElement('div', { className: 'whg-restore-hint', 'aria-hidden': true }, '点击任意处恢复')
+    : null
 
   if (isTab) {
     if (s === null) {
@@ -3557,15 +4062,17 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     const bgEl = bgSrc
       ? React.createElement(CrossfadeImg, { className: 'whg-bg', src: bgSrc, alt: '', draggable: false })
       : React.createElement('div', { className: 'whg-bg whg-bg-fallback' })
-    return React.createElement('div', { id: 'whg-tab-root', className: 'whg-root-tab' },
+    return React.createElement('div', { ...stageEvents, id: 'whg-tab-root', className: 'whg-root-tab' + (uiHidden ? ' whg-ui-hidden' : '') },
       bgEl,
       React.createElement('div', { className: 'whg-vignette' }),
+      ambience,
       topbar(false),
       stage(),
       dialogue(),
       archiveDrawer(),
       levelUp ? progressOverlay() : cgModal(),
       sideStoryToast(),
+      restoreMessage,
     )
   }
 
@@ -3590,15 +4097,17 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
   const bgEl = bgSrc
     ? React.createElement(CrossfadeImg, { className: 'whg-bg', src: bgSrc, alt: '', draggable: false })
     : React.createElement('div', { className: 'whg-bg whg-bg-fallback' })
-  return React.createElement('div', { className: 'whg-root' },
+  return React.createElement('div', { ...stageEvents, className: 'whg-root' + (uiHidden ? ' whg-ui-hidden' : '') },
     bgEl,
     React.createElement('div', { className: 'whg-vignette' }),
+    ambience,
     topbar(true),
     stage(),
     dialogue(),
     archiveDrawer(),
     levelUp ? progressOverlay() : cgModal(),
     sideStoryToast(),
+    restoreMessage,
   )
 }
 
