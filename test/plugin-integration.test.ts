@@ -1,7 +1,142 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { Readable } from 'node:stream'
 import test from 'node:test'
+import { runInNewContext } from 'node:vm'
 import { apply } from '../src/index.ts'
+
+test('community personas remove obsolete identities and retain companion constraints', () => {
+  const source = readFileSync(new URL('../src/index.ts', import.meta.url), 'utf8')
+  const match = source.match(/const ROSTER: Record<string, any> = (\{[\s\S]*?\n\})\n/)
+  assert.ok(match, 'the built-in roster must be present')
+  const roster = runInNewContext('(' + match[1] + ')')
+  for (const id of ['claude', 'chatgpt', 'grok']) {
+    const character = roster[id]
+    for (const field of ['persona', 'tone', 'system']) {
+      assert.doesNotMatch(character[field], /递归编织|琥珀文稿审校|宇宙信号侦察/, id + '.' + field)
+    }
+    assert.equal(character.address, '主人', id)
+    assert.ok(character.system.includes('你是纯情感陪伴角色：绝不写文件、不执行任务、不主动给工作建议，只陪伴主人。'), id)
+    assert.ok(character.system.includes('每次只回复一句话（一屏一句），不超过40字；不要复读主人的话。'), id)
+    assert.ok(character.system.includes('工坊关系：'), id)
+  }
+})
+
+test('community defaults reach chat and preserve custom profiles across legacy reloads', async () => {
+  const root = 'E:\\workspace\\community-personas'
+  const greetings: Record<string, string> = {
+    claude: '「晚上好。咱把书签夹好了——今天想从哪一页说起？」',
+    chatgpt: '「好问题——啊，你还没问呢。来吧，今天的心事我帮你分成三点。」',
+    grok: '「哟，来啦？说吧，想听真话还是听梗——两样我都管够。」',
+  }
+  let diskSave = ''
+  let routeHandler: any = null
+  let useFallback = true
+  const mainRequests: any[] = []
+  const customProfiles: Record<string, any> = {}
+  const fallbackLines: Record<string, string> = {}
+  const services: any = {
+    fs: {
+      resolve: async (name: string) => root + '\\' + name,
+      readText: async () => {
+        if (!diskSave) throw new Error('no save yet')
+        return diskSave
+      },
+      writeText: async (_target: string, value: string) => { diskSave = value },
+    },
+    sandboxPolicy: { resolve: () => undefined },
+    sessions: { list: () => [] },
+    workspaceRegistry: { list: () => [{ path: root }] },
+    agentDefaultModel: { currentSelection: () => ({ provider: 'fixture', model: 'fixture-model' }) },
+  }
+  const ctx: any = {
+    webServer: { register: (route: any) => { routeHandler = route.handler } },
+    llm: {
+      listProviders: () => [{ id: 'fixture', name: 'Fixture' }],
+      listModels: () => [{ id: 'fixture-model', name: 'Fixture Model' }],
+      resolveModelInfo: async () => ({}),
+      stream: async function* (options: any): AsyncGenerator<any> {
+        if (options.system.includes('情绪分类器')) {
+          yield { type: 'text-delta', text: 'normal' }
+        } else if (options.system.includes('对话选项生成器')) {
+          yield { type: 'text-delta', text: '{"positive":"想靠近一点","neutral":"继续聊聊吧","negative":"先静一静"}' }
+        } else {
+          mainRequests.push(options)
+          if (!useFallback) yield { type: 'text-delta', text: '我在听，慢慢说就好。' }
+        }
+      },
+    },
+    inject: (_names: string[], callback: Function) => callback(services),
+    on: () => undefined,
+    effect: (callback: Function) => callback(),
+  }
+  function startPlugin(): void {
+    apply(ctx, { chatProvider: 'fixture', chatModel: 'fixture-model' })
+    assert.equal(typeof routeHandler, 'function')
+  }
+  async function post(action: string, args: any = {}): Promise<any> {
+    const req: any = Readable.from([JSON.stringify({ action, args })])
+    req.method = 'POST'
+    let status = 0
+    let body = ''
+    await routeHandler(req, {
+      writeHead: (value: number) => { status = value },
+      end: (value: string) => { body = value },
+    })
+    assert.equal(status, 200, body)
+    return JSON.parse(body)
+  }
+
+  startPlugin()
+  for (const id of Object.keys(greetings)) {
+    const profile = await post('profile-get', { characterId: id })
+    assert.equal(profile.effective.address, '主人', id)
+    assert.equal(profile.effective.greeting, greetings[id], id)
+    assert.deepEqual(profile.overrides, {}, id)
+    const entered = await post('settings-set', { characterMode: 'manual', characterId: id })
+    assert.equal(entered.view.history.at(-1).text, greetings[id], id)
+    const fallback = await post('chat', { text: '今天想聊聊' })
+    assert.equal(fallback.fallbackUsed, true, id)
+    const line = fallback.history.at(-1).text
+    assert.match(line, /^主人说的话/, id)
+    assert.doesNotMatch(line, /频道|信号|噪声|线索|编织/, id)
+    assert.ok(Array.from(line).length <= 40, id)
+    fallbackLines[id] = line
+    const sentProfile = JSON.parse(mainRequests.at(-1).system.split('\n')[1])
+    assert.deepEqual(sentProfile, profile.effective, id)
+
+    customProfiles[id] = {
+      address: '你', // Equal to the former default: still an explicit user override.
+      greeting: '「' + profile.effective.displayName + '的专属问候。」',
+      persona: '这是用户自己写的性格。',
+      tone: '这是用户自己写的语气。',
+    }
+    const customized = await post('profile-set', { characterId: id, overrides: customProfiles[id] })
+    assert.deepEqual(customized.overrides, customProfiles[id], id)
+  }
+
+  const legacy = JSON.parse(diskSave)
+  legacy.v = 8
+  diskSave = JSON.stringify(legacy)
+  startPlugin()
+  for (const id of Object.keys(greetings)) {
+    const reloaded = await post('profile-get', { characterId: id })
+    assert.deepEqual(reloaded.overrides, customProfiles[id], id)
+    assert.equal(reloaded.builtIn.address, '主人', id)
+    await post('settings-set', { characterMode: 'manual', characterId: id })
+    useFallback = true
+    const fallback = await post('chat', { text: '再陪我一会儿' })
+    assert.match(fallback.history.at(-1).text, /^你说的话/, id)
+    useFallback = false
+    await post('chat', { text: '继续聊聊' })
+    const request = mainRequests.at(-1)
+    assert.deepEqual(JSON.parse(request.system.split('\n')[1]), reloaded.effective, id)
+    assert.ok(request.messages.every((message: any) => message.role !== 'assistant'
+      || ![fallbackLines[id], fallback.history.at(-1).text].includes(message.content[0].text)), id)
+    assert.deepEqual(JSON.parse(diskSave).characters[id].profileOverrides, customProfiles[id], id)
+  }
+  assert.equal(JSON.parse(diskSave).v, 9)
+})
 
 test('binds the active workspace, counts Harness usage, and consumes a safe activity once', async () => {
   const root = 'E:\\workspace\\integration'
@@ -426,7 +561,7 @@ test('stores safe role-local profile overrides and applies the effective profile
     'displayName', 'address', 'greeting', 'persona', 'tone', 'visual',
   ])
   assert.equal(builtIn.builtIn.displayName, '克洛德')
-  assert.equal(builtIn.builtIn.address, '你')
+  assert.equal(builtIn.builtIn.address, '主人')
   assert.equal(Object.prototype.hasOwnProperty.call(builtIn.builtIn, 'system'), false)
   assert.deepEqual(builtIn.overrides, {})
   assert.deepEqual(builtIn.effective, builtIn.builtIn)
