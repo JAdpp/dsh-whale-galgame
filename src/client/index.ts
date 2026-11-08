@@ -127,6 +127,44 @@ const CSS = [
   '.whg-line-now{font-size:clamp(16px,1.7vw,22px);line-height:1.8;animation:whgIn .45s ease;padding-top:6px}',
   '.whg-line-now.narrator{color:#8fb4dd;font-style:italic;font-size:clamp(14px,1.4vw,18px)}',
   '.whg-line-now.user{color:#ffd9ec}',
+  '.whg-line-now{cursor:pointer;white-space:pre-wrap}',
+  '.whg-text-speed{position:absolute;top:8px;right:14px;padding:4px 9px;font-size:11px}',
+  '.whg-level{right:112px}',
+  '.whg-type-cursor{display:inline-block;margin-left:8px;color:#b7dbf4;font-size:14px;animation:whgCursorBlink .7s steps(2,end) infinite}',
+  '.whg-advance-cursor{animation:whgCursorFloat 1.8s ease-in-out infinite}',
+  '@keyframes whgCursorBlink{50%{opacity:0}}',
+  '@keyframes whgCursorFloat{50%{transform:translateY(4px)}}',
+  '.whg-response{display:flex;align-items:center;gap:5px;margin-top:6px;color:#a9c6e8;font-size:12px}',
+  '.whg-response-dot{width:4px;height:4px;border-radius:50%;background:currentColor;animation:whgResponseDot 1.2s ease-in-out infinite}',
+  '.whg-response-dot:nth-of-type(2){animation-delay:.15s}.whg-response-dot:nth-of-type(3){animation-delay:.3s}',
+  '@keyframes whgResponseDot{0%,60%,100%{transform:none;opacity:.4}30%{transform:translateY(-3px);opacity:1}}',
+  '.whg-thinking .whg-crossfade,.whg-thinking .whg-cast-slot img{transform-origin:center bottom;animation:whgThinking 1.6s ease-in-out infinite}',
+  '@keyframes whgThinking{0%,100%{transform:rotate(0deg)}50%{transform:rotate(1deg)}}',
+  // Flex (not grid) so the sprite resolves height:100% against the wrap instead of its natural size.
+  '.whg-crossfade{position:relative;display:inline-flex;align-items:flex-end;height:100%}',
+  '.whg-crossfade>img{min-width:0}',
+  '.whg-crossfade-bg{position:absolute;inset:0;width:100%;height:100%}',
+  '.whg-crossfade-portrait{height:34vh}',
+  '.whg-crossfade>.whg-crossfade-old{position:absolute;inset:0;z-index:1;width:100%;height:100%;object-fit:contain;pointer-events:none;opacity:1}',
+  '.whg-crossfade-bg>.whg-crossfade-old{object-fit:cover}',
+  '.whg-crossfade-fading{animation:whgCrossfade .4s ease forwards}',
+  '@keyframes whgCrossfade{to{opacity:0}}',
+  '.whg-character-enter{display:flex;align-items:flex-end;justify-content:center;height:100%;animation:whgCharacterEnter .45s ease both}',
+  '@keyframes whgCharacterEnter{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}',
+  '.whg-affection-delta{position:absolute;right:0;top:-8px;color:#ff9cc8;font-weight:800;pointer-events:none;animation:whgAffectionFloat 1.2s ease-out forwards}',
+  '.whg-affection-loss{color:#8faabe}',
+  '@keyframes whgAffectionFloat{from{opacity:1;transform:none}to{opacity:0;transform:translateY(-28px)}}',
+  '.whg-level-track{position:relative}',
+  '.whg-level-shine:after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent,rgba(255,255,255,.85),transparent);animation:whgLevelShine .9s ease-out both}',
+  '@keyframes whgLevelShine{from{transform:translateX(-110%)}to{transform:translateX(110%)}}',
+  '.whg-level-up{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;background:rgba(3,9,24,.65);cursor:pointer}',
+  '.whg-level-up-card{position:relative;padding:32px 40px;border:1px solid rgba(255,179,217,.6);border-radius:24px;background:radial-gradient(ellipse,rgba(85,43,102,.94),rgba(9,27,52,.95));color:#ffe0f0;font:800 clamp(20px,3vw,34px)/1.5 system-ui,sans-serif;text-align:center;animation:whgLevelPop .5s cubic-bezier(.2,1.4,.5,1) both}',
+  '.whg-level-up-card:before{content:"";position:absolute;inset:-20px;border-radius:40px;box-shadow:0 0 65px 18px rgba(255,137,201,.3);pointer-events:none;animation:whgLevelGlow 1.1s ease-in-out infinite alternate}',
+  '.whg-level-up-close{display:block;margin:16px auto 0}',
+  '@keyframes whgLevelPop{from{opacity:0;transform:scale(.75)}to{opacity:1;transform:scale(1)}}',
+  '@keyframes whgLevelGlow{to{opacity:.35}}',
+  '@media (max-width:560px){.whg-level{font-size:10px;gap:4px;right:100px}.whg-level-track{width:52px}.whg-text-speed{right:10px}}',
+  '@media (prefers-reduced-motion:reduce){.whg-line-now,.whg-type-cursor,.whg-advance-cursor,.whg-response-dot,.whg-thinking .whg-crossfade,.whg-thinking .whg-cast-slot img,.whg-character-enter,.whg-affection-delta,.whg-level-shine:after,.whg-level-up-card,.whg-level-up-card:before{animation:none}.whg-crossfade>.whg-crossfade-fading{animation:none;opacity:0}.whg-level-fill{transition:none}}',
   '@keyframes whgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}',
   '.whg-fallback-note{font-size:11px;color:#e8b04b;margin-top:6px}',
   '.whg-choices{display:flex;flex-direction:column;gap:8px;margin-top:10px}',
@@ -490,6 +528,129 @@ function syncTabLayout(visible: boolean): void {
   } else {
     rootEl.style.minHeight = ''
   }
+}
+
+const TEXT_SPEEDS = [
+  { label: '慢', ms: 60 },
+  { label: '中', ms: 35 },
+  { label: '快', ms: 18 },
+  { label: '瞬间', ms: 0 },
+]
+
+function readTextSpeed(): number {
+  try {
+    const saved = localStorage.getItem('whg-text-speed')
+    const index = TEXT_SPEEDS.findIndex((speed) => speed.label === saved)
+    return index < 0 ? 1 : index
+  } catch {
+    return 1
+  }
+}
+
+function Typewriter(props: {
+  text: string; lineId: string; speed: number; instant?: boolean
+  canAdvance?: boolean; onAdvance?: () => void; keyboardEnabled: boolean; className: string
+}): React.ReactElement {
+  const chars = Array.from(props.text)
+  // Keeping this component mounted across lines is intentional: an existing
+  // line is complete on mount; only a changed identity/text starts at zero.
+  const [line, setLine] = useState(() => ({ id: props.lineId, text: props.text, count: chars.length }))
+  const lineKey = props.lineId + '\u0000' + props.text
+  const seenLines = useRef(new Set([lineKey]))
+  const [reducedMotion, setReducedMotion] = useState(() => window.matchMedia('(prefers-reduced-motion:reduce)').matches)
+  const lineRef = useRef<HTMLDivElement | null>(null)
+  const sameLine = line.id === props.lineId && line.text === props.text
+  const alreadySeen = !sameLine && seenLines.current.has(lineKey)
+  const count = props.instant || props.speed === 0 || reducedMotion || alreadySeen ? chars.length : sameLine ? line.count : 0
+  const typing = count < chars.length
+
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-reduced-motion:reduce)')
+    const update = () => setReducedMotion(media.matches)
+    media.addEventListener('change', update)
+    return () => media.removeEventListener('change', update)
+  }, [])
+
+  useEffect(() => {
+    if (!sameLine) {
+      seenLines.current.add(lineKey)
+      if (seenLines.current.size > 100) seenLines.current.delete(seenLines.current.values().next().value!)
+      setLine({ id: props.lineId, text: props.text, count: alreadySeen ? chars.length : 0 })
+      return undefined
+    }
+    if (!typing) {
+      if (line.count < chars.length) setLine({ ...line, count: chars.length })
+      return undefined
+    }
+    const timer = setTimeout(() => setLine({ ...line, count: count + 1 }), props.speed)
+    return () => clearTimeout(timer)
+  }, [props.lineId, props.text, props.speed, props.instant, reducedMotion, line])
+
+  const advance = () => {
+    if (typing) setLine({ id: props.lineId, text: props.text, count: chars.length })
+    else if (props.canAdvance) props.onAdvance?.()
+  }
+
+  useEffect(() => {
+    const node = lineRef.current
+    if (!props.keyboardEnabled || !node) return undefined
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = document.activeElement
+      if (event.defaultPrevented || event.isComposing || event.repeat || document.hidden
+        || !node.getClientRects().length || (event.key !== ' ' && event.key !== 'Enter')) return
+      if (target instanceof HTMLElement && (target.closest('input,textarea,button,select') || target.isContentEditable)) return
+      event.preventDefault()
+      advance()
+    }
+    let listening = false
+    const sync = (visible: boolean) => {
+      if (visible === listening) return
+      listening = visible
+      if (visible) window.addEventListener('keydown', onKeyDown)
+      else window.removeEventListener('keydown', onKeyDown)
+    }
+    // A tab can stay mounted while hidden by the host. Observe its line so
+    // hidden tabs never consume keyboard input from another conversation.
+    const observer = new IntersectionObserver((entries) => sync(entries.some((entry) => entry.isIntersecting)))
+    observer.observe(node)
+    sync(!!node.getClientRects().length)
+    return () => { observer.disconnect(); sync(false) }
+  }, [props.keyboardEnabled, props.canAdvance, props.onAdvance, typing, props.lineId, props.text])
+
+  return React.createElement('div', { ref: lineRef, className: props.className, onClick: advance },
+    chars.slice(0, count).join(''),
+    typing || props.canAdvance
+      ? React.createElement('span', { className: 'whg-type-cursor' + (typing ? '' : ' whg-advance-cursor'), 'aria-hidden': true }, '▾')
+      : null,
+  )
+}
+
+function CrossfadeImg(props: {
+  src: string; className: string; alt: string; draggable?: boolean
+  onError?: React.ReactEventHandler<HTMLImageElement>
+}): React.ReactElement {
+  const [displayedSrc, setDisplayedSrc] = useState(props.src)
+  const [fadingSrc, setFadingSrc] = useState<string | null>(null)
+  const previous = displayedSrc !== props.src ? displayedSrc : null
+  useEffect(() => {
+    if (fadingSrc !== props.src || !previous) return undefined
+    const timer = setTimeout(() => { setDisplayedSrc(props.src); setFadingSrc(null) }, 400)
+    return () => clearTimeout(timer)
+  }, [props.src, fadingSrc, previous])
+  return React.createElement('span', {
+    className: 'whg-crossfade' + (props.className.split(' ').includes('whg-bg') ? ' whg-crossfade-bg' : '')
+      + (props.className.split(' ').includes('whg-sprite-portrait') ? ' whg-crossfade-portrait' : ''),
+  },
+    React.createElement('img', {
+      key: props.src, src: props.src, className: props.className, alt: props.alt, draggable: props.draggable,
+      onLoad: () => { if (previous) setFadingSrc(props.src) },
+      onError: props.onError,
+    }),
+    previous ? React.createElement('img', {
+      src: previous, className: props.className + ' whg-crossfade-old' + (fadingSrc === props.src ? ' whg-crossfade-fading' : ''),
+      alt: '', 'aria-hidden': true, draggable: props.draggable,
+    }) : null,
+  )
 }
 
 function Pet(props: { useSessions: any; onOpen: () => void }): React.ReactElement {
@@ -990,6 +1151,16 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
   const [busy, setBusy] = useState(false)
   const [text, setText] = useState('')
   const [skitText, setSkitText] = useState('')
+  const [textSpeed, setTextSpeed] = useState(readTextSpeed)
+  const [pendingLine, setPendingLine] = useState<string | null>(null)
+  const [affectionFeedback, setAffectionFeedback] = useState<{ id: number; delta: number } | null>(null)
+  const [levelUp, setLevelUp] = useState<{ id: number; level: number } | null>(null)
+  const previousProgress = useRef<{ scope: string; characterId: string; level: number; affection: number; cap: number } | null>(null)
+  const feedbackSeq = useRef(0)
+  const actionInFlight = useRef(false)
+  const actionSeq = useRef(0)
+  const activeScope = useRef(cacheKey)
+  activeScope.current = cacheKey
   const [armReset, setArmReset] = useState(false)
   const [imgFail, setImgFail] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
@@ -1032,6 +1203,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
   const [profileMessage, setProfileMessage] = useState('')
   const bgCache = useRef<string | null>(null)
   const bgCacheRevision = useRef<number | null>(null)
+  const lastBackground = useRef<string | null>(null)
   const spriteCache = useRef<Record<string, string | null>>({})
   const spriteRevisionCache = useRef<Record<string, number>>({})
   const archiveRef = useRef<HTMLElement | null>(null)
@@ -1048,6 +1220,37 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
   const galleryListRequestSeq = useRef(0)
   const galleryDetailRequestSeq = useRef(0)
   const rewardCgRequestSeq = useRef(0)
+
+  useEffect(() => {
+    previousProgress.current = s ? {
+      scope: cacheKey, characterId: String(s.current || ''), level: Number(s.level), affection: Number(s.affection), cap: Number(s.cap),
+    } : null
+  }, [s, cacheKey])
+
+  useEffect(() => {
+    setAffectionFeedback(null)
+    setLevelUp(null)
+    setPendingLine(null)
+  }, [cacheKey, s && s.current])
+
+  useEffect(() => {
+    actionSeq.current += 1
+    actionInFlight.current = false
+    setBusy(false)
+    return () => { actionSeq.current += 1 }
+  }, [cacheKey])
+
+  useEffect(() => {
+    if (!affectionFeedback) return undefined
+    const timer = setTimeout(() => setAffectionFeedback(null), 1200)
+    return () => clearTimeout(timer)
+  }, [affectionFeedback])
+
+  useEffect(() => {
+    if (!levelUp) return undefined
+    const timer = setTimeout(() => setLevelUp(null), 2200)
+    return () => clearTimeout(timer)
+  }, [levelUp])
 
   useEffect(() => {
     let alive = true
@@ -1405,10 +1608,32 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
   }, [archivePanel, s && s.history && s.history.length])
 
   function act(action: string, args?: any): void {
-    if (busy) return
+    if (busy || actionInFlight.current) return
+    actionInFlight.current = true
+    const requestSeq = ++actionSeq.current
+    const requestScope = cacheKey
+    const before = previousProgress.current
+    const isSpeech = action === 'chat' || (action === 'side-story' && args && args.op === 'speak')
+    const spoken = isSpeech && args && typeof args.text === 'string' ? args.text : null
+    if (spoken !== null) setPendingLine(spoken)
     setBusy(true)
     callApi(action, args).then((v) => {
+      if (requestSeq !== actionSeq.current || requestScope !== activeScope.current) return
+      assertApiResult(v, '请求失败，请稍后重试')
       if (v && typeof v === 'object') {
+        const affectsProgress = action === 'chat'
+          || (action === 'side-story' && args && (args.op === 'choose' || args.op === 'speak'))
+        // Only this local mutation may start an effect. Polls and broadcast
+        // listeners update previousProgress but never enter this branch.
+        if (affectsProgress && before && before.scope === requestScope
+          && before.characterId === String(v.current || '')
+          && previousProgress.current?.characterId === before.characterId) {
+          // The server consumes the old cap when a level is gained. Restore
+          // that amount when displaying the gain, rather than showing a loss.
+          const delta = Number(v.affection) - before.affection + (Number(v.level) > before.level ? before.cap : 0)
+          if (Number.isFinite(delta) && delta !== 0) setAffectionFeedback({ id: ++feedbackSeq.current, delta })
+          if (Number(v.level) > before.level) setLevelUp({ id: ++feedbackSeq.current, level: Number(v.level) })
+        }
         setS(v)
         setApiError(null)
         if (action === 'pet-set' && typeof v.petEnabled === 'boolean') {
@@ -1425,8 +1650,16 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
         }
       }
     }).catch((e) => {
+      if (requestSeq !== actionSeq.current || requestScope !== activeScope.current) return
       setApiError(String(e && e.message ? e.message : e))
+      if (spoken !== null) {
+        if (action === 'side-story') setSkitText(spoken)
+        else setText(spoken)
+      }
     }).finally(() => {
+      if (requestSeq !== actionSeq.current || requestScope !== activeScope.current) return
+      setPendingLine(null)
+      actionInFlight.current = false
       setBusy(false)
     })
   }
@@ -1840,7 +2073,8 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
 
   function send(): void {
     const t = text
-    if (!t.trim()) return
+    if (!t.trim() || busy || actionInFlight.current) return
+    setPendingLine(t)
     setText('')
     act('chat', { text: t })
   }
@@ -2873,7 +3107,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
   function castStage(scene: any): React.ReactElement {
     const beat = scene.beats[sideStoryBeatIndex(scene)]
     const speaking = beat && beat.speaker !== 'narrator' ? beat.speaker : ''
-    return React.createElement('div', { className: 'whg-stage' },
+    return React.createElement('div', { className: 'whg-stage' + (pendingLine !== null ? ' whg-thinking' : '') },
       React.createElement('div', {
         className: 'whg-tint',
         style: { background: 'radial-gradient(closest-side, ' + (scene.cast[0] ? scene.cast[0].color : '#8fd8ef') + '2e, transparent)' },
@@ -2907,11 +3141,12 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     if (activeScene) return castStage(activeScene)
     const emotion = emotionOf()
     const mood = moodOf()
+    const activeCustomSprite = customSprite && spriteCache.current[String(s.current)] === customSprite ? customSprite : null
     let src: string | undefined
     let useFilter = !s.moodSprites
     let emoKey = ''
-    if (customSprite) {
-      src = customSprite
+    if (activeCustomSprite) {
+      src = activeCustomSprite
       useFilter = true
     } else if (s.current === 'deepseek') {
       emoKey = emotion === 'normal' ? '' : EMOTION_ART[emotion]
@@ -2925,8 +3160,8 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     }
     const wrap = (!src || imgFail)
       ? React.createElement('div', { className: 'whg-sprite-fallback' }, '🐋')
-      : React.createElement('img', {
-        className: 'whg-sprite' + (s.portrait ? ' whg-sprite-portrait' : '') + (customSprite ? ' whg-sprite-custom' : ''),
+      : React.createElement(CrossfadeImg, {
+        className: 'whg-sprite' + (s.portrait ? ' whg-sprite-portrait' : '') + (activeCustomSprite ? ' whg-sprite-custom' : ''),
         src,
         alt: s.name,
         draggable: false,
@@ -2935,14 +3170,61 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     const blushOpacity = emoKey
       ? 0
       : mood === 'shy' ? 0.55 : mood === 'happy' ? 0.3 : 0
-    return React.createElement('div', { className: 'whg-stage' },
+    return React.createElement('div', { className: 'whg-stage' + (pendingLine !== null ? ' whg-thinking' : '') },
       React.createElement('div', { className: 'whg-tint', style: { background: 'radial-gradient(closest-side, ' + s.color + '2e, transparent)' } }),
-      React.createElement('div', { className: 'whg-sprite-wrap' + (s.portrait ? ' whg-portrait' : '') + (useFilter ? ' whg-mood-' + mood : '') },
-        wrap,
-        React.createElement('div', {
-          className: 'whg-blush',
-          style: { opacity: blushOpacity },
-        }),
+      React.createElement('div', { key: s.current, className: 'whg-character-enter' },
+        React.createElement('div', { className: 'whg-sprite-wrap' + (s.portrait ? ' whg-portrait' : '') + (useFilter ? ' whg-mood-' + mood : '') },
+          wrap,
+          React.createElement('div', {
+            className: 'whg-blush',
+            style: { opacity: blushOpacity },
+          }),
+        ),
+      ),
+    )
+  }
+
+  function textSpeedButton(): React.ReactElement {
+    const label = TEXT_SPEEDS[textSpeed].label
+    return React.createElement('button', {
+      className: 'whg-btn whg-text-speed', type: 'button',
+      'aria-label': '文字速度：' + label + '，点击切换下一档',
+      onClick: () => {
+        let next = (textSpeed + 1) % TEXT_SPEEDS.length
+        try { localStorage.setItem('whg-text-speed', TEXT_SPEEDS[next].label) } catch { next = 1 }
+        setTextSpeed(next)
+      },
+    }, '文字 · ' + label)
+  }
+
+  function levelMeter(): React.ReactElement {
+    return React.createElement('div', { className: 'whg-level' },
+      React.createElement('span', null, 'Lv.' + s.level + ' · 好感度 ' + s.affection + '/' + s.cap),
+      React.createElement('div', {
+        // Sibling keys must differ from the delta span's, or React leaks old tracks.
+        key: 'track-' + (affectionFeedback ? affectionFeedback.id : 'idle'),
+        className: 'whg-level-track' + (affectionFeedback ? ' whg-level-shine' : ''),
+      }, React.createElement('div', { className: 'whg-level-fill', style: { width: Math.min(100, Math.round((s.affection / Math.max(1, s.cap)) * 100)) + '%' } })),
+      affectionFeedback ? React.createElement('span', {
+        key: 'delta-' + affectionFeedback.id, className: 'whg-affection-delta' + (affectionFeedback.delta < 0 ? ' whg-affection-loss' : ''),
+      }, '♡' + (affectionFeedback.delta > 0 ? '+' : '−') + Math.abs(affectionFeedback.delta)) : null,
+    )
+  }
+
+  function pendingResponse(characterName: string): React.ReactElement | null {
+    if (pendingLine === null) return null
+    return React.createElement('div', { className: 'whg-response', role: 'status' },
+      characterName + ' 正在回应',
+      [0, 1, 2].map((i) => React.createElement('span', { key: i, className: 'whg-response-dot', 'aria-hidden': true })),
+    )
+  }
+
+  function progressOverlay(): React.ReactElement | null {
+    if (!levelUp) return null
+    return React.createElement('div', { className: 'whg-level-up', role: 'status', onClick: () => setLevelUp(null) },
+      React.createElement('div', { key: levelUp.id, className: 'whg-level-up-card' },
+        'Lv.' + levelUp.level + ' ✦ 好感升级',
+        React.createElement('button', { className: 'whg-btn whg-level-up-close', type: 'button', onClick: () => setLevelUp(null) }, '继续'),
       ),
     )
   }
@@ -2950,7 +3232,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
   function sideStoryDialogue(scene: any): React.ReactElement {
     const beat = scene.beats[sideStoryBeatIndex(scene)]
     const isNarrator = !beat || beat.speaker === 'narrator'
-    const isUser = !!beat && beat.speaker === 'user'
+    const isUser = pendingLine !== null || (!!beat && beat.speaker === 'user')
     const member = isNarrator || isUser ? null : scene.cast.find((row: any) => row.id === beat.speaker)
     const plateLabel = isUser ? '主人' : isNarrator ? '旁白' : (member ? member.name : '???')
     const plateColor = isUser ? '#ff9cc8' : isNarrator ? '#8fb4dd' : (member ? member.color : '#8fb4dd')
@@ -2979,8 +3261,9 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
       // Deltas stay hidden until the choice is made; the closing beat reveals
       // who warmed up and who did not.
       const speak = () => {
-        const spoken = skitText.trim()
-        if (!spoken || busy) return
+        const spoken = skitText
+        if (!spoken.trim() || busy || actionInFlight.current) return
+        setPendingLine(spoken)
         setSkitText('')
         act('side-story', { op: 'speak', text: spoken })
       }
@@ -3022,14 +3305,23 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
         }, row.title)))
       : null
     return React.createElement('div', { id: 'whg-panel', className: 'whg-panel' },
-      React.createElement('div', { className: 'whg-plate', style: { background: plateColor } }, plateLabel),
+      React.createElement('div', { className: 'whg-plate' + (isUser ? ' user' : ''), style: { background: plateColor } }, plateLabel),
+      textSpeedButton(),
+      levelMeter(),
       React.createElement('div', { className: 'whg-side-seed' },
         React.createElement('span', { className: 'whg-side-badge' }, '小剧场 · 工坊传闻'),
         scene.seed && scene.seed.summary ? scene.seed.summary : '今天工坊里有点热闹。'),
-      React.createElement('div', {
-        key: 'side-' + scene.id + '-' + scene.cursor,
+      React.createElement(Typewriter, {
+        key: 'line-' + s.current,
+        lineId: pendingLine !== null ? 'pending-side' : 'side-' + scene.id + '-' + scene.cursor,
+        text: pendingLine !== null ? pendingLine : beat ? beat.text : '',
+        speed: TEXT_SPEEDS[textSpeed].ms, instant: pendingLine !== null,
+        canAdvance: pendingLine === null && !busy && offered.length === 0 && !atEnd,
+        onAdvance: () => { act('side-story', { op: 'advance' }) },
+        keyboardEnabled: !busy && !archivePanel && !pickerPanel && !levelUp && !(settled && rewardCgId),
         className: 'whg-line-now ' + (isUser ? 'user' : isNarrator ? 'narrator' : 'heroine'),
-      }, beat ? beat.text : ''),
+      }),
+      pendingResponse(scene.cast.map((row: any) => row.name).join('、') || s.name),
       controls,
       sources,
     )
@@ -3038,7 +3330,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
   function dialogue(): React.ReactElement {
     const activeScene = sideStoryScene()
     if (activeScene) return sideStoryDialogue(activeScene)
-    const last = lastLine()
+    const last = pendingLine !== null ? { who: 'user', text: pendingLine } : lastLine()
     const plateLabel = last
       ? (last.who === 'heroine' ? s.name : last.who === 'user' ? '主人' : '旁白')
       : s.name
@@ -3074,16 +3366,20 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     const fallbackNote = s.fallbackUsed
       ? React.createElement('div', { className: 'whg-fallback-note' }, '（模型调用失败，' + s.name + ' 用了备用台词。原因：' + (s.fallbackReason || '未知') + ' · 目标模型：' + (s.lastModel || s.modelLabel || '未知') + '）')
       : null
-    const now = last
-      ? React.createElement('div', { key: 'now-' + ((s.history || []).length), className: 'whg-line-now ' + last.who }, last.text)
-      : React.createElement('div', { className: 'whg-line-now narrator' }, '（点击输入框，开始和' + s.name + '对话吧）')
+    const now = React.createElement(Typewriter, {
+      key: 'line-' + s.current,
+      lineId: pendingLine !== null ? 'pending-chat' : 'now-' + ((s.history || []).length),
+      text: last ? last.text : '（点击输入框，开始和' + s.name + '对话吧）',
+      speed: TEXT_SPEEDS[textSpeed].ms, instant: pendingLine !== null,
+      keyboardEnabled: !busy && !archivePanel && !pickerPanel && !levelUp && !(settled && rewardCgId),
+      className: 'whg-line-now ' + (last ? last.who : 'narrator'),
+    })
     return React.createElement('div', { id: 'whg-panel', className: 'whg-panel' },
       React.createElement('div', { className: 'whg-plate' + plateClass, style: { background: plateColor } }, plateLabel),
-      React.createElement('div', { className: 'whg-level' },
-        React.createElement('span', null, 'Lv.' + s.level + ' · 好感度 ' + s.affection + '/' + s.cap),
-        React.createElement('div', { className: 'whg-level-track' },
-          React.createElement('div', { className: 'whg-level-fill', style: { width: Math.min(100, Math.round((s.affection / Math.max(1, s.cap)) * 100)) + '%' } }))),
+      textSpeedButton(),
+      levelMeter(),
       now,
+      pendingResponse(s.name),
       fallbackNote,
       choices,
       input,
@@ -3160,6 +3456,12 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
   }
 
   const isTab = props.variant === 'tab'
+  const nextBackground = s ? (s.bg === 'cg' || s.bg === 'custom' ? bgCache.current : art(s.bg)) : null
+  if (nextBackground) lastBackground.current = nextBackground
+  // bg-data is loaded separately from the view. Keep the image component
+  // mounted on its last source until those bytes arrive, including built-in
+  // to custom/CG switches.
+  const backgroundSrc = nextBackground || lastBackground.current
 
   if (isTab) {
     if (s === null) {
@@ -3178,9 +3480,9 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
         ),
       )
     }
-    const bgSrc = s.bg === 'cg' || s.bg === 'custom' ? bgCache.current : art(s.bg)
+    const bgSrc = backgroundSrc
     const bgEl = bgSrc
-      ? React.createElement('img', { className: 'whg-bg', src: bgSrc, alt: '', draggable: false })
+      ? React.createElement(CrossfadeImg, { className: 'whg-bg', src: bgSrc, alt: '', draggable: false })
       : React.createElement('div', { className: 'whg-bg whg-bg-fallback' })
     return React.createElement('div', { id: 'whg-tab-root', className: 'whg-root-tab' },
       bgEl,
@@ -3189,7 +3491,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
       stage(),
       dialogue(),
       archiveDrawer(),
-      cgModal(),
+      levelUp ? progressOverlay() : cgModal(),
       sideStoryToast(),
     )
   }
@@ -3211,9 +3513,9 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     )
   }
   if (s.enabled === false) return React.createElement(React.Fragment, null)
-  const bgSrc = s.bg === 'cg' || s.bg === 'custom' ? bgCache.current : art(s.bg)
+  const bgSrc = backgroundSrc
   const bgEl = bgSrc
-    ? React.createElement('img', { className: 'whg-bg', src: bgSrc, alt: '', draggable: false })
+    ? React.createElement(CrossfadeImg, { className: 'whg-bg', src: bgSrc, alt: '', draggable: false })
     : React.createElement('div', { className: 'whg-bg whg-bg-fallback' })
   return React.createElement('div', { className: 'whg-root' },
     bgEl,
@@ -3222,7 +3524,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     stage(),
     dialogue(),
     archiveDrawer(),
-    cgModal(),
+    levelUp ? progressOverlay() : cgModal(),
     sideStoryToast(),
   )
 }
