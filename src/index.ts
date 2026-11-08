@@ -2811,31 +2811,41 @@ export function apply(
 
   const EMOTION_LABELS = EMOTION_KEYS
 
-  async function classifyEmotion(text: string, signal?: AbortSignal): Promise<string> {
+  function emotionFromText(text: string): string {
+    if (/生气|讨厌|哼|烦|滚|过分|笨蛋|气死|可恶|不理|走开/.test(text)) return 'angry'
+    if (/害怕|吓|恐怖|鬼|啊啊|惊|别吓我/.test(text)) return 'frightened'
+    if (/无奈|累死|唉|好吧|算了|服了|无语|头疼/.test(text)) return 'exasperated'
+    if (/星星|好美|浪漫|月亮|梦想|憧憬|心动|闪闪|漂亮/.test(text)) return 'starry'
+    if (/害羞|呜|脸红|别这样|不好意思|才不|……/.test(text)) return 'shy'
+    if (/？|\?|什么|不懂|困惑|为啥|咦|不明白|没听懂/.test(text)) return 'confused'
+    if (/认真|工作|学习|讨论|问题|严肃|报告|项目|方案/.test(text)) return 'serious'
+    if (/开心|高兴|哈哈|太好了|太棒|棒|喜欢|爱|幸福|啦～|♪|≧▽≦|耶|抱抱|亲亲/.test(text)) return 'cheerful'
+    return 'normal'
+  }
+
+  async function classifyEmotion(text: string, parentSignal?: AbortSignal): Promise<string> {
     if (!llm) return 'normal'
-    if (signal && signal.aborted) return 'normal'
-    let sel: any = null
+    if (parentSignal?.aborted) return 'normal'
+    // Bound selection, effort lookup and streaming together; cancel provider work too.
+    const controller = new AbortController()
+    const signal = controller.signal
+    const onAbort = () => controller.abort(parentSignal?.reason)
+    parentSignal?.addEventListener('abort', onAbort, { once: true })
+    const timer = setTimeout(() => controller.abort(new Error('emotion classification timed out')), 3500)
     try {
-      const selection = Promise.resolve(pickModel())
-      sel = signal
-        ? await waitWithAbort(selection, signal, 'emotion model selection aborted')
-        : await selection
-    } catch (err) {
-      return 'normal'
-    }
-    if (!sel || !sel.model) return 'normal'
-    try {
-      const effort = await pickEffort(sel, signal)
+      const sel = await waitWithAbort(Promise.resolve(pickModel()), signal, 'emotion model selection aborted')
+      if (!sel || !sel.model) return 'normal'
+      const effort = await waitWithAbort(pickEffort(sel, signal), signal, 'emotion effort lookup aborted')
       const out = await streamText({
         provider: sel.provider,
         model: sel.model,
         reasoningEffort: effort,
         messages: [{
           role: 'user',
-          content: [{ type: 'text', text: '用户的这句话：' + text }],
+          content: [{ type: 'text', text: '当前角色的这句回复：' + text }],
           source: { kind: 'user' },
         }],
-        system: '你是情绪分类器。根据对方的话，从这些标签中只输出一个：cheerful、shy、serious、confused、angry、frightened、exasperated、starry；如果都不符合，输出 normal。只输出标签本身，不要任何其他文字。',
+        system: '你是情绪分类器。判断当前角色自己的回复所表达的情绪，从这些标签中只输出一个：cheerful、shy、serious、confused、angry、frightened、exasperated、starry；如果都不符合，输出 normal。只输出标签本身，不要任何其他文字。',
         temperature: 0.2,
         maxTokens: 30,
       }, signal)
@@ -2843,8 +2853,10 @@ export function apply(
       if (EMOTION_LABELS.indexOf(label) >= 0) return label
       return 'normal'
     } catch (err) {
-      console.error('whale-galgame emotion classify failed:', err)
       return 'normal'
+    } finally {
+      clearTimeout(timer)
+      parentSignal?.removeEventListener('abort', onAbort)
     }
   }
 
@@ -4911,7 +4923,6 @@ export function apply(
             sel = await waitWithAbort(Promise.resolve(pickModel()), signal, 'chat model selection aborted')
           } catch (err) { /* the fallback line remains available */ }
           const effort = await pickEffort(sel, signal)
-          const emotionPromise = classifyEmotion(text, signal)
           let reply = ''
           let usedFallback = false
           let fallbackReason = ''
@@ -4960,7 +4971,9 @@ export function apply(
             reply = fallbackReplyFor(prepared.charId, prepared.profile.address)
             usedFallback = true
           }
-          const emotion = await emotionPromise
+          const emotionPromise = usedFallback
+            ? Promise.resolve(emotionFromText(reply))
+            : classifyEmotion(reply, signal)
           pendingChoiceCharId = prepared.charId
           choiceGenerationPending.add(pendingChoiceCharId)
           const committed = await runSerializedStateTask(async () => {
@@ -4972,7 +4985,6 @@ export function apply(
             c.chatLines.push({
               who: 'user',
               text,
-              emotion,
               choiceId: prepared.selectedChoice ? prepared.selectedChoice.id : null,
             })
             c.choices = []
@@ -4985,7 +4997,8 @@ export function apply(
             }
             c.log.push({ role: 'assistant', text: reply })
             if (c.log.length > 24) c.log = c.log.slice(-24)
-            c.chatLines.push({ who: 'heroine', text: reply })
+            c.chatLines.push({ who: 'heroine', text: reply, emotion: 'normal' })
+            const replyIndex = c.chatLines.length - 1
             const before = c.affection
             const delta = prepared.selectedChoice
               ? (prepared.selectedChoice.effect === 1 ? 1 : prepared.selectedChoice.effect === -1 ? -1 : 0)
@@ -4993,25 +5006,24 @@ export function apply(
             c.affection = Math.max(0, before + delta)
             const leveled = checkLevelUp(prepared.charId, c)
             await save(settledBeforeChat.changed || c.affection !== before || leveled ? 'both' : 'workspace')
-            return { leveled, response: view() }
+            return { leveled, replyIndex }
           })
-          if (committed.leveled) {
-            choiceGenerationPending.delete(pendingChoiceCharId)
-            pendingChoiceCharId = ''
-            return await runSerializedStateTask(async () => {
-              const c = s.characters[prepared.charId]
-              if (ensureReplyChoices(prepared.charId, c)) await save('global')
-              return view()
-            })
-          }
-
-          const choices = await generateChoices(prepared.promptCharacter, text, reply, signal)
+          // The reply is already visible to polling clients. Classification overlaps
+          // choice generation and never holds the state lock while a model is running.
+          const [emotion, choices] = await Promise.all([
+            emotionPromise,
+            committed.leveled ? Promise.resolve(null) : generateChoices(prepared.promptCharacter, text, reply, signal),
+          ])
           return await runSerializedStateTask(async () => {
             const c = s.characters[prepared.charId]
             if (!c) throw new Error('chat character became unavailable before choice commit')
-            c.choices = choices
+            const heroineLine = c.chatLines[committed.replyIndex]
+            if (heroineLine?.who === 'heroine' && heroineLine.text === reply) heroineLine.emotion = emotion
+            // Clear the pending flag first: ensureReplyChoices refuses while it is set.
             choiceGenerationPending.delete(prepared.charId)
             pendingChoiceCharId = ''
+            if (committed.leveled) ensureReplyChoices(prepared.charId, c)
+            else c.choices = choices
             await save('workspace')
             return view()
           })

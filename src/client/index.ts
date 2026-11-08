@@ -94,8 +94,7 @@ const CSS = [
   '.whg-sprite-wrap{position:relative;margin-right:0;margin-bottom:0;height:96vh;display:flex;align-items:flex-end;transform:translateY(clamp(56px,12vh,96px)) scale(1.1);transform-origin:center top}',
   '.whg-sprite{height:100%;width:auto;display:block;filter:drop-shadow(0 18px 40px rgba(0,10,30,.65));transition:filter .5s ease}',
   // Side-story stage: two or three cast slots share the floor line. The speaker
-  // keeps full brightness while the rest step back, reusing the same filter
-  // idiom as the single-character mood tints above.
+  // keeps full brightness while the rest step back.
   '.whg-cast{position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:space-around;gap:2%;padding:0 3%;pointer-events:none}',
   '.whg-cast-slot{position:relative;display:flex;align-items:flex-end;height:82vh;max-width:38%;transition:filter .35s ease,transform .35s ease,opacity .35s ease}',
   '.whg-cast-slot img{height:100%;width:auto;object-fit:contain;object-position:center bottom;filter:drop-shadow(0 18px 40px rgba(0,10,30,.65))}',
@@ -111,16 +110,37 @@ const CSS = [
   '.whg-side-sources{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}',
   '.whg-side-sources a{font-size:11px;color:#9fd4ff;opacity:.8;text-decoration:none;border-bottom:1px dotted rgba(159,212,255,.5)}',
   '@media (max-width:720px){.whg-cast-slot{max-width:48%;height:70vh}.whg-cast-slot[data-lead="true"]{height:74vh}.whg-cast-slot[data-overflow="true"]{display:none}}',
-  '.whg-sprite-portrait{height:34vh;width:auto;border-radius:22px;box-shadow:0 10px 50px rgba(0,10,30,.7);background:rgba(6,18,38,.35)}',
-  '.whg-mood-happy .whg-sprite{filter:drop-shadow(0 18px 40px rgba(0,10,30,.65)) brightness(1.1) saturate(1.2)}',
-  '.whg-mood-shy .whg-sprite{filter:drop-shadow(0 18px 40px rgba(0,10,30,.65)) brightness(1.04) saturate(1.25) hue-rotate(-12deg)}',
-  '.whg-mood-angry .whg-sprite{filter:drop-shadow(0 18px 40px rgba(0,10,30,.65)) saturate(1.15) contrast(1.06) hue-rotate(-26deg)}',
+  '.whg-sprite-wrap.whg-portrait{height:34vh;margin-bottom:42vh;transform:translateY(0) scale(1.1)}',
+  '.whg-sprite-portrait{height:100%;width:auto;border-radius:22px;box-shadow:0 10px 50px rgba(0,10,30,.7);background:rgba(6,18,38,.35)}',
+  '.whg-mood-happy .whg-sprite{filter:drop-shadow(0 18px 40px rgba(0,10,30,.65)) brightness(1.025)}',
+  '.whg-mood-shy .whg-sprite{filter:drop-shadow(0 18px 40px rgba(0,10,30,.65)) brightness(1.015)}',
+  '.whg-mood-angry .whg-sprite{filter:drop-shadow(0 18px 40px rgba(0,10,30,.65)) saturate(1.025)}',
+  // Each transform has its own flex layer and a definite percentage height.
+  '.whg-breathe,.whg-emotion-action,.whg-speaker-cue{position:relative;display:inline-flex;align-items:flex-end;height:100%;min-height:0;flex:none;transform-origin:center bottom}',
+  '.whg-breathe{animation:whgBreathe 4.5s ease-in-out infinite}',
+  '@keyframes whgBreathe{0%,100%{transform:translateY(0) scaleY(1)}50%{transform:translateY(-1.5px) scaleY(1.004)}}',
+  '.whg-action-cheerful,.whg-action-happy{animation:whgEmotionHappy .42s ease-out}',
+  '.whg-action-angry{animation:whgEmotionAngry .36s ease-in-out}',
+  '.whg-action-shy{animation:whgEmotionShy .55s ease-in-out}',
+  '.whg-action-confused{animation:whgEmotionConfused .65s ease-in-out}',
+  '.whg-action-frightened{animation:whgEmotionFrightened .3s ease-in-out}',
+  '@keyframes whgEmotionHappy{0%,100%{transform:none}40%{transform:translateY(-10px)}}',
+  '@keyframes whgEmotionAngry{0%,100%{transform:none}20%,60%{transform:translateX(-4px)}40%,80%{transform:translateX(4px)}}',
+  '@keyframes whgEmotionShy{0%,100%{transform:none}45%{transform:rotate(-1.5deg)}}',
+  '@keyframes whgEmotionConfused{0%,100%{transform:none}40%,70%{transform:rotate(2deg)}}',
+  '@keyframes whgEmotionFrightened{0%,100%{transform:none}20%,60%{transform:translate(-2px,-2px)}40%,80%{transform:translate(2px,0)}}',
+  '.whg-speaker-hop{animation:whgSpeakerHop .3s ease-out}',
+  '@keyframes whgSpeakerHop{0%,100%{transform:none}40%{transform:translateY(-8px)}}',
+  '.whg-emotion-bubble{position:absolute;left:66%;top:9%;z-index:3;display:flex;align-items:center;justify-content:center;min-width:1.4em;padding:.2em .36em;border:1px solid rgba(143,216,239,.5);border-radius:14px 14px 14px 3px;background:rgba(238,249,255,.94);color:#163d58;font:700 clamp(18px,2.4vh,26px)/1.2 system-ui,sans-serif;box-shadow:0 3px 12px rgba(0,10,30,.2);animation:whgEmotionBubble 3.3s ease both;pointer-events:none}',
+  '@keyframes whgEmotionBubble{0%{opacity:0;transform:translateY(4px) scale(.7)}7%,90.9%{opacity:1;transform:none}100%{opacity:0;transform:translateY(-3px)}}',
+  '.whg-portrait .whg-emotion-bubble{left:76%;top:5%}',
   '.whg-blush{position:absolute;left:14%;top:16%;width:72%;height:28%;background:radial-gradient(ellipse at center,rgba(255,120,160,.9),transparent 70%);border-radius:50%;mix-blend-mode:screen;transition:opacity .5s ease}',
   '.whg-sprite-fallback{height:100%;display:flex;align-items:center;font-size:20vh;filter:drop-shadow(0 18px 40px rgba(0,10,30,.6))}',
   '.whg-panel{position:absolute;left:5vw;right:5vw;bottom:2.6vh;min-height:26vh;max-height:38vh;background:linear-gradient(180deg,rgba(8,20,42,.9),rgba(4,12,28,.94));border:1px solid rgba(140,200,255,.22);border-radius:22px;backdrop-filter:blur(12px);padding:26px 30px 18px;z-index:4;box-shadow:0 24px 60px rgba(0,8,24,.6);display:flex;flex-direction:column}',
   '.whg-plate{position:absolute;top:-17px;left:26px;padding:6px 20px;border-radius:999px;font-weight:800;font-size:15px;color:#04121f;letter-spacing:2px;box-shadow:0 4px 16px rgba(0,10,30,.4)}',
   '.whg-plate.user{background:#ff9cc8}',
   '.whg-plate.narrator{background:#8fb4dd}',
+  '.whg-plate:after{content:"";position:absolute;top:100%;left:24px;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:7px solid var(--whg-plate-color,#8fd8ef)}',
   '.whg-level{position:absolute;top:14px;right:24px;display:flex;align-items:center;gap:8px;font-size:12px;color:#a9c6e8}',
   '.whg-level-track{width:140px;height:6px;border-radius:3px;background:rgba(255,255,255,.14);overflow:hidden}',
   '.whg-level-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,#4aa8ff,#ff7ab8);transition:width .6s ease}',
@@ -138,13 +158,13 @@ const CSS = [
   '.whg-response-dot{width:4px;height:4px;border-radius:50%;background:currentColor;animation:whgResponseDot 1.2s ease-in-out infinite}',
   '.whg-response-dot:nth-of-type(2){animation-delay:.15s}.whg-response-dot:nth-of-type(3){animation-delay:.3s}',
   '@keyframes whgResponseDot{0%,60%,100%{transform:none;opacity:.4}30%{transform:translateY(-3px);opacity:1}}',
-  '.whg-thinking .whg-crossfade,.whg-thinking .whg-cast-slot img{transform-origin:center bottom;animation:whgThinking 1.6s ease-in-out infinite}',
+  '.whg-thinking .whg-crossfade{transform-origin:center bottom;animation:whgThinking 1.6s ease-in-out infinite}',
   '@keyframes whgThinking{0%,100%{transform:rotate(0deg)}50%{transform:rotate(1deg)}}',
   // Flex (not grid) so the sprite resolves height:100% against the wrap instead of its natural size.
   '.whg-crossfade{position:relative;display:inline-flex;align-items:flex-end;height:100%}',
   '.whg-crossfade>img{min-width:0}',
   '.whg-crossfade-bg{position:absolute;inset:0;width:100%;height:100%}',
-  '.whg-crossfade-portrait{height:34vh}',
+  '.whg-crossfade-portrait{height:100%}',
   '.whg-crossfade>.whg-crossfade-old{position:absolute;inset:0;z-index:1;width:100%;height:100%;object-fit:contain;pointer-events:none;opacity:1}',
   '.whg-crossfade-bg>.whg-crossfade-old{object-fit:cover}',
   '.whg-crossfade-fading{animation:whgCrossfade .4s ease forwards}',
@@ -165,6 +185,7 @@ const CSS = [
   '@keyframes whgLevelGlow{to{opacity:.35}}',
   '@media (max-width:560px){.whg-level{font-size:10px;gap:4px;right:100px}.whg-level-track{width:52px}.whg-text-speed{right:10px}}',
   '@media (prefers-reduced-motion:reduce){.whg-line-now,.whg-type-cursor,.whg-advance-cursor,.whg-response-dot,.whg-thinking .whg-crossfade,.whg-thinking .whg-cast-slot img,.whg-character-enter,.whg-affection-delta,.whg-level-shine:after,.whg-level-up-card,.whg-level-up-card:before{animation:none}.whg-crossfade>.whg-crossfade-fading{animation:none;opacity:0}.whg-level-fill{transition:none}}',
+  '@media (prefers-reduced-motion:reduce){.whg-breathe,.whg-speaker-hop,.whg-action-cheerful,.whg-action-happy,.whg-action-angry,.whg-action-shy,.whg-action-confused,.whg-action-frightened,.whg-emotion-bubble{animation:none}}',
   '@keyframes whgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}',
   '.whg-fallback-note{font-size:11px;color:#e8b04b;margin-top:6px}',
   '.whg-choices{display:flex;flex-direction:column;gap:8px;margin-top:10px}',
@@ -176,6 +197,8 @@ const CSS = [
   '.whg-input:focus{border-color:rgba(160,215,255,.75)}',
   '.whg-send{background:linear-gradient(135deg,#2f7fd6,#7a5fd6);border:none;color:#fff;border-radius:14px;padding:0 20px;font-size:14px;cursor:pointer;font-weight:700;font-family:inherit}',
   '.whg-send:disabled{opacity:.5;cursor:default}',
+  '@media (max-height:700px){.whg-sprite-wrap,.whg-root-tab .whg-sprite-wrap{height:min(84vh,100%);transform:translateY(2vh) scale(1.1)}.whg-sprite-wrap.whg-portrait,.whg-root-tab .whg-sprite-wrap.whg-portrait{height:32vh;margin-bottom:48vh;transform:translateY(0) scale(1.1)}.whg-panel,.whg-root-tab .whg-panel{box-sizing:border-box;min-height:28vh;max-height:44vh;bottom:1vh;padding:38px 22px 12px}.whg-line-now{min-height:0;overflow-y:auto;font-size:16px;line-height:1.55}.whg-choices{min-height:0;overflow-y:auto;gap:5px;margin-top:8px}.whg-choice{padding:6px 10px}.whg-input-row{flex-shrink:0;margin-top:8px}.whg-cast-slot,.whg-cast-slot[data-lead="true"]{height:84vh}}',
+  '@media (max-width:720px),(max-aspect-ratio:3/4){.whg-sprite-wrap,.whg-root-tab .whg-sprite-wrap{height:min(78vh,100%);transform:translateY(3vh) scale(1.1)}.whg-sprite-wrap.whg-portrait,.whg-root-tab .whg-sprite-wrap.whg-portrait{height:32vh;margin-bottom:50vh;transform:translateY(0) scale(1.1)}.whg-panel,.whg-root-tab .whg-panel{box-sizing:border-box;left:10px;right:10px;bottom:1vh;min-height:28vh;max-height:46vh;padding:42px 14px 12px}.whg-plate{left:14px;max-width:calc(100% - 64px);box-sizing:border-box;overflow-wrap:anywhere;padding:6px 14px;font-size:13px;letter-spacing:1px}.whg-level{top:18px;left:14px;right:auto;gap:5px;font-size:10px}.whg-level-track{width:clamp(36px,12vw,80px)}.whg-text-speed{top:15px;right:12px;font-size:10px;padding:3px 7px}.whg-line-now{min-height:0;overflow-y:auto;font-size:16px;line-height:1.6}.whg-choices{min-height:0;overflow-y:auto;gap:5px;margin-top:8px}.whg-choice{padding:6px 10px;font-size:12px}.whg-input-row{flex-shrink:0;margin-top:8px}.whg-input{min-width:0}.whg-send{padding:0 12px}.whg-cast-slot,.whg-cast-slot[data-lead="true"]{height:78vh}}',
   // ── CG reward ──────────────────────────────────────────────────────────
   '.whg-cg-backdrop{position:fixed;inset:0;z-index:9500;background:rgba(2,6,18,.85);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:18px;backdrop-filter:blur(6px)}',
   '.whg-cg-img{max-width:80vw;max-height:72vh;border-radius:18px;box-shadow:0 24px 80px rgba(0,0,0,.7);border:2px solid rgba(140,200,255,.35)}',
@@ -651,6 +674,51 @@ function CrossfadeImg(props: {
       alt: '', 'aria-hidden': true, draggable: props.draggable,
     }) : null,
   )
+}
+
+const EMOTION_SYMBOLS: Record<string, string> = {
+  cheerful: '♪', happy: '♪', shy: '💦', angry: '💢', confused: '？',
+  frightened: '！！', exasperated: '…', starry: '✨',
+}
+
+function EmotionExpression(props: {
+  emotion: string; showBubble: boolean; children?: React.ReactNode
+}): React.ReactElement {
+  const [bubbleEmotion, setBubbleEmotion] = useState<string | null>(props.emotion)
+  useEffect(() => {
+    if (!props.showBubble || !EMOTION_SYMBOLS[props.emotion]) return undefined
+    setBubbleEmotion(props.emotion)
+    // Remove the bubble even when CSS animations are disabled by reduced motion.
+    const timer = setTimeout(() => setBubbleEmotion(null), 3300)
+    return () => clearTimeout(timer)
+  }, [props.emotion, props.showBubble])
+  const showBubble = props.showBubble && bubbleEmotion === props.emotion && EMOTION_SYMBOLS[props.emotion]
+  return React.createElement('div', { className: 'whg-emotion-action whg-action-' + props.emotion },
+    props.children,
+    props.showBubble && props.emotion === 'shy'
+      ? React.createElement('div', { className: 'whg-blush', style: { opacity: .55 }, 'aria-hidden': true })
+      : null,
+    showBubble ? React.createElement('span', {
+      key: props.emotion, className: 'whg-emotion-bubble', 'aria-hidden': true,
+    }, EMOTION_SYMBOLS[props.emotion]) : null,
+  )
+}
+
+function SpeakerCue(props: {
+  beatKey: string; speaking: boolean; children?: React.ReactNode
+}): React.ReactElement {
+  const cueRef = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    const cue = cueRef.current
+    if (!cue || !props.speaking) return undefined
+    // Restart only this layer. Remounting it would reset breathing, crossfades
+    // and bubble lifetimes even for cast members whose emotion did not change.
+    cue.classList.remove('whg-speaker-hop')
+    void cue.offsetWidth
+    cue.classList.add('whg-speaker-hop')
+    return () => cue.classList.remove('whg-speaker-hop')
+  }, [props.beatKey, props.speaking])
+  return React.createElement('div', { ref: cueRef, className: 'whg-speaker-cue' }, props.children)
 }
 
 function Pet(props: { useSessions: any; onOpen: () => void }): React.ReactElement {
@@ -2091,39 +2159,33 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     starry: 'whale-starry',
   }
 
-  // detect the emotion: prefer the host's LLM classification, fall back to keywords
+  // Only the heroine's own line controls her expression; old user-line tags are ignored.
   function emotionOf(): string {
     const lines: any[] = (s && s.history) || []
     let lastLine: any = null
     for (let i = lines.length - 1; i >= 0; i--) {
-      if (lines[i].who === 'user') { lastLine = lines[i]; break }
+      if (lines[i].who === 'heroine') { lastLine = lines[i]; break }
     }
     if (!lastLine) return 'normal'
+    if (lastLine.emotion === 'normal') return 'normal'
+    if (lastLine.emotion === 'happy') return 'cheerful'
     if (lastLine.emotion && EMOTION_ART[lastLine.emotion]) return lastLine.emotion
     const last: string = lastLine.text || ''
     if (!last) return 'normal'
-    if (/生气|讨厌|哼|烦|滚|过分|笨蛋|气死|可恶/.test(last)) return 'angry'
+    if (/生气|讨厌|哼|烦|滚|过分|笨蛋|气死|可恶|不理|走开/.test(last)) return 'angry'
     if (/害怕|吓|恐怖|鬼|啊啊|惊|别吓我/.test(last)) return 'frightened'
     if (/无奈|累死|唉|好吧|算了|服了|无语|头疼/.test(last)) return 'exasperated'
     if (/星星|好美|浪漫|月亮|梦想|憧憬|心动|闪闪|漂亮/.test(last)) return 'starry'
-    if (/害羞|呜|脸红|别这样|不好意思|才不/.test(last)) return 'shy'
+    if (/害羞|呜|脸红|别这样|不好意思|才不|……/.test(last)) return 'shy'
     if (/？|\?|什么|不懂|困惑|为啥|咦|不明白|没听懂/.test(last)) return 'confused'
     if (/认真|工作|学习|讨论|问题|严肃|报告|项目|方案/.test(last)) return 'serious'
-    if (/开心|高兴|哈哈|太好了|棒|喜欢|爱|♪|≧▽≦|耶|抱抱|亲亲/.test(last)) return 'cheerful'
+    if (/开心|高兴|哈哈|太好了|太棒|棒|喜欢|爱|幸福|啦～|♪|≧▽≦|耶|抱抱|亲亲/.test(last)) return 'cheerful'
     return 'normal'
   }
 
   function moodOf(): string {
-    const lines: any[] = (s && s.history) || []
-    let last: string | null = null
-    for (let i = lines.length - 1; i >= 0; i--) {
-      if (lines[i].who === 'heroine') { last = lines[i].text; break }
-    }
-    if (!last) return 'normal'
-    if (/生气|讨厌|哼|笨蛋|不理|走开|过分|烦/.test(last)) return 'angry'
-    if (/喜欢|♪|开心|太棒|幸福|≧▽≦|哈哈|啦～/.test(last)) return 'happy'
-    if (/害羞|才不|呜|脸红|别这样|……/.test(last)) return 'shy'
-    return 'normal'
+    const emotion = emotionOf()
+    return emotion === 'cheerful' ? 'happy' : emotion
   }
 
   function lastLine(): any {
@@ -3105,7 +3167,8 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
   }
 
   function castStage(scene: any): React.ReactElement {
-    const beat = scene.beats[sideStoryBeatIndex(scene)]
+    const beatIndex = sideStoryBeatIndex(scene)
+    const beat = scene.beats[beatIndex]
     const speaking = beat && beat.speaker !== 'narrator' ? beat.speaker : ''
     return React.createElement('div', { className: 'whg-stage' + (pendingLine !== null ? ' whg-thinking' : '') },
       React.createElement('div', {
@@ -3114,7 +3177,11 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
       }),
       React.createElement('div', { className: 'whg-cast' },
         scene.cast.map((member: any, index: number) => {
-          const src = art(member.sprite)
+          const memberBeat = scene.beats.slice(0, beatIndex + 1).reverse().find((row: any) => row.speaker === member.id)
+          const emotion = memberBeat?.emotion || 'normal'
+          const emoKey = member.id === 'deepseek' ? EMOTION_ART[emotion] : ''
+          const src = art(emoKey || member.sprite)
+          const showBubble = member.id !== 'deepseek' && member.moodSprites !== true
           return React.createElement('div', {
             key: member.id,
             className: 'whg-cast-slot',
@@ -3123,9 +3190,18 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
             // Narrow screens only have room for two; the third stays in the script.
             'data-overflow': index >= 2 ? 'true' : 'false',
           },
-            src
-              ? React.createElement('img', { src, alt: member.name, draggable: false })
-              : React.createElement('div', { className: 'whg-sprite-fallback' }, '🐋'),
+            React.createElement('div', { className: 'whg-breathe', style: { animationDelay: (-index * 1.5) + 's' } },
+              React.createElement(SpeakerCue, {
+                beatKey: scene.id + '-' + beatIndex,
+                speaking: speaking === member.id,
+              },
+                React.createElement(EmotionExpression, { emotion, showBubble },
+                  src
+                    ? React.createElement(CrossfadeImg, { src, className: 'whg-sprite', alt: member.name, draggable: false })
+                    : React.createElement('div', { className: 'whg-sprite-fallback' }, '🐋'),
+                ),
+              ),
+            ),
             React.createElement('div', {
               className: 'whg-cast-name',
               style: { color: member.color },
@@ -3142,6 +3218,8 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     const emotion = emotionOf()
     const mood = moodOf()
     const activeCustomSprite = customSprite && spriteCache.current[String(s.current)] === customSprite ? customSprite : null
+    const hasEmotionSprites = !activeCustomSprite && (s.current === 'deepseek' || s.moodSprites === true)
+    const showBubble = !hasEmotionSprites
     let src: string | undefined
     let useFilter = !s.moodSprites
     let emoKey = ''
@@ -3167,18 +3245,13 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
         draggable: false,
         onError: () => { setImgFail(true) },
       })
-    const blushOpacity = emoKey
-      ? 0
-      : mood === 'shy' ? 0.55 : mood === 'happy' ? 0.3 : 0
     return React.createElement('div', { className: 'whg-stage' + (pendingLine !== null ? ' whg-thinking' : '') },
       React.createElement('div', { className: 'whg-tint', style: { background: 'radial-gradient(closest-side, ' + s.color + '2e, transparent)' } }),
       React.createElement('div', { key: s.current, className: 'whg-character-enter' },
         React.createElement('div', { className: 'whg-sprite-wrap' + (s.portrait ? ' whg-portrait' : '') + (useFilter ? ' whg-mood-' + mood : '') },
-          wrap,
-          React.createElement('div', {
-            className: 'whg-blush',
-            style: { opacity: blushOpacity },
-          }),
+          React.createElement('div', { className: 'whg-breathe' },
+            React.createElement(EmotionExpression, { emotion, showBubble }, wrap),
+          ),
         ),
       ),
     )
@@ -3305,7 +3378,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
         }, row.title)))
       : null
     return React.createElement('div', { id: 'whg-panel', className: 'whg-panel' },
-      React.createElement('div', { className: 'whg-plate' + (isUser ? ' user' : ''), style: { background: plateColor } }, plateLabel),
+      React.createElement('div', { className: 'whg-plate' + (isUser ? ' user' : ''), style: { background: plateColor, '--whg-plate-color': plateColor } as React.CSSProperties }, plateLabel),
       textSpeedButton(),
       levelMeter(),
       React.createElement('div', { className: 'whg-side-seed' },
@@ -3375,7 +3448,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
       className: 'whg-line-now ' + (last ? last.who : 'narrator'),
     })
     return React.createElement('div', { id: 'whg-panel', className: 'whg-panel' },
-      React.createElement('div', { className: 'whg-plate' + plateClass, style: { background: plateColor } }, plateLabel),
+      React.createElement('div', { className: 'whg-plate' + plateClass, style: { background: plateColor, '--whg-plate-color': plateColor } as React.CSSProperties }, plateLabel),
       textSpeedButton(),
       levelMeter(),
       now,

@@ -180,6 +180,8 @@ test('all presentation animations respect reduced motion', () => {
     'whg-type-cursor', 'whg-advance-cursor', 'whg-response-dot', 'whg-thinking',
     'whg-crossfade-fading', 'whg-character-enter', 'whg-affection-delta',
     'whg-level-shine:after', 'whg-level-up-card', 'whg-level-up-card:before',
+    'whg-breathe', 'whg-speaker-hop', 'whg-action-cheerful', 'whg-action-happy',
+    'whg-action-angry', 'whg-action-shy', 'whg-action-confused', 'whg-action-frightened', 'whg-emotion-bubble',
   ]) assert.ok(reduced.includes('.' + className), 'missing reduced-motion override: ' + className)
   assert.match(reduced, /animation:none/)
   assert.match(reduced, /\.whg-crossfade>\.whg-crossfade-fading\{animation:none;opacity:0\}/)
@@ -191,4 +193,71 @@ test('level meter children never share a React key', () => {
   // A shared key between the track and the delta span leaks one extra track per affection change.
   assert.match(meter, /key:\s*'track-'\s*\+/)
   assert.match(meter, /key:\s*'delta-'\s*\+/)
+})
+
+test('expressions read only heroine lines and share one keyword mood mapping', () => {
+  const emotion = section('function emotionOf()', 'function moodOf()')
+  const mood = section('function moodOf()', 'function lastLine()')
+  assert.match(emotion, /lines\[i\]\.who === 'heroine'/)
+  assert.doesNotMatch(emotion, /who === 'user'/)
+  assert.match(emotion, /lastLine\.emotion === 'normal'\) return 'normal'/)
+  assert.match(emotion, /lastLine\.emotion && EMOTION_ART\[lastLine\.emotion\]/)
+  assert.match(mood, /const emotion = emotionOf\(\)/)
+  assert.match(mood, /emotion === 'cheerful' \? 'happy' : emotion/)
+})
+
+test('mood filters preserve skin and hair colours', () => {
+  const css = section('const CSS = [', 'function art(')
+  const moods = css.split('\n').filter((line) => line.includes("'.whg-mood-"))
+  assert.ok(moods.length >= 3)
+  for (const rule of moods) assert.doesNotMatch(rule, /hue-rotate/)
+})
+
+test('emotion bubbles require a custom sprite or a role without expression variants', () => {
+  const stage = section('function stage()', 'function textSpeedButton()')
+  const cast = section('function castStage(', 'function stage()')
+  const expression = section('function EmotionExpression(', 'function Pet(')
+  assert.match(stage, /const hasEmotionSprites = !activeCustomSprite && \(s\.current === 'deepseek' \|\| s\.moodSprites === true\)/)
+  assert.match(stage, /const showBubble = !hasEmotionSprites/)
+  assert.match(stage, /React\.createElement\(EmotionExpression, \{ emotion, showBubble \}/)
+  assert.match(cast, /const showBubble = member\.id !== 'deepseek' && member\.moodSprites !== true/)
+  assert.match(cast, /memberBeat\?\.emotion/)
+  assert.match(expression, /props\.showBubble && bubbleEmotion === props\.emotion && EMOTION_SYMBOLS\[props\.emotion\]/)
+  assert.match(expression, /showBubble \? React\.createElement\('span'/)
+  assert.match(expression, /setTimeout\(\(\) => setBubbleEmotion\(null\), 3300\)/)
+  const symbols = section('const EMOTION_SYMBOLS', 'function EmotionExpression(')
+  for (const symbol of ['♪', '💦', '💢', '？', '！！', '…', '✨']) assert.ok(symbols.includes(symbol))
+  assert.doesNotMatch(symbols, /serious:/)
+})
+
+test('breathing, emotion, thinking and speaker cues have separate transform layers', () => {
+  const css = section('const CSS = [', 'function art(')
+  const stage = section('function stage()', 'function textSpeedButton()')
+  const cast = section('function castStage(', 'function stage()')
+  assert.match(css, /\.whg-breathe,\.whg-emotion-action,\.whg-speaker-cue\{[^}]*display:inline-flex;[^}]*height:100%/)
+  assert.match(css, /\.whg-breathe\{animation:whgBreathe 4\.5s ease-in-out infinite\}/)
+  assert.match(css, /translateY\(-1\.5px\) scaleY\(1\.004\)/)
+  assert.match(stage, /className: 'whg-breathe'[\s\S]*React\.createElement\(EmotionExpression/)
+  assert.match(cast, /className: 'whg-breathe'[\s\S]*React\.createElement\(SpeakerCue[\s\S]*React\.createElement\(EmotionExpression/)
+  assert.match(cast, /beatKey: scene\.id \+ '-' \+ beatIndex/)
+  assert.match(cast, /speaking: speaking === member\.id/)
+  const cue = section('function SpeakerCue(', 'function Pet(')
+  assert.match(cue, /cue\.classList\.remove\('whg-speaker-hop'\)[\s\S]*void cue\.offsetWidth[\s\S]*cue\.classList\.add\('whg-speaker-hop'\)/)
+  assert.match(cue, /\[props\.beatKey, props\.speaking\]/)
+  assert.doesNotMatch(cast, /key: scene\.id/)
+  assert.match(cast, /animationDelay: \(-index \* 1\.5\)/)
+  assert.match(css, /\.whg-speaker-hop\{animation:whgSpeakerHop \.3s ease-out\}/)
+  assert.match(css, /\.whg-plate:after\{[^}]*var\(--whg-plate-color/)
+  assert.equal((source.match(/'--whg-plate-color': plateColor/g) || []).length, 2)
+})
+
+test('short and narrow viewports override both tab and fullscreen sprite and panel dimensions', () => {
+  const css = section('const CSS = [', 'function art(')
+  for (const breakpoint of ['max-height:700px', 'max-width:720px', 'max-aspect-ratio:3/4']) {
+    assert.ok(css.includes(breakpoint))
+  }
+  assert.match(css, /\.whg-sprite-wrap,\.whg-root-tab \.whg-sprite-wrap\{height:min\(78vh,100%\)/)
+  assert.match(css, /\.whg-panel,\.whg-root-tab \.whg-panel\{box-sizing:border-box;left:10px;right:10px/)
+  assert.match(css, /\.whg-level\{top:18px;left:14px;right:auto/)
+  assert.match(css, /\.whg-text-speed\{top:15px;right:12px/)
 })
