@@ -20,101 +20,44 @@ Between Harness tasks, discover an “extraordinary” coworker relationship wit
 
 ## What it does
 
-- Choose the displayed character separately from the reply model. A role can follow the workspace model or be pinned; replies can use the default `deepseek-v4-flash`, follow the workspace, or use a model listed by DSH.
-- The six roles keep separate affection, level, profile, dialogue history, reply choices, consumed-task memory, custom sprite, CG gallery, and background data, all shared globally across workspaces; the current role, token balance, and plugin preferences remain continuous too.
-- Side Story branches support more than one-to-one interaction: trigger themed daily skits between characters, humorous work recaps, and milestone-story replays.
-- Each turn offers close, neutral, and distant reply options in shuffled positions. Free-text input remains available.
-- Switching roles also switches to that role's built-in background. The whale-girl still defaults to the deep-sea palace; her new seaside study is an optional built-in alternative. A user upload or saved CG overrides role defaults until a built-in background is restored.
-- Manage the background, per-role sprite, dialogue archive, CG gallery, and desktop pet from the interface. Clicking the pet opens the `galgame` tab.
-- Dialogue has a typewriter effect with four speed options. Click the line or press Space or Enter to reveal it in full; in Side Story, repeat once the line is complete to advance to the next one.
-- While waiting for a reply, your message appears first, along with an indicator that the character is responding.
-- Background and sprite changes crossfade; a newly selected character slides in from below, and sprites have a gentle idle breathing animation.
-- Expressions follow the character's own reply. Characters without expression variants show their mood through emotion bubbles and motion.
-- The speaking character gives a small hop in Side Story, and nameplates have a little pointer toward the character.
-- Affection changes display a floating “♡±N”, while level-ups play a full-screen sequence.
-- Brass and deep-sea dialogue panels use character-specific accent colors, with ambient particles and rippling light over the background. Short windows and narrow screens leave room for the character's face.
-- Claude (克洛德) is a meticulous, book-loving proofreader; GPT (小吉) is a confident, slightly tsundere ancient white dragon girl who loves organizing thoughts into key points; Grok (洛可) is a quick-witted, fiercely protective vampire princess fond of space jokes. All three call you “Master” (主人) and have their own relationships with their workshop companions.
+- Four text speeds, dialogue history with recorded expressions, and H / right-click to hide the interface.
+- Web Audio sound effects and BGM, with separate toggles and volume control; both are off by default.
+- Replies informed by recent DSH task categories, the local date, and time since your last conversation.
+- Editable character nicknames, forms of address, greetings, personalities, speaking styles, and CG appearance descriptions.
+- Custom background and sprite uploads, with dialogue and settings continued across workspaces.
+- One plugin for DeepSeek Harness Web and Desktop; Chinese, English, Japanese, and Korean documentation, with a Simplified Chinese interface.
 
-## Affection and cross-session context
-
-### Relationship progression
-
-Each role begins at Lv.1 with 0 affection and keeps its own state. The close, neutral, and distant reply choices apply +1, 0, and -1 respectively, with their positions shuffled each turn; free text uses lightweight keyword rules. While the plugin is running, newly observed Harness `assistant/message` usage events from every workspace enter one global token balance. Every 5,000 accumulated input and output tokens add 1 point to whichever role is current when settlement runs. A settlement redeems at most 3 points and keeps the remaining balance; model calls initiated by the plugin itself are excluded, and usage from before the plugin started is not recalculated. After a 24-hour grace period without activity, every role loses 2 points per day, with a floor of 0.
-
-The level threshold is `30 + 15 × (Lv - 1)`: 30, 45, 60, and so on. Reaching it raises the level and carries any surplus into the next one; there is no level cap. Relationship tone has five stages and remains at the closest stage from Lv.5 onward. With a valid DashScope key configured, each level-up attempts to generate a commemorative CG.
-
-### Harness task events
-
-For each event source, the plugin examines at most 16 top-level live and persisted Harness sessions from that workspace, limited to the past 72 hours and the final 240 events in each session. Local deterministic rules classify activity as code debugging, code development, document summarization, document writing, literary creation, research, data analysis, visual design, presentation work, translation and proofreading, or task planning, then merge the safe result into the global event feed. Text classification uses only explicit user text submitted by a person; tool names and turn-end status may also contribute. Tool arguments, tool results, and assistant body text are neither read nor sent.
-
-Only fixed category and status cues are passed to the Galgame reply model and CG generation service. While answering the current topic, the character naturally adds one brief acknowledgement—for example, reminding the player to rest after a debugging task. Each role's consumed-event fingerprints and last-mention time live in the global state: switching workspaces will not cause that role to proactively mention the same event again, and different events remain at least 30 minutes apart. Task events affect the topic, not affection directly.
-
-## Bundled default art
-
-The installed plugin embeds 22 runtime visual assets: six character sprites, seven built-in backgrounds, eight whale-girl expressions, and one 11-row desktop-pet animation atlas from [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet). The six images below are the default role sprites; [`assets/default/`](assets/default/README.md) lists every exported file and its runtime purpose. The npm installation carries only the client bundle with embedded art, rather than duplicating the raw exports or generated-art source.
-
-<table>
-  <tr>
-    <td align="center"><img src="assets/default/maid-left.webp" width="180" alt="Default DeepSeek whale-girl sprite"><br><strong>DeepSeek · Whale Girl</strong></td>
-    <td align="center"><img src="assets/default/claude-zipzippipe.webp" width="180" alt="Default Claude-inspired character sprite, nickname 克洛德"><br><strong>Claude · 克洛德</strong></td>
-    <td align="center"><img src="assets/default/gpt-zipzippipe.webp" width="180" alt="Default GPT-inspired character sprite, nickname 小吉"><br><strong>GPT · 小吉</strong></td>
-  </tr>
-  <tr>
-    <td align="center"><img src="assets/default/gemini-dual-prism-translator-v4.webp" width="180" alt="Default Gemini-inspired character sprite, nickname 双子"><br><strong>Gemini · 双子</strong></td>
-    <td align="center"><img src="assets/default/kimi-lunar-scroll-navigator-v5.webp" width="180" alt="Default Kimi-inspired character sprite, nickname 月见"><br><strong>Kimi · 月见</strong></td>
-    <td align="center"><img src="assets/default/grok-zipzippipe.webp" width="180" alt="Default Grok-inspired character sprite, nickname 洛可"><br><strong>Grok · 洛可</strong></td>
-  </tr>
-</table>
-
-The six new role backgrounds are shown below. Claude, GPT, Gemini, Kimi, and Grok use their matching scene by default. DeepSeek keeps `palace-night.webp` as the whale-girl default; the seaside study shown here is a selectable built-in alternative.
-
-<table>
-  <tr>
-    <td align="center"><img src="assets/default/bg-deepseek-seaside-study.webp" width="260" alt="Optional DeepSeek whale-girl seaside-study background"><br><strong>DeepSeek · optional</strong></td>
-    <td align="center"><img src="assets/default/bg-claude-writing-study.webp" width="260" alt="Claude writing-study default background"><br><strong>Claude</strong></td>
-    <td align="center"><img src="assets/default/bg-gpt-collaboration-workshop.webp" width="260" alt="GPT collaboration-workshop default background"><br><strong>GPT</strong></td>
-  </tr>
-  <tr>
-    <td align="center"><img src="assets/default/bg-gemini-twin-creative-studio.webp" width="260" alt="Gemini twin creative-studio default background"><br><strong>Gemini</strong></td>
-    <td align="center"><img src="assets/default/bg-kimi-moonlit-reading-study.webp" width="260" alt="Kimi moonlit reading-study default background"><br><strong>Kimi</strong></td>
-    <td align="center"><img src="assets/default/bg-grok-electronics-studio.webp" width="260" alt="Grok electronics-studio default background"><br><strong>Grok</strong></td>
-  </tr>
-</table>
-
-The remaining runtime assets comprise eight full-resolution transparent `whale-*.webp` expression images and the 8-column × 11-row `pet-spritesheet.webp` animation atlas. The first 21 default images and the pet atlas use different licenses; see the [NOTICE](NOTICE.md) and [third-party license index](THIRD_PARTY_LICENSES.md) for sources, modifications, and file-by-file licensing.
-
-The Galgame layout, dialogue box, controls, and decorations are public in [`src/client/index.ts`](src/client/index.ts); there is no undisclosed UI-image pack.
+See [mechanics](docs/mechanics.md) for relationship progression, task awareness, and generation rules (in Chinese).
 
 ## Install
 
-DeepSeek Harness must be installed with a working `dsh` command and Web profile.
+Install DeepSeek Harness first and make sure the `dsh` command is available.
+
+### Web
+
+Install into the `web` profile:
 
 ~~~sh
 dsh plugin --profile web add dsh-whale-galgame
 ~~~
 
-After installation, stop the running Web profile and start it again:
+Stop the running Web profile, then start it again:
 
 ~~~sh
 dsh --profile web
 ~~~
 
-If a source installation exposes the command as `pnpm dsh`, keep the same arguments.
+If your source installation uses `pnpm dsh`, keep the same arguments.
 
-### DeepSeek Harness Desktop
+### Desktop
 
-Desktop runs the complete Web application inside an Electron window, so the same package works unchanged. Desktop uses its own reserved `desktop` profile:
-
-1. Open DeepSeek Harness Desktop once to initialize it, then install its bundled `dsh` command through **Application → Manage dsh Command**.
-2. Fully quit Desktop (including the tray), then run:
+Open DeepSeek Harness Desktop once to initialize it, install its bundled command through **Application → Manage dsh Command**, then fully quit Desktop, including the tray:
 
 ~~~sh
 dsh plugin --profile desktop add dsh-whale-galgame
 ~~~
 
-3. Reopen Desktop. To update or remove, replace `add` with `update` or `remove`, again with Desktop closed.
-
-You can also install the package by name from Desktop's **Plugins** page. The fullscreen Galgame view keeps clear of the Windows custom caption and the macOS traffic lights, so window controls stay usable. Saves, affection, and CGs live under `$DSH_HOME`, so Desktop and Web share the same data.
+Reopen Desktop, or install by package name from its **Plugins** page; Desktop uses the `desktop` profile. Web and Desktop use the same package and share saves when they use the same `DSH_HOME`.
 
 ### Update and remove
 
@@ -123,78 +66,71 @@ dsh plugin --profile web update dsh-whale-galgame
 dsh plugin --profile web remove dsh-whale-galgame
 ~~~
 
-Stop and restart the Web profile after either operation.
+Restart the Web profile afterward; for Desktop, replace `web` with `desktop`, fully quit before the operation, and reopen afterward.
 
-### Installing from GitHub (tracking main)
+### Install from GitHub
 
-Only needed to follow the latest commit instead of the published release:
+Follow the latest commit on `main`:
 
 ~~~sh
 dsh plugin --profile web add github:JAdpp/dsh-whale-galgame#main
 ~~~
 
-A git install runs this repository's `prepare` build script on the spot, which
-pnpm blocks by default. The first run fails with
-`ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED` and prints a key; add it to the profile's
-`pnpm-workspace.yaml`:
+Git installs build locally; if pnpm reports `ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED`, add the full commit key it prints to that profile's `pnpm-workspace.yaml` as below, updating the key for each new commit; prebuilt npm releases need no such configuration:
 
 ~~~yaml
 allowBuilds:
   'dsh-whale-galgame@https://codeload.github.com/JAdpp/dsh-whale-galgame/tar.gz/<commit>': true
 ~~~
 
-The key pins one commit, so it has to be updated from pnpm's output every time
-you follow a new one. **Installing from npm skips all of this** — the published
-package is prebuilt and runs no install-time scripts.
+## Use
 
-## Use and settings
+Open the `galgame` tab at the top of a DSH conversation, or click the pet in the lower-right corner. Choose a reply option or type your own message.
+
+In the top bar, **Character source** (`角色来源`) selects the character and **Actual dialogue** (`实际对话`) selects the reply model. Characters can follow the workspace or stay pinned; replies can use the default `deepseek-v4-flash`, follow the workspace, or use a model from the DSH catalog.
+
+The top-bar **Dialogue history** (`对话历史`) opens ordinary conversations, the Side Story archive keeps completed skits, and **CG gallery** (`CG图鉴`) collects generated images and lets you set a CG as the background.
+
+### Shortcuts
+
+| Action | Result |
+| --- | --- |
+| Click the line / Space / Enter | Reveal the full line; repeat after completion to advance in Side Story |
+| H / right-click the background or sprite | Hide the interface to view the art |
+| Click / H / Esc while hidden | Restore the interface |
+| Scroll upward over the dialogue panel | Open history, including expressions recorded with each line |
+
+### Display and images
+
+The gear at the dialogue panel's upper-right controls text speed, font, ambient effects, sound effects, BGM, and volume; the literary font option uses fonts installed locally.
+Use **Background** (`背景图`) and **Character sprite** (`角色立绘`) in the top bar to upload PNG, JPEG, WebP, or AVIF images; selecting a built-in background restores character-based scene switching. See [image details](docs/mechanics.md#舞台图片与显示设置) for size limits and default-background rules.
+
+Under **Settings → Plugins → Whale Girl** (`鲸鱼娘`), choose the default character and reply model, enable or disable the plugin, or toggle the pet. Disabling the plugin pauses dialogue and affection settlement while keeping saves.
 
 ![Plugin configuration in DSH Web](docs/screenshots/plugin-settings.png)
 
-The Galgame top bar controls the displayed character and actual dialogue model. It also accepts a background or a sprite for the current role. PNG, JPEG, WebP, and AVIF are supported, with a 12 MB browser-side limit per file.
+### Custom character profiles
 
-Settings → Plugins → Whale Girl (`鲸鱼娘`) contains the plugin toggle, a separate desktop-pet visibility switch, and the default character and reply-model choices. Hiding the pet still leaves the `galgame` conversation tab available for restoring it. Disabling the whole plugin pauses Galgame dialogue and affection settlement without deleting existing data.
-
-### Display settings and shortcuts
-
-Click the gear in the top-right corner of the dialogue box to open **Display settings** (`显示设置`). Choose a text speed (slow, medium, fast, or instant) and dialogue font (literary or system), toggle ambient effects, sound effects, and BGM, and adjust the volume. Literary fonts use fonts already installed on your device. Sound effects and background music are synthesized with Web Audio and are both off by default.
-
-Press H on the stage, or right-click the background or a character sprite, to hide the interface and enjoy the art. Click anywhere or press H / Esc to restore it. Scroll upward over the dialogue panel to open the dialogue history, including the expression recorded with each character line.
-
-### Customize a character profile
-
-Select **Character profile**, next to **Character sprite** in the Galgame top bar, to edit six fields for the current role:
-
-- Character nickname
-- What the character calls the user
-- First greeting
-- Personality
-- Speaking style
-- CG appearance description
-
-Custom profiles are stored separately for all six roles and shared across every workspace. **Save profile** and **Restore defaults** change only these six fields for the current role; neither resets that role's affection or level, long-term memory, or custom sprite. Before any real user/role exchange, changing or restoring **First greeting** updates the opening greeting in place while leaving any automatic entrance narration untouched. Once a real exchange exists, the plugin will not insert, replace, or replay it in the history. The CG appearance description guides future level-up CGs and does not rewrite images already saved in the gallery.
-
-Custom profile text cannot override the plugin's safety constraints or its one-sentence reply limit.
+**Character profile** (`角色设定`), next to **Character sprite** in the top bar, edits the nickname, form of address, first greeting, personality, speaking style, and CG appearance description.
+Profiles are saved per character and shared across workspaces; **Restore defaults** resets only these six fields for the current character. Saving or restoring preserves affection, history, and custom sprites.
+See [profile details](docs/mechanics.md#自定义角色设定) for greeting updates and existing-history behavior.
 
 ### Side Story
 
-Side Story gives the model girls a more theatrical space for narrative scenes:
+Click **Side Story** (`小剧场`) in the top bar for daily skits or work recaps; completed scenes can be read again in the Side Story archive.
+Web sourcing is on by default; switch to **Local task categories only** (`只用本地任务类别`) under **Settings → Plugins → Whale Girl → Skit sourcing** (`小剧场取材`) to turn off searches.
+Group CGs are generated by clicking the archive button and use the same DashScope configuration as level-up CGs.
 
-- **Situational skits and daily interactions**: Beyond regular conversation, trigger playful exchanges between model girls, short work-break stories, and scenario-specific scenes.
-- **Work-event recap skits**: Turn recent tasks into lighthearted recap scenes, such as “the whale girl's late-night debugging appreciation party.”
-- **Story archive and replay**: Unlocked Side Story scenes are archived automatically and can be revisited at any time in the dialogue history.
+![Multi-character Side Story](docs/screenshots/side-story-multi-character.png)
 
-![Multi-character Side Story in action: the whale girl, Kimi, and GPT sharing a scene with reply choices](docs/screenshots/side-story-multi-character.png)
+### Desktop pet
 
-### Built-in desktop pet
+The pet is bundled and enabled by default; click it to enter Galgame. The top-bar pet toggle and **Show desktop pet** in plugin settings stay synchronized.
+When hidden, the `galgame` tab remains available for opening the view and restoring the pet.
 
-The desktop pet ships inside this plugin; no separate installation is needed. It is enabled by default for new installations and appears in the lower-right corner of the main DSH interface. Clicking it opens the `galgame` tab. **Desktop pet · On/Off** in the Galgame top bar and **Show desktop pet** under Settings → Plugins → Whale Girl (`鲸鱼娘`) stay synchronized and affect only pet visibility; the `galgame` tab remains available if the pet is hidden. **Enable plugin** controls the whole plugin; disabling it hides the pet and pauses Galgame dialogue and affection settlement.
+### Optional level-up CGs
 
-## Optional generated CGs
-
-Level-up CGs use DashScope `qwen-image-3.0` at 1920 × 1080 by default. Without a DashScope key, chat, role switching, history, affection, and custom images still work; only CG generation is unavailable.
-
-Provide the key only through the local environment that starts DSH:
+Level-up CGs need a valid DashScope key. Set `DASHSCOPE_API_KEY` in the local environment that starts DSH, for example:
 
 ~~~powershell
 $env:DASHSCOPE_API_KEY = 'your-local-key'
@@ -205,32 +141,18 @@ dsh --profile web
 DASHSCOPE_API_KEY='your-local-key' dsh --profile web
 ~~~
 
-Do not write a real key into repository files or commit one to Git.
+CG generation is optional: chat, affection, and custom images work without a key. Keep the real key in your local environment.
+See [CG details](docs/mechanics.md#小剧场与-cg) for generation rules and how Side Story level-ups differ.
 
 ## Data and privacy
 
-Runtime data is split into two layers; treat both as private data:
+- Global state lives in `DSH_HOME/storages/dsh-whale-galgame/global.json`, workspace `.whale-girl-save.json` files hold source/migration markers, and display preferences use local `localStorage`.
+- Task awareness classifies explicitly submitted Harness user messages locally, with tool names and status as cues; workspace file contents are not read, and raw text is not saved to Galgame.
+- Galgame messages, relevant history, character profiles, and date/relationship cues go to the selected model; Harness context supplies only fixed task categories and status cues.
+- Side Story searches use only model names and topic words; DashScope receives text prompts for CGs, while uploaded backgrounds and sprites stay local.
+- To erase data, quit DSH, delete the global save, workspace markers and save copies, and clear plugin display preferences; **Restart** resets only levels and affection.
 
-- `DSH_HOME/storages/dsh-whale-galgame/global.json` stores the complete continuous Galgame state: the current role; each role's relationship progress, profile, dialogue history, current reply choices, consumed-task memory, custom sprite, CG gallery, and background; the global task-event feed, token-settlement balance, deduplication fingerprints, and plugin preferences.
-- `.whale-girl-save.json` at the active workspace root now contains only a lightweight event-source and legacy-migration marker. It no longer keeps a separate story, dialogue, task-memory, or token ledger.
-- A new workspace immediately continues the same current role, dialogue history, reply choices, and relationship progress. Workspace and session identities are used only to locate Harness event sources and deduplicate collection; they do not restart the story or show the former cross-workspace refusal page.
-- The first time an old v9 workspace save is opened, the plugin merges its migratable story and role data into the global file above, then rewrites that workspace's `.whale-girl-save.json` as a source/migration marker.
-
-- Ordinary dialogue is sent to the model provider selected in DSH.
-- Generating a level-up CG sends a text prompt to DashScope.
-- With skit web sourcing enabled (the default), the plugin searches through DSH's web capability. The query is built only from the model name a character stands for plus topic words: it contains **none** of your conversation, workspace contents, or any Harness text.
-- Search results are used for that one skit; the summary and source links are stored in the skit log (inside the save), while page bodies are never written to disk.
-- Choosing "local task categories only" under Settings → Plugins → Whale Girl (`鲸鱼娘`) → skit sourcing disables networking entirely: no search request is made.
-- Generating a group CG sends the characters' appearance descriptions and the skit's situation to DashScope as a text prompt. It only runs when you click it.
-- User-uploaded backgrounds and sprites remain in the global save and are not included in either external request.
-- Raw Harness text is never written to a Galgame save. Global state keeps only fixed category and status cues, opaque deduplication fingerprints, and last-mention times; external requests likewise receive only fixed category and status cues.
-
-This plugin repository's `.gitignore` cannot protect a different workspace automatically. If the active workspace is itself a Git repository, add these entries to that workspace's `.gitignore`:
-
-~~~gitignore
-.whale-girl-save.json
-.whale-girl-save.*.json
-~~~
+See [privacy details](docs/privacy.md) for storage format, legacy migration, search settings, Git ignore entries, and deletion steps (in Chinese).
 
 ## Development
 
@@ -242,25 +164,22 @@ npm run export:art
 npm run verify
 ~~~
 
-`lib/` and `src/client/art.generated.ts` are build output and are not committed. The `prepare` script runs `npm run embed:art` and `tsdown` on install, so git-hosted installs build themselves and the repository tarball stays small; after cloning, run `npm install` once to produce them locally. `npm run sanitize:backgrounds` strips non-visual WebP metadata from the six role backgrounds, `npm run embed:art` writes the allowlisted files into the runtime source, and `npm run export:art` reproduces all 22 public assets for byte-level checking.
+`lib/` and `src/client/art.generated.ts` are untracked build outputs, generated by `prepare` during source installation. See [build details](docs/mechanics.md#美术清单与构建说明) for art-processing commands and package contents.
 
 ## License and credits
 
-Code, the Galgame UI implementation, and documentation are covered by the [MIT License](LICENSE.md). The six character sprites, seven built-in backgrounds, and eight whale-girl expressions—21 default images in total—are distributed under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/); project-produced AI-assisted images are offered under that license only to the extent the maintainer holds the applicable rights. The `pet-spritesheet.webp` atlas and code directly inherited from [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet) retain its MIT license. See the file-by-file [NOTICE](NOTICE.md) and preserved upstream texts in [`assets/default/licenses/`](assets/default/licenses/).
+Code, the Galgame UI implementation, and documentation use [MIT](LICENSE.md). The 21 default images use [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) (noncommercial use, with adaptations under the same license); project-made AI-assisted images are offered to the extent the maintainer holds applicable rights. The pet atlas and directly inherited pet code retain upstream MIT licensing.
 
-Finally, thank you to the people who made specific artwork and implementation knowledge available to the community:
+Thanks to the creators and upstream projects:
 
-- **上善** created the original whale-girl character: [Pixiv](https://www.pixiv.net/users/62155430) · [Bilibili](https://space.bilibili.com/4456176).
-- **ZipZipPipe** added DeepSeek elements to that character in the maid whale-girl redesign: [Pixiv](https://www.pixiv.net/users/18604994) · [Bilibili](https://space.bilibili.com/4168597).
-- **Small-tailqwq** provided the deep-sea palace background used by this plugin through the open-source project [dsh-deep-whale](https://github.com/Small-tailqwq/dsh-deep-whale).
-- **f0909172434 / [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet)** released the DSH whale-girl desktop pet under MIT. This plugin's pet feature is a derivative of that project, and its `pet-spritesheet.webp` is identical to the upstream atlas. This project changed the plugin integration and visual styling and added the click-to-open-Galgame interaction.
-- **ZipZipPipe** drew the default Claude, GPT, and Grok model-girl sprites ([original post](https://www.bilibili.com/opus/1233069202138464289)), licensed under CC BY-NC-SA 4.0 for noncommercial use with derivatives shared alike. This project only removed the white background, cropped each image to the figure, and converted it to WebP; the adapted images are offered under the same CC BY-NC-SA 4.0 terms.
-- The Gemini- and Kimi-inspired sprites, six daily-life role backgrounds, and the Galgame UI are unofficial, AI-assisted project artwork.
-- All model-girl designs are unofficial fan characters, not official character designs, partnerships, or endorsements from the named companies.
+- **上善** created the original whale girl, **ZipZipPipe** added DeepSeek elements in the maid redesign, and **Small-tailqwq / [dsh-deep-whale](https://github.com/Small-tailqwq/dsh-deep-whale)** supplied the reused sprite and deep-sea palace background; this project prepared the expression variants. [上善 Pixiv](https://www.pixiv.net/users/62155430) · [Bilibili](https://space.bilibili.com/4456176) · [ZipZipPipe Pixiv](https://www.pixiv.net/users/18604994) · [Bilibili](https://space.bilibili.com/4168597).
+- **ZipZipPipe** drew the default Claude, GPT, and Grok sprites ([original post](https://www.bilibili.com/opus/1233069202138464289)); this project removed the white backgrounds, cropped the figures, and converted them to WebP.
+- **f0909172434 / [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet)** supplied the pet implementation and unchanged atlas; this project adapted integration and styling and added click-to-open Galgame.
+- The Gemini and Kimi sprites, six character backgrounds, and Galgame UI are unofficial AI-assisted work made for this project.
 
-If these open-source materials and implementations help you, consider starring [dsh-deep-whale](https://github.com/Small-tailqwq/dsh-deep-whale) and [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet), or following 上善 and ZipZipPipe on Pixiv or Bilibili. Please report installation, runtime, or compatibility problems to [this repository's Issues](https://github.com/JAdpp/dsh-whale-galgame/issues) rather than asking the artists to troubleshoot plugin code.
+The [default-art guide](assets/default/README.md) preserves the full file list, sources, and hash information. See [NOTICE](NOTICE.md), the [third-party index](THIRD_PARTY_LICENSES.md), and [upstream license texts](assets/default/licenses/) for file-level licensing. All characters are unofficial fan designs; names and trademarks belong to their owners, with no affiliation, partnership, or endorsement.
 
-DeepSeek, Claude, ChatGPT/GPT, Gemini, Kimi, Grok, and related marks belong to their respective owners. This is an unofficial community plugin and is not affiliated with, partnered with, or endorsed by those owners.
+Report plugin issues through [this repository's Issues](https://github.com/JAdpp/dsh-whale-galgame/issues).
 
 ## Related dsh Galgame projects
 
