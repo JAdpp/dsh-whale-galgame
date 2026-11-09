@@ -6,24 +6,24 @@
 
 在Harness执行工作的间隙，探寻你与模型娘间“非比寻常”的同事关系～(∠・ω< )⌒★
 
-`dsh-whale-galgame` 是专为 DeepSeek Harness Web 与 Desktop 打造的独立多角色 Galgame 界面插件。通过无缝融入日常工作流，它让冰凉的 AI 交互化作温暖长情的陪伴：
+`dsh-whale-galgame` 是专为DeepSeek Harness Web与Desktop打造的独立多角色Galgame界面插件。通过无缝融入日常工作流，它让冰凉的AI交互化作温暖长情的陪伴：
 
-- **6 位性格各异的模型娘**：支持 DeepSeek（鲸鱼娘）、Claude、GPT、Gemini、Kimi 与 Grok，立绘、好感度、记忆与背景相互独立。
-- **外观与内核解耦**：喜欢鲸鱼娘的机甲，又想用 Claude 或 GPT 进行深度对话（NTR?）角色形象与底层回复模型可随心搭配。
+- **6 位性格各异的模型娘**：支持DeepSeek（大肥鱼）、Claude、GPT、Gemini、Kimi与Grok，立绘、好感度、记忆与背景相互独立。
+- **外观与内核解耦**：喜欢鲸鱼娘的机甲，又想用Claude或GPT进行深度对话（NTR?）角色形象与底层回复模型可随心搭配。
 - **「小剧场」模式**：告别单一问答，解锁多模型娘联动日常、工作复盘短剧与专属里程碑剧情。
-- **伴你成长的羁绊系统**：日常互动与工作 Token 积累均可提升好感，解锁专属亲昵语气与 AI 生成的纪念 CG。
-- **轻量可爱的桌面宠物**：支持常驻屏幕一角，点击即可一键切入 Galgame 界面。
+- **伴你成长的羁绊系统**：日常互动与工作Token积累均可提升好感，解锁专属亲昵语气与AI生成的纪念CG。
+- **轻量可爱的桌面宠物**：支持常驻屏幕一角，点击即可一键切入Galgame界面。
 
-![dsh-whale-galgame 在 DSH Web 中的实际运行界面](docs/screenshots/galgame-overview.jpg)
+![dsh-whale-galgame在DSH Web中的实际运行界面](docs/screenshots/galgame-overview.jpg)
 
-## 功能
+## 可定制化体验
 
 - 四档文字速度、带表情回看的对话记录，支持 H / 右键隐藏界面。
-- Web Audio 合成音效与 BGM，可分别开关和调节音量，默认关闭。
-- 根据近期 DSH 任务类别、本地日期和距上次对话的时间，让回应贴近日常工作。
+- Web Audio合成音效与BGM，可分别开关和调节音量，默认关闭。
+- 根据近期DSH任务类别、本地日期和距上次对话的时间，让回应贴近日常工作。
 - 可编辑角色昵称、称呼、问候、性格、语气与 CG 外观描述。
 - 可上传背景与立绘，在不同工作区继续同一份对话和设置。
-- 同一插件支持 DeepSeek Harness Web 与 Desktop；提供中、英、日、韩文档，界面目前为简体中文。
+- 同一插件支持DeepSeek Harness Web与Desktop。
 
 关系进度、任务感知和生成规则见[机制说明](docs/mechanics.md)。
 
@@ -117,7 +117,7 @@ allowBuilds:
 
 点击顶栏“小剧场”生成角色间的日常短剧或工作复盘，完成后可在“小剧场”记录中回看台词。
 联网取材默认开启，可在“设置 → 插件 → 鲸鱼娘 → 小剧场取材”中切换为“只用本地任务类别”。
-生成合影 CG 需在记录中手动点击，使用与升级 CG 相同的 DashScope 配置。
+生成合影CG需在记录中手动点击，使用与升级CG相同的DashScope配置。
 
 ![多角色小剧场效果展示](docs/screenshots/side-story-multi-character.png)
 
@@ -139,18 +139,18 @@ dsh --profile web
 DASHSCOPE_API_KEY='your-local-key' dsh --profile web
 ~~~
 
-CG 是可选功能，未配置 key 也能聊天、积累好感和使用自定义图片；真实 key 留在本地环境中。
+CG 是可选功能，未配置key也能聊天、积累好感和使用自定义图片；真实key留在本地环境中。
 生成规则与小剧场升级的区别见 [CG 说明](docs/mechanics.md#小剧场与-cg)。
 
 ## 数据与隐私
 
 - 全局状态保存在 `DSH_HOME/storages/dsh-whale-galgame/global.json`，工作区 `.whale-girl-save.json` 保存来源/迁移标记，显示偏好在本地 `localStorage`。
-- 任务感知在本地用用户明确提交的 Harness 消息判断活动类型，可参考工具名与状态；不读取工作区文件内容，原文不写入 Galgame 存档。
-- Galgame 消息、相关历史、角色设定及日期/关系提示发送给所选模型；Harness 上下文只提供固定任务类别与状态提示。
-- 小剧场联网取材只搜索模型名与题材词；CG 生成向 DashScope 发送文本提示，用户上传的背景和立绘留在本地。
-- 完整清除需先退出 DSH，再删除全局存档、各工作区标记及存档副本，并清除插件显示偏好；“重新开始”只重置等级和好感度。
+- 任务感知在本地用用户明确提交的Harness消息判断活动类型，可参考工具名与状态；不读取工作区文件内容，原文不写入Galgame存档。
+- Galgame消息、相关历史、角色设定及日期/关系提示发送给所选模型；Harness 上下文只提供固定任务类别与状态提示。
+- 小剧场联网取材只搜索模型名与题材词；CG生成向DashScope发送文本提示，用户上传的背景和立绘留在本地。
+- 完整清除需先退出DSH，再删除全局存档、各工作区标记及存档副本，并清除插件显示偏好；“重新开始”只重置等级和好感度。
 
-存储格式、旧版迁移、检索开关、Git 忽略项及清除步骤见[数据与隐私详情](docs/privacy.md)。
+存储格式、旧版迁移、检索开关、Git忽略项及清除步骤见[数据与隐私详情](docs/privacy.md)。
 
 ## 开发
 
@@ -166,7 +166,7 @@ npm run verify
 
 ## 许可与致谢
 
-代码、Galgame UI 实现与文档采用 [MIT](LICENSE.md)。21 张默认图片采用 [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)（非商业使用，改编以相同许可共享）；项目制作的 AI 辅助图片在维护者持有相应权利的范围内提供。桌宠图集及直接继承的桌宠代码沿用上游 MIT 许可。
+代码、Galgame UI实现与文档采用 [MIT](LICENSE.md)。21 张默认图片采用 [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)（非商业使用，改编以相同许可共享）；项目制作的 AI 辅助图片在维护者持有相应权利的范围内提供。桌宠图集及直接继承的桌宠代码沿用上游 MIT 许可。
 
 感谢创作者与上游项目：
 
@@ -181,6 +181,6 @@ npm run verify
 
 ## dsh galgame相关项目友情链接
 
-- [gal-view](https://github.com/Ayase34/gal-view) - DSH Web GUI 会话页的 Galgame 风格对话视图 + 场景元素可视化编辑器
-- [dsh-galgame](https://github.com/Lanxing6480/dsh-galgame) - Galgame 模式界面插件
-- [AutoWebUI](https://github.com/FynnReinhardt/deepseek-harness-galgame) - DSH galgame模式
+- [gal-view](https://github.com/Ayase34/gal-view) - DSH Web GUI会话页的Galgame风格对话视图 + 场景元素可视化编辑器
+- [dsh-galgame](https://github.com/Lanxing6480/dsh-galgame) - DSH Web galgame样式对话界面
+- [AutoWebUI](https://github.com/FynnReinhardt/deepseek-harness-galgame) - DSH Web galgame角色扮演模式对话界面
