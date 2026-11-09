@@ -20,180 +20,117 @@ Harness에서 작업하는 틈틈이 모델 소녀들과의 “평범하지 않�
 
 ## 기능
 
-- 표시할 캐릭터와 답변 모델을 따로 선택합니다. 캐릭터는 작업공간 모델을 따르거나 고정할 수 있고, 답변은 기본 `deepseek-v4-flash`, 작업공간 모델 또는 DSH 모델 목록에서 선택할 수 있습니다.
-- 6개 캐릭터의 호감도, 레벨, 캐릭터 설정, 대화 기록, 답변 선택지, 이미 소비한 작업 기억, 사용자 지정 캐릭터 이미지, CG 도감과 배경은 캐릭터별로 분리되면서도 작업공간을 넘어 전역 공유됩니다. 현재 캐릭터, token 잔액과 플러그인 환경설정도 계속 이어집니다.
-- 소극장 사이드 스토리는 일대일 상호작용뿐 아니라 캐릭터 사이의 테마형 일상 단막극, 작업 회고 코미디, 마일스톤 스토리 다시 보기도 지원합니다.
-- 각 턴에 친밀함, 보통, 거리 두기의 세 가지 답변 후보를 순서를 섞어 표시합니다. 직접 입력도 사용할 수 있습니다.
-- 캐릭터를 바꾸면 해당 캐릭터의 내장 배경도 함께 바뀌어 표시됩니다. 고래 소녀의 기본값은 계속 심해 궁전이며, 새 해변 서재는 선택할 수 있는 내장 대체 배경입니다. 사용자가 올린 배경이나 저장한 CG는 내장 배경으로 복원할 때까지 캐릭터 기본값을 덮어씁니다.
-- 배경, 캐릭터별 이미지, 대화 기록, CG 도감, 데스크톱 펫을 화면에서 관리합니다. 펫을 클릭하면 `galgame` 탭이 열립니다.
-- 대사에 네 가지 속도의 타자 효과를 적용합니다. 대사를 클릭하거나 스페이스 또는 Enter를 누르면 문장 전체가 표시되고, 소극장에서는 전체 표시 후 한 번 더 조작하면 다음 대사로 넘어갑니다.
-- 답변을 기다리는 동안 주인님이 보낸 말을 먼저 보여 주고, 캐릭터가 답변 중임을 알리는 표시가 나타납니다.
-- 배경과 캐릭터 이미지가 바뀔 때는 크로스페이드로 전환되며, 캐릭터를 바꾸면 새 캐릭터가 아래에서 올라옵니다. 대기 중에는 부드러운 호흡 애니메이션도 재생됩니다.
-- 표정은 캐릭터 자신의 답변을 기준으로 판단합니다. 표정별 이미지가 없는 캐릭터는 감정 말풍선과 동작으로 기분을 표현합니다.
-- 소극장에서 말하는 캐릭터는 가볍게 뛰고, 이름표에는 캐릭터를 가리키는 작은 말풍선 꼬리가 붙습니다.
-- 호감도가 변하면 “♡±N”이 떠오르고, 레벨업 시 전체 화면 연출이 재생됩니다.
-- 황동과 심해를 모티브로 한 대화창에 캐릭터별 강조색을 적용하고, 배경에는 분위기 입자와 물결 빛을 더합니다. 높이가 낮은 창과 좁은 화면에서도 캐릭터의 얼굴이 보일 공간을 확보합니다.
-- Claude(克洛德)는 꼼꼼하고 조금 깐깐한 책벌레 교정자, GPT(小吉)는 자신감 있고 살짝 츤데레이며 요점 정리를 좋아하는 고대의 백룡 소녀, Grok(洛可)는 말이 빠르고 주인님을 지키며 우주 농담을 즐기는 흡혈귀 공주입니다. 세 사람 모두 사용자를 “주인님”(主人)이라 부르며 공방 동료들과의 관계도 설정되어 있습니다.
+- 4단계 글자 속도, 당시 표정도 확인할 수 있는 대화 기록, H / 오른쪽 클릭으로 화면 UI 숨기기.
+- Web Audio로 합성하는 효과음과 BGM. 각각 켜고 끄거나 음량을 조절할 수 있으며 기본값은 꺼짐.
+- 최근 DSH 작업 분류, 로컬 날짜, 마지막 대화 이후의 시간을 반영하는 응답.
+- 캐릭터 별명, 사용자 호칭, 인사말, 성격, 말투, CG 외형 설명 편집.
+- 배경과 캐릭터 이미지 업로드, 작업공간을 옮겨도 이어지는 대화와 설정.
+- DeepSeek Harness Web과 Desktop에서 같은 플러그인 사용. 중·영·일·한 문서를 제공하며 UI는 현재 중국어 간체.
 
-## 호감도와 세션 간 컨텍스트
-
-### 관계 진행
-
-각 캐릭터는 Lv.1, 호감도 0에서 시작하며 상태는 서로 분리해 저장됩니다. 친밀함, 보통, 거리 두기 선택지는 각각 +1, 0, -1로 반영되고 위치는 매 턴 바뀌며, 직접 입력은 간단한 키워드 규칙으로 판정합니다. 플러그인이 실행 중일 때 모든 작업공간에서 새로 관측한 Harness `assistant/message` usage 이벤트는 하나의 전역 token 잔액에 더해집니다. 입력과 출력 token이 5,000개 누적될 때마다 정산 시점의 현재 캐릭터 호감도가 1 올라갑니다. 한 번에 최대 3까지 반영하고 나머지는 다음 정산으로 이월하며, 플러그인 자체가 시작한 모델 호출은 계산하지 않고 플러그인 시작 전의 usage도 소급해 다시 계산하지 않습니다. 24시간의 유예 기간이 지난 뒤에도 활동이 없으면 모든 캐릭터의 호감도가 하루에 2씩 줄어들며, 0 아래로는 내려가지 않습니다.
-
-레벨업 기준은 `30 + 15 × (Lv - 1)`, 즉 30, 45, 60……입니다. 기준에 도달하면 레벨이 오르고 초과분은 다음 레벨로 이월되며, 레벨 상한은 없습니다. 관계에 따른 말투는 5단계로 변하고 Lv.5 이후에는 가장 친밀한 단계를 유지합니다. 유효한 DashScope key를 설정한 경우 레벨업할 때마다 기념 CG 생성을 시도합니다.
-
-### Harness 작업 이벤트
-
-각 이벤트 출처에 대해 플러그인은 해당 작업공간에서 최근 72시간 내의 Harness 실시간 및 저장된 최상위 세션을 최대 16개까지 확인하고, 각 세션의 마지막 240개 이벤트만 검사합니다. 로컬의 결정적 규칙으로 작업을 코드 디버깅, 코드 개발, 문서 요약, 문서 작성, 문학 창작, 자료 조사, 데이터 분석, 시각 디자인, 프레젠테이션 작성, 번역·교정 또는 작업 계획으로 분류한 뒤 안전한 결과를 전역 이벤트 큐에 합칩니다. 텍스트 분류에는 사람이 명시적으로 제출한 user 본문만 사용합니다. 도구 이름과 턴 종료 상태도 로컬 판정에 쓸 수 있지만, 도구 인자와 실행 결과, assistant 본문은 읽거나 전송하지 않습니다.
-
-Galgame 답변 모델과 CG 생성 서비스에는 미리 정해진 작업 분류와 상태 힌트만 전달합니다. 캐릭터는 현재 화제에 답하면서, 예를 들어 디버깅 작업 뒤에 쉬어 가라고 말하는 식으로 관련된 짧은 관심을 자연스럽게 한 문장 덧붙입니다. 캐릭터별로 이미 소비한 이벤트 지문과 마지막 언급 시간은 전역 상태에 저장됩니다. 작업공간을 바꿔도 같은 이벤트를 같은 캐릭터가 다시 먼저 꺼내지 않으며, 서로 다른 이벤트 사이에는 최소 30분의 간격을 둡니다. 작업 이벤트는 대화 주제에만 영향을 주며 호감도를 직접 바꾸지 않습니다.
-
-## 포함된 기본 이미지
-
-설치본에는 실제로 사용하는 시각 소재 22개가 내장됩니다. 캐릭터 이미지 6개, 내장 배경 7개, 고래 소녀 표정 8개, [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet)에서 가져온 11행 데스크톱 펫 애니메이션 아틀라스 1개입니다. 아래 6개 이미지는 각 캐릭터의 기본 이미지이며, [`assets/default/`](assets/default/README.md)에서 전체 내보내기 파일과 용도를 확인할 수 있습니다. npm 설치본은 이미지가 내장된 클라이언트 bundle만 포함하고, 원본 내보내기 파일이나 생성 이미지 소스는 중복해 담지 않습니다.
-
-<table>
-  <tr>
-    <td align="center"><img src="assets/default/maid-left.webp" width="180" alt="DeepSeek 고래 소녀 기본 이미지"><br><strong>DeepSeek · 고래 소녀</strong></td>
-    <td align="center"><img src="assets/default/claude-zipzippipe.webp" width="180" alt="Claude 모델 소녀 克洛德 기본 이미지"><br><strong>Claude · 克洛德</strong></td>
-    <td align="center"><img src="assets/default/gpt-zipzippipe.webp" width="180" alt="GPT 모델 소녀 小吉 기본 이미지"><br><strong>GPT · 小吉</strong></td>
-  </tr>
-  <tr>
-    <td align="center"><img src="assets/default/gemini-dual-prism-translator-v4.webp" width="180" alt="Gemini 모델 소녀 双子 기본 이미지"><br><strong>Gemini · 双子</strong></td>
-    <td align="center"><img src="assets/default/kimi-lunar-scroll-navigator-v5.webp" width="180" alt="Kimi 모델 소녀 月见 기본 이미지"><br><strong>Kimi · 月见</strong></td>
-    <td align="center"><img src="assets/default/grok-zipzippipe.webp" width="180" alt="Grok 모델 소녀 洛可 기본 이미지"><br><strong>Grok · 洛可</strong></td>
-  </tr>
-</table>
-
-새로 추가한 6개 캐릭터 배경은 아래와 같습니다. Claude, GPT, Gemini, Kimi, Grok은 각자의 장면을 기본 배경으로 사용합니다. DeepSeek 고래 소녀의 기본 배경은 `palace-night.webp`로 유지되며, 해변 서재는 선택할 수 있는 내장 대체 배경입니다.
-
-<table>
-  <tr>
-    <td align="center"><img src="assets/default/bg-deepseek-seaside-study.webp" width="260" alt="DeepSeek 고래 소녀 해변 서재 대체 배경"><br><strong>DeepSeek · 선택 대안</strong></td>
-    <td align="center"><img src="assets/default/bg-claude-writing-study.webp" width="260" alt="Claude 글쓰기 서재 기본 배경"><br><strong>Claude</strong></td>
-    <td align="center"><img src="assets/default/bg-gpt-collaboration-workshop.webp" width="260" alt="GPT 협업 공방 기본 배경"><br><strong>GPT</strong></td>
-  </tr>
-  <tr>
-    <td align="center"><img src="assets/default/bg-gemini-twin-creative-studio.webp" width="260" alt="Gemini 쌍둥이 창작 스튜디오 기본 배경"><br><strong>Gemini</strong></td>
-    <td align="center"><img src="assets/default/bg-kimi-moonlit-reading-study.webp" width="260" alt="Kimi 달빛 독서실 기본 배경"><br><strong>Kimi</strong></td>
-    <td align="center"><img src="assets/default/bg-grok-electronics-studio.webp" width="260" alt="Grok 전자 공작실 기본 배경"><br><strong>Grok</strong></td>
-  </tr>
-</table>
-
-나머지 런타임 소재는 원본 해상도의 투명 `whale-*.webp` 표정 이미지 8개와 8열 × 11행 애니메이션 아틀라스 `pet-spritesheet.webp`입니다. 앞의 기본 이미지 21개와 펫 아틀라스에는 서로 다른 라이선스가 적용됩니다. 출처, 수정 사항, 파일별 라이선스는 [NOTICE](NOTICE.md)와 [제3자 라이선스 색인](THIRD_PARTY_LICENSES.md)을 확인하세요.
-
-Galgame 레이아웃, 대화 상자, 컨트롤, 장식은 [`src/client/index.ts`](src/client/index.ts)에 공개되어 있으며 비공개 UI 이미지 팩에 의존하지 않습니다.
+관계 진행, 작업 인식, 생성 규칙은 [메커니즘 설명](docs/mechanics.md)(중국어)을 참고하세요.
 
 ## 설치
 
-`dsh` 명령과 Web profile을 사용할 수 있는 DeepSeek Harness가 필요합니다.
+DeepSeek Harness를 먼저 설치하고 `dsh` 명령을 사용할 수 있는지 확인하세요.
+
+### Web
+
+`web` profile에 설치합니다.
 
 ~~~sh
 dsh plugin --profile web add dsh-whale-galgame
 ~~~
 
-설치 후 실행 중인 Web profile을 먼저 중지한 다음 다시 시작하세요.
+실행 중인 Web profile을 중지한 뒤 다시 시작합니다.
 
 ~~~sh
 dsh --profile web
 ~~~
 
-소스 설치에서 `pnpm dsh`를 사용한다면 같은 인수를 유지하면 됩니다.
+소스 설치에서 `pnpm dsh`를 사용한다면 인자는 그대로 유지하면 됩니다.
 
-### DeepSeek Harness Desktop
+### Desktop
 
-Desktop은 전체 Web 애플리케이션을 Electron 창에서 실행하므로 같은 패키지가 그대로 동작합니다. Desktop은 전용 `desktop` profile을 사용합니다.
-
-1. DeepSeek Harness Desktop을 한 번 실행해 초기화한 뒤 **Application → Manage dsh Command**에서 번들된 `dsh` 명령을 설치합니다.
-2. Desktop을 완전히 종료(트레이 포함)한 다음 실행합니다.
+DeepSeek Harness Desktop을 한 번 열어 초기화하고 「애플리케이션 → dsh 명령 관리」에서 내장 명령을 설치한 뒤, 트레이를 포함해 완전히 종료합니다.
 
 ~~~sh
 dsh plugin --profile desktop add dsh-whale-galgame
 ~~~
 
-3. Desktop을 다시 엽니다. 업데이트나 제거는 `add`를 `update` / `remove`로 바꾸고, 마찬가지로 Desktop을 종료한 상태에서 실행합니다.
+Desktop을 다시 열면 됩니다. Desktop의 「플러그인」 페이지에서 패키지 이름으로 설치할 수도 있으며, Desktop은 `desktop` profile을 사용합니다. Web과 Desktop은 같은 패키지를 쓰며, `DSH_HOME`이 같으면 저장 데이터를 공유합니다.
 
-Desktop의 **Plugins** 페이지에서 패키지 이름으로 설치할 수도 있습니다. 전체 화면 Galgame은 Windows 사용자 지정 제목 표시줄과 macOS 신호등 버튼을 피해 배치되므로 창 조작이 가려지지 않습니다. 저장 데이터, 호감도, CG는 `$DSH_HOME`에 저장되어 Desktop과 Web이 함께 사용합니다.
-
-### 업데이트 및 제거
+### 업데이트와 제거
 
 ~~~sh
 dsh plugin --profile web update dsh-whale-galgame
 dsh plugin --profile web remove dsh-whale-galgame
 ~~~
 
-두 작업 모두 실행 후 Web profile을 중지하고 다시 시작해야 합니다.
+작업 후 Web profile을 다시 시작하세요. Desktop은 `web`을 `desktop`으로 바꾸고, 작업 전에 완전히 종료한 뒤 완료 후 다시 엽니다.
 
-### GitHub에서 설치 (main 추적)
+### GitHub에서 설치
 
-배포판 대신 최신 커밋을 따라가고 싶을 때만 필요합니다.
+`main`의 최신 커밋을 사용하려면:
 
 ~~~sh
 dsh plugin --profile web add github:JAdpp/dsh-whale-galgame#main
 ~~~
 
-git 설치는 이 저장소의 `prepare` 빌드 스크립트를 즉시 실행하므로 pnpm이 기본적으로
-차단합니다. 첫 실행은 `ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED`로 실패하며 키를
-출력하는데, 이를 profile의 `pnpm-workspace.yaml`에 추가하세요.
+Git 설치는 현장에서 빌드하므로 pnpm이 `ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED`를 표시하면 출력된 전체 커밋 키를 아래 형식으로 해당 profile의 `pnpm-workspace.yaml`에 추가하고 커밋을 갱신할 때 키도 교체하세요(미리 빌드된 npm 릴리스에는 필요 없습니다).
 
 ~~~yaml
 allowBuilds:
   'dsh-whale-galgame@https://codeload.github.com/JAdpp/dsh-whale-galgame/tar.gz/<commit>': true
 ~~~
 
-이 키는 특정 커밋에 고정되므로 새 커밋을 따라갈 때마다 pnpm이 출력한 값으로
-갱신해야 합니다. **npm에서 설치하면 이 과정이 전혀 필요 없습니다** — 배포
-패키지는 미리 빌드되어 있고 설치 시 어떤 스크립트도 실행하지 않습니다.
+## 사용
 
-## 사용 및 설정
+DSH 대화 상단의 `galgame` 탭이나 오른쪽 아래의 펫을 클릭해 엽니다. 답변 선택지를 고르거나 직접 메시지를 입력할 수 있습니다.
 
-![DSH Web의 플러그인 설정 화면](docs/screenshots/plugin-settings.png)
+상단의 「角色来源」에서 등장 캐릭터를, 「实际对话」에서 답변 모델을 선택합니다. 캐릭터는 작업공간 모델을 따르거나 고정할 수 있으며, 답변에는 기본 `deepseek-v4-flash`, 작업공간 모델 또는 DSH 모델 목록에서 고른 모델을 사용합니다.
 
-Galgame 상단 바에서 표시할 캐릭터와 실제 답변 모델을 전환할 수 있습니다. 배경이나 현재 캐릭터의 이미지도 여기서 업로드합니다. PNG, JPEG, WebP, AVIF를 지원하며 브라우저 기준 파일당 제한은 12 MB입니다.
+상단의 「对话历史」에서 일반 대화를, 「小剧场」 기록에서 완료된 단막극을 다시 읽을 수 있습니다. 「CG图鉴」에서는 생성한 그림을 모아 보고 배경으로 설정할 수 있습니다.
 
-“설정 → 플러그인 → 鲸鱼娘”에서 플러그인 사용 여부, 데스크톱 펫 표시, 기본 캐릭터, 기본 답변 모델을 지정할 수 있습니다. 펫을 숨겨도 `galgame` 탭으로 들어가 다시 표시할 수 있습니다. 플러그인 전체를 끄면 Galgame 대화와 호감도 계산은 멈추지만 저장된 데이터는 삭제되지 않습니다.
+### 단축키
 
-### 표시 설정과 단축키
+| 조작 | 동작 |
+| --- | --- |
+| 대사 클릭 / Space / Enter | 현재 대사 전체 표시. 소극장에서는 표시가 끝난 뒤 다시 조작하면 다음 대사로 이동 |
+| H / 배경이나 캐릭터 이미지에서 오른쪽 클릭 | UI를 숨기고 그림 감상 |
+| 숨긴 상태에서 클릭 / H / Esc | UI 다시 표시 |
+| 대화 패널에서 위로 스크롤 | 당시 표정을 포함한 대화 기록 열기 |
 
-대화 상자 오른쪽 위의 톱니바퀴를 클릭하면 “표시 설정”(`显示设置`)이 열립니다. 글자 속도(느림·중간·빠름·즉시)와 대사 글꼴(문예풍·시스템)을 고르고, 분위기 효과·효과음·BGM을 켜거나 끄고 음량을 조절할 수 있습니다. 문예풍 글꼴은 기기에 설치된 글꼴을 사용합니다. 효과음과 배경 음악은 Web Audio로 합성하며 둘 다 기본으로 꺼져 있습니다.
+### 화면과 이미지
 
-무대에서 H 키를 누르거나 배경·캐릭터 이미지를 마우스 오른쪽 버튼으로 클릭하면 UI를 숨기고 그림을 감상할 수 있습니다. 아무 곳이나 클릭하거나 H / Esc 키를 누르면 복원됩니다. 대화창 위에서 휠을 위로 돌리면 대화 기록이 열리며, 각 캐릭터 대사와 함께 당시 표정도 다시 볼 수 있습니다.
+대화 패널 오른쪽 위의 톱니바퀴에서 글자 속도, 글꼴, 분위기 효과, 효과음, BGM, 음량을 조절합니다. 문예 글꼴은 기기에 설치된 글꼴을 사용합니다.
+상단의 「背景图」「角色立绘」에서 PNG·JPEG·WebP·AVIF를 업로드할 수 있으며, 내장 배경을 선택하면 캐릭터별 배경 전환으로 돌아갑니다. 용량 제한과 기본 배경 규칙은 [이미지 설명](docs/mechanics.md#舞台图片与显示设置)을 참고하세요.
 
-### 캐릭터 설정 사용자 지정
+「설정 → 플러그인 → 鲸鱼娘」에서 기본 캐릭터와 답변 모델, 플러그인 활성화, 펫 표시를 설정합니다. 플러그인을 끄면 대화와 호감도 정산이 일시 중지되고 저장 데이터는 유지됩니다.
 
-Galgame 상단 바에서 “캐릭터 이미지” 옆의 “캐릭터 설정”을 선택하면 현재 캐릭터의 다음 6개 항목을 편집할 수 있습니다.
+![DSH Web 플러그인 설정 화면](docs/screenshots/plugin-settings.png)
 
-- 캐릭터 별명
-- 캐릭터가 사용자를 부르는 호칭
-- 첫 인사
-- 성격
-- 말투
-- CG 외형 설명
+### 사용자 지정 캐릭터 설정
 
-사용자 설정은 여섯 캐릭터별로 따로 저장되며 모든 작업공간에서 공유됩니다. “설정 저장”과 “기본값 복원”으로 바뀌는 것은 현재 캐릭터의 위 여섯 항목뿐이며, 호감도와 레벨, 장기 기억, 사용자 캐릭터 이미지는 초기화되지 않습니다. 사용자와 캐릭터의 실제 대화가 시작되기 전에는 “첫 인사”를 수정하거나 기본값으로 복원하면 현재 인사만 제자리에서 바뀌고 자동 등장 내레이션은 그대로 유지됩니다. 실제 대화가 시작된 뒤에는 기록에 삽입하거나 교체하거나 다시 표시하지 않습니다. CG 외형 설명은 이후 생성하는 레벨업 CG에 적용되며 도감에 이미 저장된 이미지는 바꾸지 않습니다.
-
-사용자 설정으로 플러그인의 안전 제약이나 캐릭터 답변의 한 문장 제한을 우회할 수 없습니다.
+상단의 「角色立绘」 옆 「角色设定」에서 별명, 사용자 호칭, 첫 인사, 성격, 말투, CG 외형 설명을 편집합니다.
+캐릭터별로 따로 저장되어 모든 작업공간에서 공유되며, 「恢复默认」은 현재 캐릭터의 이 6개 항목만 복원합니다. 저장하거나 복원해도 호감도, 기록, 사용자 지정 이미지는 유지됩니다.
+인사말 갱신과 기존 기록 처리 방식은 [설정 상세](docs/mechanics.md#自定义角色设定)를 참고하세요.
 
 ### 소극장
 
-소극장은 모델 소녀들의 이야기를 더욱 무대감 있게 보여 주는 공간입니다.
+상단의 「小剧场」을 클릭하면 캐릭터 간 일상 단막극이나 작업 회고를 생성하며, 완료된 장면의 대사는 「小剧场」 기록에서 다시 읽을 수 있습니다.
+웹 취재는 기본으로 켜져 있습니다. 「설정 → 플러그인 → 鲸鱼娘 → 小剧场取材」에서 「只用本地任务类别」를 선택하면 검색을 끌 수 있습니다.
+합동 CG는 기록 화면에서 직접 클릭해 생성하며, 레벨업 CG와 같은 DashScope 설정을 사용합니다.
 
-- **상황 단막극과 일상 상호작용**: 일반 대화 외에도 모델 소녀들 사이의 티격태격, 작업 중간의 짧은 이야기, 특정 상황을 다룬 단막극을 즐길 수 있습니다.
-- **작업 이벤트 회고극**: 최근 작업을 “밤샘 디버깅 뒤 고래 소녀 위로회” 같은 재미있는 회고극으로 만듭니다.
-- **스토리 보관과 다시 보기**: 해제한 소극장 장면은 자동으로 보관되며 대화 기록에서 언제든 명장면을 다시 볼 수 있습니다.
+![여러 캐릭터가 함께하는 소극장](docs/screenshots/side-story-multi-character.png)
 
-![다중 캐릭터 소극장 실행 화면: 고래 소녀, Kimi, GPT의 동시 등장과 답변 선택지](docs/screenshots/side-story-multi-character.png)
+### 데스크톱 펫
 
-### 내장 데스크톱 펫
+펫은 내장되어 기본으로 켜져 있으며, 클릭하면 Galgame이 열립니다. 상단의 「桌宠 · 开/关」과 플러그인 설정의 「显示桌宠」는 동기화됩니다.
+숨긴 뒤에도 `galgame` 탭에서 화면을 열고 다시 켤 수 있습니다.
 
-데스크톱 펫은 이 플러그인에 내장되어 있으므로 따로 설치할 필요가 없습니다. 새로 설치하면 기본으로 켜지고 DSH 기본 화면 오른쪽 아래에 표시됩니다. 펫을 클릭하면 `galgame` 탭이 열립니다. Galgame 상단 바의 “데스크톱 펫 · 켬/끔”과 “설정 → 플러그인 → 鲸鱼娘”의 “데스크톱 펫 표시”는 서로 동기화되며 펫 표시만 제어합니다. 숨긴 뒤에도 `galgame` 탭이나 플러그인 설정에서 다시 표시할 수 있습니다. “플러그인 사용”은 플러그인 전체를 제어하며, 끄면 펫이 숨겨지고 Galgame 대화와 호감도 계산도 멈춥니다.
+### 선택 기능: 레벨업 CG
 
-## 선택 기능: CG 생성
-
-레벨업 CG는 기본적으로 DashScope `qwen-image-3.0`을 사용해 1920 × 1080으로 생성합니다. DashScope key가 없어도 채팅, 캐릭터 전환, 기록, 호감도, 사용자 이미지는 사용할 수 있으며 CG 생성만 비활성화됩니다.
-
-DSH를 시작하는 로컬 환경의 환경 변수로만 key를 제공하세요.
+레벨업 CG에는 유효한 DashScope key가 필요합니다. DSH를 시작하는 로컬 환경에서 `DASHSCOPE_API_KEY`를 설정하세요.
 
 ~~~powershell
 $env:DASHSCOPE_API_KEY = 'your-local-key'
@@ -204,32 +141,18 @@ dsh --profile web
 DASHSCOPE_API_KEY='your-local-key' dsh --profile web
 ~~~
 
-실제 key를 저장소 파일에 쓰거나 Git에 commit하지 마세요.
+CG는 선택 기능으로, key 없이도 대화, 호감도, 사용자 지정 이미지를 사용할 수 있습니다. 실제 key는 로컬 환경에 보관하세요.
+생성 규칙과 소극장 레벨업의 차이는 [CG 설명](docs/mechanics.md#小剧场与-cg)을 참고하세요.
 
 ## 데이터와 개인정보
 
-실행 데이터는 다음 두 계층으로 나뉩니다. 둘 다 개인 데이터로 취급하세요.
+- 전역 상태는 `DSH_HOME/storages/dsh-whale-galgame/global.json`, 작업공간의 출처·이전 표식은 `.whale-girl-save.json`, 화면 설정은 로컬 `localStorage`에 저장됩니다.
+- 작업 인식은 사용자가 명시적으로 보낸 Harness 메시지를 로컬에서 분류하고 도구 이름과 상태를 참고합니다. 작업공간 파일 내용은 읽지 않으며 원문을 Galgame 저장 파일에 기록하지 않습니다.
+- Galgame 메시지, 관련 기록, 캐릭터 설정, 날짜·관계 힌트는 선택한 모델에 전송됩니다. Harness 작업 맥락은 고정된 작업 분류와 상태 힌트만 제공합니다.
+- 소극장 검색은 모델 이름과 소재 단어만 사용하며, CG 생성은 텍스트 프롬프트를 DashScope로 보냅니다. 업로드한 배경과 캐릭터 이미지는 로컬에 남습니다.
+- 완전히 지우려면 DSH를 종료한 뒤 전역 저장 파일, 각 작업공간 표식과 저장 사본, 플러그인 화면 설정을 삭제하세요. 「重新开始」는 레벨과 호감도만 초기화합니다.
 
-- `DSH_HOME/storages/dsh-whale-galgame/global.json`에는 완전하고 연속된 Galgame 상태를 저장합니다. 현재 캐릭터, 여섯 캐릭터 각각의 관계 진행도, 캐릭터 설정, 대화 기록, 현재 답변 선택지, 이미 소비한 작업 기억, 사용자 지정 캐릭터 이미지, CG 도감, 배경뿐 아니라 전역 작업 이벤트 큐, token 정산 잔액, 중복 제거 지문과 플러그인 환경설정이 포함됩니다.
-- 현재 작업공간 루트의 `.whale-girl-save.json`에는 가벼운 이벤트 출처 및 이전 저장 파일 마이그레이션 표식만 남습니다. 별도의 이야기, 대화, 작업 기억이나 token 원장을 저장하지 않습니다.
-- 새 작업공간에서도 같은 현재 캐릭터, 대화 기록, 답변 선택지와 관계 진행을 그대로 이어 갑니다. 작업공간과 세션 식별자는 Harness 이벤트의 출처를 찾고 수집 중복을 제거하는 데만 쓰이며, 이야기를 다시 시작하거나 이전의 작업공간 간 거부 화면을 표시하지 않습니다.
-- 이전 v9 작업공간 저장 파일을 처음 열면 마이그레이션할 수 있는 이야기와 캐릭터 데이터를 위 전역 파일에 합치고, 해당 작업공간의 `.whale-girl-save.json`을 출처/마이그레이션 표식으로 다시 씁니다.
-
-- 일반 대화는 DSH에서 선택한 모델 제공자에게 전송됩니다.
-- 레벨업 CG를 생성하면 텍스트 프롬프트가 DashScope로 전송됩니다.
-- 소극장 웹 취재를 켜 두면(기본값 켜짐) DSH의 웹 기능으로 검색합니다. 검색어는 캐릭터가 대응하는 모델 이름과 소재 단어로만 구성되며, 대화 내용·작업 공간 내용·Harness 원문은 **전혀 포함되지 않습니다**.
-- 검색 결과는 해당 회차의 소극장 생성에만 쓰입니다. 요약과 출처 링크는 소극장 기록(세이브 내부)에 저장되고, 페이지 본문은 디스크에 기록되지 않습니다.
-- 「설정 → 플러그인 → 鲸鱼娘 → 소극장 취재」에서 "로컬 작업 분류만 사용"을 고르면 네트워크를 완전히 끌 수 있으며, 검색 요청이 전혀 발생하지 않습니다.
-- 합동 CG를 생성하면 캐릭터 외형 설명과 해당 회차의 상황이 텍스트 프롬프트로 DashScope에 전송됩니다. 직접 클릭했을 때만 실행됩니다.
-- 사용자가 추가한 배경과 캐릭터 이미지는 전역 저장 파일에 남으며 위 두 외부 요청에는 포함되지 않습니다.
-- Harness 원문은 Galgame 저장 파일에 기록하지 않습니다. 전역 상태에는 미리 정해진 분류와 상태 힌트, 익명 중복 제거 지문과 마지막 언급 시간만 저장하고, 외부 요청에도 미리 정해진 분류와 상태 힌트만 포함합니다.
-
-이 플러그인 저장소의 `.gitignore`는 다른 작업공간을 자동으로 보호하지 않습니다. 현재 작업공간도 Git 저장소라면 해당 작업공간의 `.gitignore`에 다음을 추가하세요.
-
-~~~gitignore
-.whale-girl-save.json
-.whale-girl-save.*.json
-~~~
+저장 형식, 이전 버전 마이그레이션, 검색 설정, Git 제외 항목과 삭제 절차는 [개인정보 상세](docs/privacy.md)(중국어)를 참고하세요.
 
 ## 개발
 
@@ -241,25 +164,22 @@ npm run export:art
 npm run verify
 ~~~
 
-`lib/`와 `src/client/art.generated.ts`는 빌드 산출물이므로 저장소에 포함하지 않습니다. `prepare` 스크립트가 설치 시 `npm run embed:art`와 `tsdown`을 실행하므로 git 기반 설치는 스스로 빌드되고 저장소 tarball도 가볍게 유지됩니다. 클론한 뒤 `npm install`을 한 번 실행하면 로컬에 생성됩니다. `npm run sanitize:backgrounds`는 6개 배경에서 화면 표시에 필요 없는 WebP 메타데이터를 제거하고, `npm run embed:art`는 허용 목록의 이미지를 런타임 소스에 쓰며, `npm run export:art`는 바이트 단위 검증을 위해 공개 소재 22개를 다시 내보냅니다.
+`lib/`와 `src/client/art.generated.ts`는 커밋하지 않는 빌드 산출물이며 소스 설치 시 `prepare`가 생성합니다. 이미지 처리 명령과 패키지 범위는 [빌드 설명](docs/mechanics.md#美术清单与构建说明)을 참고하세요.
 
 ## 라이선스와 감사
 
-코드, Galgame UI 구현, 문서는 [MIT License](LICENSE.md)를 따릅니다. 캐릭터 이미지 6개, 내장 배경 7개, 고래 소녀 표정 8개로 구성된 기본 이미지 21개는 [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)으로 배포합니다. 프로젝트에서 제작한 AI 보조 이미지는 메인테이너가 해당 권리를 보유한 범위에서만 이 라이선스로 제공합니다. `pet-spritesheet.webp`와 [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet)에서 직접 상속한 코드는 업스트림의 MIT 라이선스를 그대로 따릅니다. 파일별 범위는 [NOTICE](NOTICE.md), 보존된 업스트림 라이선스 원문은 [`assets/default/licenses/`](assets/default/licenses/)에서 확인하세요.
+코드, Galgame UI 구현, 문서는 [MIT](LICENSE.md)를 따릅니다. 기본 이미지 21개는 [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)(비상업적 이용, 수정본은 같은 라이선스로 공유)이며, 프로젝트에서 제작한 AI 보조 이미지는 메인테이너가 해당 권리를 가진 범위에서 제공합니다. 펫 아틀라스와 직접 상속한 펫 코드는 업스트림 MIT를 유지합니다.
 
-마지막으로 구체적인 작품과 구현 지식을 커뮤니티에 공개해 주신 분들께 감사드립니다.
+제작자와 업스트림 프로젝트에 감사드립니다.
 
-- **上善**은 고래 소녀의 원래 캐릭터 이미지를 만들었습니다: [Pixiv](https://www.pixiv.net/users/62155430) · [Bilibili](https://space.bilibili.com/4456176).
-- **ZipZipPipe**는 이 고래 소녀에 DeepSeek 요소를 더해 메이드 고래 소녀로 2차 창작했습니다: [Pixiv](https://www.pixiv.net/users/18604994) · [Bilibili](https://space.bilibili.com/4168597).
-- **Small-tailqwq**는 오픈소스 프로젝트 [dsh-deep-whale](https://github.com/Small-tailqwq/dsh-deep-whale)에서 이 플러그인이 사용하는 심해 궁전 배경을 제공했습니다.
-- **f0909172434 / [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet)**은 DSH용 고래 소녀 데스크톱 펫을 MIT 라이선스로 공개했습니다. 이 플러그인의 펫 기능은 해당 프로젝트를 바탕으로 2차 개발했으며, `pet-spritesheet.webp`는 업스트림 아틀라스와 동일합니다. 이 프로젝트에서는 플러그인 통합 방식과 화면 스타일을 수정하고, 펫을 클릭하면 Galgame 화면이 열리는 동작을 추가했습니다.
-- **ZipZipPipe**는 Claude, GPT, Grok 모델 소녀의 기본 캐릭터 이미지를 그렸습니다([원본 게시물](https://www.bilibili.com/opus/1233069202138464289)). CC BY-NC-SA 4.0으로 비상업적 이용이 허락되며, 2차 창작은 같은 라이선스로 공유해야 합니다. 이 프로젝트는 흰 배경 제거, 인물 기준 자르기, WebP 변환만 했으며 수정한 이미지도 CC BY-NC-SA 4.0으로 제공합니다.
-- Gemini, Kimi 캐릭터 이미지 2개, 일상 장면 배경 6개, Galgame UI는 이 프로젝트에서 만든 비공식 AI 보조 소재입니다.
-- 모든 모델 소녀 디자인은 비공식 팬 캐릭터이며 해당 기업의 공식 캐릭터, 제휴 또는 보증을 뜻하지 않습니다.
+- **上善**이 원래 고래 소녀를 창작하고, **ZipZipPipe**가 DeepSeek 요소를 더해 메이드 모습으로 2차 창작했으며, **Small-tailqwq / [dsh-deep-whale](https://github.com/Small-tailqwq/dsh-deep-whale)**가 재사용한 캐릭터 이미지와 심해 궁전 배경을 제공했습니다. 이 프로젝트는 이를 바탕으로 표정 이미지를 제작했습니다. [上善 Pixiv](https://www.pixiv.net/users/62155430) · [Bilibili](https://space.bilibili.com/4456176) · [ZipZipPipe Pixiv](https://www.pixiv.net/users/18604994) · [Bilibili](https://space.bilibili.com/4168597).
+- **ZipZipPipe**가 Claude·GPT·Grok 기본 캐릭터 이미지를 그렸습니다([원본 게시물](https://www.bilibili.com/opus/1233069202138464289)). 이 프로젝트는 흰 배경 제거, 인물 기준 자르기, WebP 변환을 수행했습니다.
+- **f0909172434 / [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet)**가 펫 구현과 수정 없이 유지한 아틀라스를 제공했습니다. 이 프로젝트는 통합 방식과 스타일을 조정하고 클릭으로 Galgame을 여는 기능을 추가했습니다.
+- Gemini·Kimi 캐릭터 이미지, 캐릭터 배경 6개, Galgame UI는 이 프로젝트에서 제작한 비공식 AI 보조 소재입니다.
 
-이 오픈소스 소재와 구현이 도움이 되었다면 [dsh-deep-whale](https://github.com/Small-tailqwq/dsh-deep-whale)와 [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet)에 Star를 눌러 주시거나 Pixiv 또는 Bilibili에서 上善과 ZipZipPipe를 팔로우해 주세요. 설치, 실행 또는 호환성 문제는 소재 제작자에게 플러그인 코드를 문의하는 대신 [이 저장소의 Issues](https://github.com/JAdpp/dsh-whale-galgame/issues)에 남겨 주세요.
+전체 파일 목록, 출처, 해시는 [기본 이미지 설명](assets/default/README.md)에 보존되어 있습니다. 파일별 라이선스는 [NOTICE](NOTICE.md), [서드파티 라이선스 목록](THIRD_PARTY_LICENSES.md), [업스트림 라이선스 원문](assets/default/licenses/)을 참고하세요. 모든 캐릭터는 비공식 팬 디자인이며 이름과 상표는 각 권리자에게 속하고, 해당 기업과의 소속·제휴·보증 관계는 없습니다.
 
-DeepSeek, Claude, ChatGPT/GPT, Gemini, Kimi, Grok 등의 명칭과 상표는 각 권리자에게 속합니다. 이 프로젝트는 비공식 커뮤니티 플러그인이며 해당 기업과의 제휴, 협력 또는 보증 관계가 없습니다.
+플러그인 문제는 [이 저장소의 Issues](https://github.com/JAdpp/dsh-whale-galgame/issues)에 남겨 주세요.
 
 ## dsh Galgame 관련 프로젝트
 
