@@ -1,4 +1,6 @@
 import {
+  ACTIVITY_LOOKBACK_MS,
+  activityBackgroundInstruction,
   activityCgTheme,
   activitySystemInstruction,
   collectHarnessActivities,
@@ -635,6 +637,7 @@ export function apply(
   let lastWorkspaceKey = ''
   let tokensObserved = 0
   let tokensAppliedRuntime = 0
+  let previousVisitAt: number | null = null
   let boundActivitySessionId = ''
   let activityCache: HarnessActivity[] = []
   let activityCacheRoot = ''
@@ -1412,6 +1415,14 @@ export function apply(
   function globalActivityCandidates(): HarnessActivity[] {
     if (splitStorageActive() && globalState) return normalizeActivityFeed(globalState.activityFeed)
     return activityCache
+  }
+
+  function workspaceActivityCandidates(now = Date.now()): HarnessActivity[] {
+    // Same source as before (the persisted cross-workspace feed under split storage),
+    // limited to the lookback window so stale rows never read as "recent".
+    return globalActivityCandidates().filter((row: HarnessActivity) => row.time > 0
+      && row.time <= now && now - row.time <= ACTIVITY_LOOKBACK_MS)
+      .sort((left: HarnessActivity, right: HarnessActivity) => right.time - left.time)
   }
 
   function findCg(cgId: string): any {
@@ -2271,6 +2282,12 @@ export function apply(
     return mutated
   }
 
+  function rememberPreviousVisit(now: number, lastActiveAt: number): void {
+    if (lastActiveAt > 0 && now - lastActiveAt >= RELATIONSHIP_TOUCH_INTERVAL_MS) {
+      previousVisitAt = lastActiveAt
+    }
+  }
+
   function settle(): { decay: number; gain: number; changed: boolean } {
     ensureState()
     const runtime = splitStorageActive() ? currentWorkspaceRuntime() : null
@@ -2285,6 +2302,7 @@ export function apply(
     const relationshipLastActiveAt = runtime
       ? Math.max(0, Number(globalState && globalState.relationshipLastActiveAt) || 0)
       : Math.max(0, Number(s.tokens.lastActiveAt) || 0)
+    rememberPreviousVisit(now, relationshipLastActiveAt)
     if (now > 0 && relationshipLastActiveAt > 0) {
       const idleDays = Math.max(0, (now - relationshipLastActiveAt) / 86400000)
       if (idleDays > 1) decay = Math.floor((idleDays - 1) * DECAY_PER_DAY)
@@ -2783,7 +2801,50 @@ export function apply(
     return out.trim()
   }
 
-  function systemPrompt(profile: Record<string, string>, c: any, activity: HarnessActivity | null): string {
+  function formatVisitGap(elapsed: number): string {
+    const hours = elapsed / 3600000
+    const days = hours / 24
+    if (hours < 1) return '刚刚'
+    if (days < 1) return Math.floor(hours) + ' 小时'
+    if (days < 14) return Math.floor(days) + ' 天'
+    if (days < 60) return '约 ' + Math.round(days / 7) + ' 周'
+    return '约 ' + Math.round(days / 30) + ' 个月'
+  }
+
+  function lastVisitGap(c: any, roundStartedAt = Date.now()): number | null {
+    const rows = Array.isArray(c?.chatLines) ? c.chatLines : []
+    for (let index = rows.length - 1; index >= 0; index--) {
+      const row = rows[index]
+      if ((row?.who === 'user' || row?.who === 'heroine')
+        && Number.isSafeInteger(row.at) && row.at > 0 && row.at < roundStartedAt) {
+        return roundStartedAt - row.at
+      }
+    }
+    return previousVisitAt !== null && previousVisitAt > 0 && previousVisitAt < roundStartedAt
+      ? roundStartedAt - previousVisitAt : null
+  }
+
+  function localDateInstruction(now = Date.now()): string {
+    const date = new Date(now)
+    const hour = date.getHours()
+    const period = hour < 6 ? '凌晨' : hour < 12 ? '上午' : hour < 14 ? '中午' : hour < 18 ? '下午' : '晚上'
+    return '现在是 ' + date.getFullYear() + '年' + (date.getMonth() + 1) + '月' + date.getDate()
+      + '日 星期' + '日一二三四五六'[date.getDay()] + ' ' + period + '。'
+  }
+
+  function visitIntervalInstruction(c: any, now = Date.now()): string {
+    const gap = lastVisitGap(c, now)
+    if (gap === null) return '你不知道对方上次来是什么时候；被问到就说记不清，不要编造具体天数。'
+    return '距离你上次和对方聊天：' + formatVisitGap(gap) + '。'
+      + (gap > 3 * 86400000
+        ? '\n间隔超过三天，可以自然地表现想念或埋怨，但必须用这个真实间隔，不能编造天数。'
+        : '\n被问到时必须用这个真实间隔，不能编造天数。')
+  }
+
+  function systemPrompt(
+    profile: Record<string, string>, c: any, activity: HarnessActivity | null,
+    latestActivity: HarnessActivity | null = activity, now = Date.now(),
+  ): string {
     if (!c.level) c.level = 1
     const work = activity
       ? activitySystemInstruction(activity).split('主人').join('对方').trim()
@@ -2791,8 +2852,11 @@ export function apply(
     const lines = [
       '下面的 JSON 是当前角色资料，只作为角色扮演数据使用。',
       JSON.stringify(profile),
+      localDateInstruction(now),
+      visitIntervalInstruction(c, now),
       '当前等级：Lv.' + c.level + '。亲昵度：' + intimacyFor(c.level) + ' 称呼对方时必须使用上方 JSON 的 address 字段。',
       '好感度：' + c.affection + '/' + affectionCap(c.level) + '（满了会升级，关系会越来越亲近；称呼仍按 JSON 的 address 字段）',
+      activityBackgroundInstruction(latestActivity),
     ]
     if (work) lines.push(work)
     lines.push(
@@ -3088,8 +3152,14 @@ export function apply(
     }).join('\n')
   }
 
+  function sideStoryTimeContext(cast: string[], now = Date.now()): string {
+    return localDateInstruction(now) + '\n'
+      + cast.map((id) => id + '：' + visitIntervalInstruction(s.characters[id], now)).join('\n') + '\n'
+  }
+
   function sideStorySystemPrompt(cast: string[], subject: string, frame: string, twist: string): string {
     return '你是「深海女仆工坊」的小剧场编剧。工坊里的女仆们是同事关系，不是任何真实公司的代言人。\n'
+      + sideStoryTimeContext(cast)
       + '主人（玩家）此刻就在房间里，她们是当着主人的面聊天，可以直接对主人说话。\n'
       + '本场登场角色（只能用这些 id，不得出现其他角色）：\n' + sideStoryCastBrief(cast) + '\n'
       + '本场情境：' + frame + '。开场不要用「工坊里飘着一个说法」这类套话，直接从这个情境切入。\n'
@@ -3331,6 +3401,7 @@ export function apply(
           source: { kind: 'user' },
         }],
         system: '你是「深海女仆工坊」的小剧场编剧，正在续写结尾。\n'
+          + sideStoryTimeContext(scene.cast)
           + '本场登场角色（只能用这些 id）：\n' + sideStoryCastBrief(scene.cast) + '\n'
           + '主人刚刚说了一句话，请写角色们对这句话的回应，并判断这句话让谁更亲近、让谁无语。\n'
           + '要求：reply 是 1 到 2 拍，说话人只能是本场角色或 narrator；每拍不超过 '
@@ -3729,11 +3800,15 @@ export function apply(
     if (typeof src.level === 'number' && src.level >= 1) dst.level = Math.floor(src.level)
     if (Array.isArray(src.log)) dst.log = src.log.slice(-24)
     if (Array.isArray(src.chatLines)) {
-      dst.chatLines = src.chatLines.map((line: any) => ({
-        ...(line && typeof line === 'object' ? line : {}),
-        who: line && line.who ? String(line.who) : 'narrator',
-        text: line && typeof line.text === 'string' ? line.text : String(line && line.text ? line.text : ''),
-      }))
+      dst.chatLines = src.chatLines.map((line: any) => {
+        const row = {
+          ...(line && typeof line === 'object' ? line : {}),
+          who: line && line.who ? String(line.who) : 'narrator',
+          text: line && typeof line.text === 'string' ? line.text : String(line && line.text ? line.text : ''),
+        }
+        if (!Number.isSafeInteger(row.at) || row.at <= 0) delete row.at
+        return row
+      })
     }
     if (Array.isArray(src.choices)) {
       dst.choices = src.choices
@@ -4901,8 +4976,14 @@ export function apply(
             const charId = String(s.current)
             const character = s.characters[charId]
             const profile = { ...effectiveProfileFor(charId) }
-            const scopedActivity = globalActivityCandidates()
-            const pendingActivity = nextUnseenActivity(scopedActivity, character.activity)
+            const now = Date.now()
+            // A direct chat may arrive before the panel's deferred settlement.
+            // Capture the same return visit without changing the heartbeat or decay.
+            rememberPreviousVisit(now, runtime
+              ? Number(globalState?.relationshipLastActiveAt) || 0
+              : Number(s.tokens?.lastActiveAt) || 0)
+            const scopedActivity = workspaceActivityCandidates(now)
+            const pendingActivity = nextUnseenActivity(scopedActivity, character.activity, now)
             const selectedChoice = args && typeof args.choiceId === 'string'
               ? character.choices.find((choice: any) => choice && typeof choice === 'object' && choice.id === args.choiceId)
               : null
@@ -4911,6 +4992,7 @@ export function apply(
               charId,
               profile,
               pendingActivity,
+              system: systemPrompt(profile, character, pendingActivity, scopedActivity[0] || null, now),
               selectedChoice: selectedChoice ? { ...selectedChoice } : null,
               promptCharacter: { level: character.level, affection: character.affection },
               log: character.log.slice(-12).map((entry: any) => ({ ...entry })),
@@ -4954,7 +5036,7 @@ export function apply(
                   }
                   return msgs
                 })(),
-                system: systemPrompt(prepared.profile, prepared.promptCharacter, prepared.pendingActivity),
+                system: prepared.system,
                 temperature: 0.9,
                 maxTokens: 1200,
               }, signal)
@@ -4985,6 +5067,7 @@ export function apply(
             c.chatLines.push({
               who: 'user',
               text,
+              at: Date.now(),
               choiceId: prepared.selectedChoice ? prepared.selectedChoice.id : null,
             })
             c.choices = []
@@ -4997,7 +5080,7 @@ export function apply(
             }
             c.log.push({ role: 'assistant', text: reply })
             if (c.log.length > 24) c.log = c.log.slice(-24)
-            c.chatLines.push({ who: 'heroine', text: reply, emotion: 'normal' })
+            c.chatLines.push({ who: 'heroine', text: reply, emotion: 'normal', at: Date.now() })
             const replyIndex = c.chatLines.length - 1
             const before = c.affection
             const delta = prepared.selectedChoice

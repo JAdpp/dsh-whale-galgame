@@ -1,9 +1,144 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
+import { stripTypeScriptTypes } from 'node:module'
 import { Readable } from 'node:stream'
 import test from 'node:test'
 import { runInNewContext } from 'node:vm'
 import { apply } from '../src/index.ts'
+import { ACTIVITY_LOOKBACK_MS, activityBackgroundInstruction, activitySystemInstruction, nextUnseenActivity } from '../src/activity-context.ts'
+
+const serverSource = readFileSync(new URL('../src/index.ts', import.meta.url), 'utf8')
+function serverSection(start: string, end: string): string {
+  const from = serverSource.indexOf(start)
+  const to = serverSource.indexOf(end, from + start.length)
+  assert.notEqual(from, -1, 'missing section: ' + start)
+  assert.notEqual(to, -1, 'missing boundary: ' + end)
+  return serverSource.slice(from, to)
+}
+
+function visitPromptHarness(previousVisitAt: number | null = null) {
+  return runInNewContext(stripTypeScriptTypes(
+    'let previousVisitAt = ' + previousVisitAt + ';\n'
+    + serverSection('  function formatVisitGap(', '  function fallbackChoicesFor(')
+    + '\n({ formatVisitGap, lastVisitGap, systemPrompt })',
+  ), { Date, activityBackgroundInstruction, activitySystemInstruction, intimacyFor: () => '相熟', affectionCap: () => 100 })
+}
+
+test('formats visit gaps at minute, hour, day, week and month boundaries', () => {
+  const { formatVisitGap } = visitPromptHarness()
+  for (const [minutes, expected] of [
+    [59, '刚刚'], [60, '1 小时'], [5 * 60, '5 小时'],
+    [24 * 60, '1 天'], [3 * 1440, '3 天'], [14 * 1440, '约 2 周'],
+    [20 * 1440, '约 3 周'], [60 * 1440, '约 2 个月'], [61 * 1440, '约 2 个月'],
+  ] as const) assert.equal(formatVisitGap(minutes * 60_000), expected)
+})
+
+test('prefers the last real character chat before this round and ignores missing or invalid timestamps', () => {
+  const now = new Date(2026, 10, 9, 15).getTime()
+  const fallback = now - 61 * 86400000
+  const { lastVisitGap } = visitPromptHarness(fallback)
+  const rows = [
+    { who: 'user', at: now - 6 * 3600000 },
+    { who: 'heroine', at: now - 5 * 3600000 },
+    { who: 'narrator', at: now - 1 },
+    { who: 'user', text: 'legacy without a timestamp' },
+    ...[0, -1, 1.5, Infinity, NaN, String(now - 1), now, now + 1].map((at) => ({ who: 'heroine', at })),
+  ]
+  assert.equal(lastVisitGap({ chatLines: rows }, now), 5 * 3600000)
+  assert.equal(lastVisitGap({ chatLines: rows.slice(2) }, now), now - fallback)
+  assert.equal(visitPromptHarness().lastVisitGap({ chatLines: rows.slice(2) }, now), null)
+})
+
+test('system prompt carries local time, truthful intervals and seen activity without a mandatory mention', () => {
+  const now = new Date(2026, 10, 9, 15).getTime()
+  const profile = { displayName: '鲸鱼娘', address: '你' }
+  const c = { level: 1, affection: 0, chatLines: [] }
+  const { systemPrompt } = visitPromptHarness(now - 61 * 86400000)
+  const prompt = systemPrompt(profile, c, null, null, now)
+  assert.equal(prompt.split('\n')[2], '现在是 2026年11月9日 星期一 下午。')
+  assert.match(prompt, /距离你上次和对方聊天：约 2 个月/)
+  assert.match(prompt, /间隔超过三天.*必须用这个真实间隔，不能编造天数/)
+  assert.match(prompt, /最近三天你没有感知到任何活动/)
+  assert.match(prompt, /不要否认自己有这个能力，也不要编造对方做了什么/)
+  assert.match(prompt, /看不到具体文件和内容/)
+  assert.doesNotMatch(prompt, /主人/)
+  assert.ok(prompt.endsWith('每次只回复一句话（一屏一句），不超过40个字。'))
+
+  const fromChat = systemPrompt(profile, { ...c, chatLines: [{ who: 'heroine', at: now - 5 * 3600000 }] }, null, null, now)
+  assert.match(fromChat, /距离你上次和对方聊天：5 小时/)
+  const unknown = visitPromptHarness().systemPrompt(profile, c, null, null, now)
+  assert.match(unknown, /你不知道对方上次来是什么时候；被问到就说记不清，不要编造具体天数/)
+  assert.doesNotMatch(unknown, /距离你上次和对方聊天/)
+
+  const activity: any = { fingerprint: 'activity-abc123', label: '代码调试', status: 'completed' }
+  const pending = nextUnseenActivity([activity], { seen: [activity.fingerprint], lastMentionedAt: 0 }, now)
+  assert.equal(pending, null)
+  const seen = systemPrompt(profile, c, pending, activity, now)
+  assert.match(seen, /背景知识：你知道对方最近在忙：「代码调试」（已告一段落）。只有被问到或很自然时才提/)
+  assert.doesNotMatch(seen, /本轮必须自然带到一次|没有感知到任何活动/)
+})
+
+test('settlement preserves the old visit before overwriting either storage clock and keeps decay unchanged', () => {
+  const interval = 6 * 3600000
+  for (const split of [false, true]) {
+    let now = new Date(2026, 10, 9, 15).getTime()
+    const old = now - 61 * 86400000
+    const character = { affection: 200, chatLines: [] as any[] }
+    const state = { tokens: { bank: 0, lastActiveAt: old }, characters: { deepseek: character }, current: 'deepseek' }
+    const globalState = { relationshipLastActiveAt: old }
+    const harness = runInNewContext(stripTypeScriptTypes(
+      'let previousVisitAt = null;\n'
+      + serverSection('  function rememberPreviousVisit(', '  /**\n   * @param options.skipCg')
+      + '\n({ settle, previous: () => previousVisitAt })',
+    ), {
+      Date: { now: () => now }, ensureState() {}, splitStorageActive: () => split,
+      currentWorkspaceRuntime: () => ({}), globalState, s: state, ROSTER_IDS: ['deepseek'],
+      RELATIONSHIP_TOUCH_INTERVAL_MS: interval, DECAY_PER_DAY: 2, AFFECTION_FLOOR: 0,
+      MAX_TOKEN_GAIN: 5, TOKEN_PER_POINT: 5000, effectiveProfileFor: () => ({ displayName: '鲸鱼娘', address: '你' }),
+    })
+    const result = harness.settle()
+    assert.equal(harness.previous(), old)
+    assert.equal(result.decay, 120)
+    assert.equal(character.affection, 80)
+    assert.equal(split ? globalState.relationshipLastActiveAt : state.tokens.lastActiveAt, now)
+    now += 3600000
+    harness.settle()
+    assert.equal(harness.previous(), old, 'ordinary settlements must keep the previous visit')
+    const heartbeat = split ? globalState.relationshipLastActiveAt : state.tokens.lastActiveAt
+    now += interval
+    harness.settle()
+    assert.equal(harness.previous(), heartbeat, 'a return after at least six hours replaces the runtime visit')
+  }
+})
+
+test('chat activity context reads the global feed and expires at three days', () => {
+  const now = Date.now()
+  const recent = { fingerprint: 'activity-recent', time: now - 1000 }
+  const boundary = { fingerprint: 'activity-boundary', time: now - ACTIVITY_LOOKBACK_MS }
+  const stale = { fingerprint: 'activity-stale', time: now - ACTIVITY_LOOKBACK_MS - 1 }
+  const future = { fingerprint: 'activity-future', time: now + 1000 }
+  let feed: any[] = [stale, boundary, recent, future]
+  const candidates = runInNewContext(stripTypeScriptTypes(
+    serverSection('  function workspaceActivityCandidates(', '  function findCg(') + '\nworkspaceActivityCandidates',
+  ), { Date, ACTIVITY_LOOKBACK_MS, globalActivityCandidates: () => feed })
+  assert.equal(JSON.stringify(candidates(now)), JSON.stringify([recent, boundary]))
+  feed = []
+  assert.equal(candidates(now).length, 0)
+})
+
+test('skit generation and free replies share the date and per-character visit context', () => {
+  const context = runInNewContext(stripTypeScriptTypes(
+    serverSection('  function sideStoryTimeContext(', '  function sideStorySystemPrompt(') + '\nsideStoryTimeContext',
+  ), { Date, s: { characters: { deepseek: { gap: '约 2 个月' }, claude: { gap: '5 小时' } } },
+    localDateInstruction: () => '现在是 2026年11月9日 星期一 下午。',
+    visitIntervalInstruction: (c: any) => '距离你上次和对方聊天：' + c.gap + '。' })
+  const prompt = context(['deepseek', 'claude'])
+  assert.match(prompt, /现在是 2026年11月9日 星期一 下午/)
+  assert.match(prompt, /deepseek：距离你上次和对方聊天：约 2 个月/)
+  assert.match(prompt, /claude：距离你上次和对方聊天：5 小时/)
+  assert.match(serverSection('  function sideStorySystemPrompt(', '  function recentSideStoryHint('), /sideStoryTimeContext\(cast\)/)
+  assert.match(serverSection('  async function generateSideStoryFreeReply(', '  async function generateSkitCg('), /sideStoryTimeContext\(scene.cast\)/)
+})
 
 test('community personas remove obsolete identities and retain companion constraints', () => {
   const source = readFileSync(new URL('../src/index.ts', import.meta.url), 'utf8')
@@ -116,6 +251,12 @@ test('community defaults reach chat and preserve custom profiles across legacy r
   }
 
   const legacy = JSON.parse(diskSave)
+  for (const id of Object.keys(greetings)) {
+    const rows = legacy.characters[id].chatLines
+    assert.equal(Object.hasOwn(rows[0], 'at'), false, 'automatic greetings are not real chats')
+    assert.ok(rows.slice(-2).every((row: any) => Number.isSafeInteger(row.at) && row.at > 0))
+  }
+  legacy.characters.claude.chatLines.push(...[0, -1, 1.5, '123', Infinity].map((at) => ({ who: 'narrator', text: 'invalid time', at })))
   legacy.v = 8
   diskSave = JSON.stringify(legacy)
   startPlugin()
@@ -123,7 +264,12 @@ test('community defaults reach chat and preserve custom profiles across legacy r
     const reloaded = await post('profile-get', { characterId: id })
     assert.deepEqual(reloaded.overrides, customProfiles[id], id)
     assert.equal(reloaded.builtIn.address, '主人', id)
-    await post('settings-set', { characterMode: 'manual', characterId: id })
+    const restored = await post('settings-set', { characterMode: 'manual', characterId: id })
+    const oldRows = legacy.characters[id].chatLines
+    assert.equal(Object.hasOwn(restored.view.history[0], 'at'), false)
+    const validCount = oldRows.length - (id === 'claude' ? 5 : 0)
+    assert.deepEqual(restored.view.history.slice(0, validCount), oldRows.slice(0, validCount), 'chat timestamps must survive a legacy reload')
+    if (id === 'claude') assert.ok(restored.view.history.slice(validCount).every((row: any) => !Object.hasOwn(row, 'at')))
     useFallback = true
     const fallback = await post('chat', { text: '再陪我一会儿' })
     assert.match(fallback.history.at(-1).text, /^你说的话/, id)
@@ -136,6 +282,20 @@ test('community defaults reach chat and preserve custom profiles across legacy r
     assert.deepEqual(JSON.parse(diskSave).characters[id].profileOverrides, customProfiles[id], id)
   }
   assert.equal(JSON.parse(diskSave).v, 9)
+
+  // Older saves have no per-line timestamps. A direct chat must still see the
+  // old heartbeat before its post-reply settlement overwrites it.
+  const withoutTimestamps = JSON.parse(diskSave)
+  const oldVisit = Date.now() - 61 * 86400000
+  withoutTimestamps.tokens.lastActiveAt = oldVisit
+  for (const character of Object.values(withoutTimestamps.characters) as any[]) {
+    for (const row of character.chatLines) delete row.at
+  }
+  diskSave = JSON.stringify(withoutTimestamps)
+  startPlugin()
+  await post('chat', { text: '我有多久没来了' })
+  assert.match(mainRequests.at(-1).system, /距离你上次和对方聊天：约 2 个月/)
+  assert.equal(Object.hasOwn(JSON.parse(diskSave), 'previousVisitAt'), false)
 })
 
 test('binds the active workspace, counts Harness usage, and consumes a safe activity once', async () => {
@@ -268,6 +428,8 @@ test('binds the active workspace, counts Harness usage, and consumes a safe acti
   assert.match(mainSystems[0], /Harness 近期任务事件：类别是「代码调试」/)
   assert.doesNotMatch(mainSystems[0], /secret|fixture|exec_command|private/i)
   assert.doesNotMatch(mainSystems[1], /Harness 近期任务事件/)
+  assert.match(mainSystems[1], /背景知识：你知道对方最近在忙：「代码调试」（已告一段落）/)
+  assert.doesNotMatch(mainSystems[1], /本轮必须自然带到一次/)
 
   const persisted = JSON.parse(saved)
   assert.equal(persisted.v, 9)

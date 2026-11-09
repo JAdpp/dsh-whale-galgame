@@ -397,6 +397,18 @@ export function activitySystemInstruction(activity: HarnessActivity): string {
     + ' 不要声称看过具体文件、代码或对话，不要提及路径、文件名、密钥、工具调用或内部过程。'
 }
 
+export function activityBackgroundInstruction(activity: HarnessActivity | null): string {
+  const capability = '你能隐约感知对方最近三天用 DSH 做了什么类型的事，比如写代码、写文档，但看不到具体文件和内容。'
+  const status = activity?.status === 'completed' ? '已告一段落'
+    : activity?.status === 'blocked' ? '遇到阻碍'
+      : activity?.status === 'paused' ? '已暂停' : '仍在进行'
+  const knowledge = activity
+    ? '背景知识：你知道对方最近在忙：「' + activity.label + '」（' + status + '）。只有被问到或很自然时才提。'
+    : '最近三天你没有感知到任何活动；被问到时，如实说最近没看到对方在忙什么，不要否认自己有这个能力，也不要编造对方做了什么。'
+  return capability + '\n' + knowledge
+    + '\n不要声称看过具体文件、代码或对话，不要提及路径、文件名、密钥、工具调用或内部过程。'
+}
+
 export function activityCgTheme(activity: HarnessActivity): string {
   return '近期任务类别「' + activity.label + '」：' + activity.cgHint
 }

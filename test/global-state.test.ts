@@ -106,6 +106,7 @@ function makeHarness(options: {
   let readSessionCalls = 0
   const readTargets: string[] = []
   const writeTargets: string[] = []
+  const mainRequests: any[] = []
   let legacyReadCount = 0
   let releaseLegacyReads: (() => void) | null = null
   const legacyReadBarrier = new Promise<void>((resolve) => { releaseLegacyReads = resolve })
@@ -211,6 +212,7 @@ function makeHarness(options: {
     resolveModelInfo: async () => ({}),
     stream: async function* (request: any): AsyncGenerator<any> {
       const system = String(request && request.system || '')
+      if (system.startsWith('下面的 JSON 是当前角色资料')) mainRequests.push(request)
       const text = system.includes('情绪分类器')
         ? 'normal'
         : system.includes('对话选项生成器')
@@ -270,6 +272,7 @@ function makeHarness(options: {
     dshHome: tempHome,
     files: fileView,
     globalPath,
+    mainRequests,
     listeners,
     post,
     failNextWorkspaceWrite: () => { failNextWorkspaceWrite = true },
@@ -430,6 +433,45 @@ test('aggregates safe Harness activity globally and consumes one event only once
   const afterB = JSON.parse(harness.files.get(harness.globalPath) || '{}')
   assert.deepEqual(afterB.characters.deepseek.activity.seen, afterA.characters.deepseek.activity.seen)
   assert.equal(afterB.activityFeed.length, 1)
+  assert.match(harness.mainRequests[0].system, /本轮必须自然带到一次/)
+  // The feed is global: another workspace keeps the consumed event as background only.
+  assert.match(harness.mainRequests[1].system, /背景知识：你知道对方最近在忙：「代码调试」/)
+  assert.doesNotMatch(harness.mainRequests[1].system, /本轮必须自然带到一次|没有感知到任何活动/)
+  await harness.post('session-a', 'chat', { text: '刚才在忙什么来着' })
+  assert.match(harness.mainRequests[2].system, /背景知识：你知道对方最近在忙：「代码调试」（已告一段落）/)
+  assert.doesNotMatch(harness.mainRequests[2].system, /本轮必须自然带到一次/)
+})
+
+test('keeps a return visit after split-storage settlement and round-trips per-character chat timestamps', async () => {
+  const root = 'E:\\workspace\\return-visit'
+  const old = Date.now() - 61 * 86400000
+  const legacy = JSON.parse(legacySave('A'))
+  legacy.tokens.lastActiveAt = old
+  const harness = makeHarness({ roots: [root], legacy: { [root]: JSON.stringify(legacy) } })
+  await harness.post('session-a', 'view')
+  let settled: any
+  for (let attempt = 0; attempt < 50; attempt++) {
+    settled = JSON.parse(harness.files.get(harness.globalPath) || '{}')
+    if (settled.relationshipLastActiveAt > old) break
+    await new Promise((resolve) => setTimeout(resolve, 5))
+  }
+  assert.ok(settled.relationshipLastActiveAt > old, 'the deferred settlement must have overwritten the heartbeat')
+  await harness.post('session-a', 'chat', { text: '我有多久没来工坊了' })
+  assert.match(harness.mainRequests[0].system, /距离你上次和对方聊天：约 2 个月/)
+  const saved = JSON.parse(harness.files.get(harness.globalPath) || '{}')
+  assert.equal(Object.hasOwn(saved, 'previousVisitAt'), false)
+  const rows = saved.characters.deepseek.chatLines
+  assert.equal(Object.hasOwn(rows[0], 'at'), false, 'legacy lines stay readable without an invented time')
+  assert.ok(rows.slice(-2).every((row: any) => Number.isSafeInteger(row.at) && row.at > 0))
+
+  await harness.post('session-a', 'settings-set', { characterMode: 'manual', characterId: 'claude' })
+  await harness.post('session-a', 'chat', { text: '你也还记得吗' })
+  assert.match(harness.mainRequests[1].system, /距离你上次和对方聊天：约 2 个月/)
+  const reloaded = makeHarness({ roots: [root], dshHome: harness.dshHome })
+  const restored = await reloaded.post('session-a', 'settings-set', { characterMode: 'manual', characterId: 'deepseek' })
+  assert.deepEqual(restored.view.history, rows)
+  await reloaded.post('session-a', 'chat', { text: '再陪我聊聊' })
+  assert.match(reloaded.mainRequests[0].system, /距离你上次和对方聊天：刚刚/)
 })
 
 test('persists a global background revision across same-kind custom and CG replacements', async () => {
