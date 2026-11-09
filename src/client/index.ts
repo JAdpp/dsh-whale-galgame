@@ -706,10 +706,17 @@ function canScrollUp(target: EventTarget | null, panel: HTMLElement): boolean {
 }
 
 type SynthSound = 'click' | 'tick' | 'affection' | 'level'
-const AUDIO_MODES: Record<string, { root: number; third: number }> = {
-  deepseek: { root: 146.83, third: 4 }, claude: { root: 174.61, third: 4 },
-  grok: { root: 164.81, third: 3 }, kimi: { root: 130.81, third: 4 },
-  chatgpt: { root: 196, third: 4 }, gemini: { root: 164.81, third: 4 },
+const AUDIO_MODES: Record<string, {
+  root: number; bpm: number; melody: number; wave: 'sine' | 'triangle'
+  overtone: number; echo: number; feedback: number
+}> = {
+  // MIDI tonics near C3; every arrangement uses the same major-key progression.
+  deepseek: { root: 50, bpm: 104, melody: 0, wave: 'triangle', overtone: .16, echo: .12, feedback: .16 },
+  claude: { root: 53, bpm: 96, melody: 0, wave: 'sine', overtone: .08, echo: .06, feedback: .1 },
+  grok: { root: 52, bpm: 116, melody: 1, wave: 'triangle', overtone: .12, echo: .06, feedback: .1 },
+  kimi: { root: 48, bpm: 100, melody: 0, wave: 'sine', overtone: .14, echo: .18, feedback: .23 },
+  chatgpt: { root: 55, bpm: 112, melody: 1, wave: 'triangle', overtone: .1, echo: .08, feedback: .12 },
+  gemini: { root: 57, bpm: 108, melody: 1, wave: 'sine', overtone: .16, echo: .1, feedback: .15 },
 }
 
 function createProgrammaticAudio() {
@@ -720,22 +727,139 @@ function createProgrammaticAudio() {
   let visible = false
   let disposed = false
   let lastTick = -Infinity
-  let bgm: { characterId: string; bus: GainNode; nodes: AudioNode[]; sources: OscillatorNode[] } | null = null
+  type BgmNote = { nodes: AudioNode[]; sources: OscillatorNode[]; stopAt: number }
+  type BgmTrack = {
+    characterId: string; input: GainNode; bus: GainNode; nodes: AudioNode[]; notes: Set<BgmNote>
+    startsAt: number; nextTime: number; step: number
+  }
+  let bgm: BgmTrack | null = null
+  let bgmTimer: ReturnType<typeof setInterval> | null = null
+  let bgmFadeUntil = 0
+  const retiringBgm = new Set<BgmTrack>()
   const disconnectTimers = new Set<ReturnType<typeof setTimeout>>()
 
+  // Two four-bar phrases, in eighth-note slots. Semitones above the major
+  // tonic; null is a rest. The second phrase supplies an answering melody.
+  const melodies = [
+    [
+      [0, null, 4, 7, 9, null, 7, 4],
+      [9, null, 7, 4, 0, 4, null, 7],
+      [5, null, 9, 12, 9, 7, 5, null],
+      [7, null, 11, 9, 7, 2, null, null],
+    ],
+    [
+      [4, 7, null, 9, 7, 4, 2, null],
+      [0, 4, 9, null, 7, 4, 0, null],
+      [5, 9, null, 12, 9, 5, 4, null],
+      [2, null, 7, 11, 9, 7, null, 2],
+    ],
+  ]
+  // I–vi–IV–V, voiced in the middle register rather than stacked low chords.
+  const chords = [
+    { root: 0, notes: [0, 4, 7] }, { root: 9, notes: [0, 4, 9] },
+    { root: 5, notes: [0, 5, 9] }, { root: 7, notes: [2, 7, 11] },
+  ]
+  const arpeggio = [0, 1, 2, 1, 0, 1, 2, 1]
+
+  function bgmFrequency(midi: number, ceiling: number): number {
+    // Fold high notes down an octave to keep melody C5–C6, arpeggios C4–B4
+    // and the short bass around C3, including when transposing to A major.
+    while (midi > ceiling) midi -= 12
+    return 440 * Math.pow(2, (midi - 69) / 12)
+  }
+
+  function disconnectBgmNote(track: BgmTrack, note: BgmNote): void {
+    note.sources.forEach((source) => { source.onended = null })
+    note.nodes.forEach((node) => node.disconnect())
+    track.notes.delete(note)
+  }
+
+  function disconnectBgm(track: BgmTrack): void {
+    track.notes.forEach((note) => {
+      note.sources.forEach((source) => { try { source.stop() } catch { /* already stopped */ } })
+      disconnectBgmNote(track, note)
+    })
+    track.nodes.forEach((node) => node.disconnect())
+    retiringBgm.delete(track)
+  }
+
+  function scheduleBgmNote(track: BgmTrack, mode: typeof AUDIO_MODES[string], midi: number,
+    ceiling: number, at: number, duration: number, amplitude: number, bass = false): void {
+    if (!context) return
+    const fundamental = context.createOscillator()
+    const octave = context.createOscillator()
+    const brightness = context.createGain()
+    const envelope = context.createGain()
+    fundamental.type = bass ? 'sine' : mode.wave
+    octave.type = 'sine'
+    const frequency = bgmFrequency(midi, ceiling)
+    fundamental.frequency.setValueAtTime(frequency, at)
+    octave.frequency.setValueAtTime(frequency * 2, at)
+    brightness.gain.value = bass ? .08 : mode.overtone
+    envelope.gain.setValueAtTime(0, at)
+    envelope.gain.linearRampToValueAtTime(amplitude, at + .005)
+    envelope.gain.exponentialRampToValueAtTime(.0001, at + duration)
+    const stopAt = at + duration + .01
+    envelope.gain.setValueAtTime(0, stopAt)
+    fundamental.connect(envelope)
+    octave.connect(brightness).connect(envelope)
+    envelope.connect(track.input)
+    const note: BgmNote = { nodes: [fundamental, octave, brightness, envelope], sources: [fundamental, octave], stopAt }
+    track.notes.add(note)
+    let ended = 0
+    note.sources.forEach((source) => {
+      source.onended = () => { if (++ended === note.sources.length) disconnectBgmNote(track, note) }
+      source.start(at)
+      source.stop(stopAt)
+    })
+  }
+
+  function scheduleBgm(track: BgmTrack, mode: typeof AUDIO_MODES[string]): void {
+    if (!context || bgm !== track) return
+    if (!settings.bgm || !visible || document.hidden || context.state !== 'running') { stopBgm(); return }
+    const eighth = 60 / mode.bpm / 2
+    // A delayed interval skips missed beats instead of playing a catch-up burst.
+    if (track.nextTime < context.currentTime) {
+      const missed = Math.ceil((context.currentTime - track.nextTime) / eighth)
+      track.step += missed
+      track.nextTime += missed * eighth
+    }
+    while (track.nextTime < context.currentTime + .12) {
+      const bar = Math.floor(track.step / 8) % 8
+      const slot = track.step % 8
+      const chord = chords[bar % 4]
+      const phrase = (Math.floor(bar / 4) + mode.melody) % melodies.length
+      const melody = melodies[phrase][bar % 4][slot]
+      const at = track.nextTime
+      // Pick one octave for the whole tune; folding single notes would break the melodic contour.
+      const melodyBase = mode.root + (mode.root <= 52 ? 24 : 12)
+      if (melody !== null) scheduleBgmNote(track, mode, melodyBase + melody, Infinity, at, .5, .16)
+      scheduleBgmNote(track, mode, mode.root + 12 + chord.notes[arpeggio[slot]], 71, at, .25, .045)
+      if (slot === 0 || slot === 4) scheduleBgmNote(track, mode, mode.root + chord.root, 55, at, .3, .07, true)
+      track.step++
+      track.nextTime += eighth
+    }
+  }
+
   function stopBgm(): void {
+    if (bgmTimer !== null) { clearInterval(bgmTimer); bgmTimer = null }
     if (!context || !bgm) return
     const old = bgm
     bgm = null
+    retiringBgm.add(old)
     const now = context.currentTime
+    const fadeAt = now + .3
+    bgmFadeUntil = Math.max(bgmFadeUntil, fadeAt)
     old.bus.gain.cancelScheduledValues(now)
-    old.bus.gain.setValueAtTime(old.bus.gain.value, now)
-    old.bus.gain.linearRampToValueAtTime(0, now + .18)
-    old.sources.forEach((oscillator) => { try { oscillator.stop(now + .2) } catch { /* already stopped */ } })
+    old.bus.gain.setValueAtTime(.3 * Math.max(0, Math.min(1, now - old.startsAt)), now)
+    old.bus.gain.linearRampToValueAtTime(0, fadeAt)
+    old.notes.forEach((note) => note.sources.forEach((source) => {
+      try { source.stop(Math.min(note.stopAt, fadeAt)) } catch { /* already stopped */ }
+    }))
     const timer = setTimeout(() => {
-      old.nodes.forEach((node) => node.disconnect())
+      disconnectBgm(old)
       disconnectTimers.delete(timer)
-    }, 240)
+    }, 320)
     disconnectTimers.add(timer)
   }
 
@@ -746,42 +870,28 @@ function createProgrammaticAudio() {
     if (bgm?.characterId === characterId) return
     stopBgm()
     const now = context.currentTime
-    const mode = AUDIO_MODES[characterId] || AUDIO_MODES.deepseek
+    const mode = Object.hasOwn(AUDIO_MODES, characterId) ? AUDIO_MODES[characterId] : AUDIO_MODES.deepseek
+    const startsAt = Math.max(now + .02, bgmFadeUntil)
+    const input = context.createGain()
     const bus = context.createGain()
-    const filter = context.createBiquadFilter()
-    filter.type = 'lowpass'
-    filter.frequency.value = 700
-    filter.Q.value = .5
+    const delay = context.createDelay(.3)
+    const feedback = context.createGain()
+    const wet = context.createGain()
+    delay.delayTime.value = .28
+    feedback.gain.value = mode.feedback
+    wet.gain.value = mode.echo
+    input.connect(bus).connect(master)
+    input.connect(delay)
+    delay.connect(feedback).connect(delay)
+    delay.connect(wet).connect(bus)
     bus.gain.setValueAtTime(0, now)
-    // The BGM bus is 30% of the master volume, with quiet individual pads.
-    bus.gain.linearRampToValueAtTime(.3, now + .6)
-    filter.connect(bus).connect(master)
-    const sources: OscillatorNode[] = []
-    const nodes: AudioNode[] = [bus, filter]
-    const sweep = context.createOscillator()
-    const sweepDepth = context.createGain()
-    sweep.frequency.value = .018
-    sweepDepth.gain.value = 450
-    sweep.connect(sweepDepth).connect(filter.frequency)
-    sources.push(sweep)
-    nodes.push(sweep, sweepDepth)
-    ;[0, mode.third, 7].forEach((semitones, index) => {
-      const oscillator = context!.createOscillator()
-      oscillator.type = index === 1 ? 'triangle' : 'sine'
-      oscillator.frequency.value = mode.root * Math.pow(2, semitones / 12) / 2
-      const envelope = context!.createGain()
-      envelope.gain.value = .035
-      const breath = context!.createOscillator()
-      const depth = context!.createGain()
-      breath.frequency.value = .035 + index * .013
-      depth.gain.value = .025
-      breath.connect(depth).connect(envelope.gain)
-      oscillator.connect(envelope).connect(filter)
-      sources.push(oscillator, breath)
-      nodes.push(oscillator, breath, envelope, depth)
-    })
-    sources.forEach((oscillator) => oscillator.start(now))
-    bgm = { characterId, bus, nodes, sources }
+    bus.gain.setValueAtTime(0, startsAt)
+    // Quiet plucks leave headroom; BGM stays at 30% of the master volume.
+    bus.gain.linearRampToValueAtTime(.3, startsAt + 1)
+    const track: BgmTrack = { characterId, input, bus, nodes: [input, bus, delay, feedback, wet], notes: new Set(), startsAt, nextTime: startsAt, step: 0 }
+    bgm = track
+    bgmTimer = setInterval(() => scheduleBgm(track, mode), 25)
+    scheduleBgm(track, mode)
   }
 
   // This is called only by pointer/keyboard/change event handlers. Neither
@@ -841,9 +951,12 @@ function createProgrammaticAudio() {
     },
     dispose() {
       disposed = true
+      if (bgmTimer !== null) { clearInterval(bgmTimer); bgmTimer = null }
       stopBgm()
       disconnectTimers.forEach(clearTimeout)
       disconnectTimers.clear()
+      retiringBgm.forEach(disconnectBgm)
+      bgmFadeUntil = 0
       if (context) void context.close().catch(() => {})
       context = null; master = null
     },

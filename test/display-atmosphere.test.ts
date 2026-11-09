@@ -104,11 +104,46 @@ test('audio creation and resume have one gesture-only entry point', () => {
   assert.match(source, /useEffect\(\(\) => \(\) => audio\.dispose\(\), \[audio\]\)/)
 })
 
+test('BGM uses fixed major melodies and a cancellable lookahead interval', () => {
+  const modes = evaluate(section('const AUDIO_MODES', 'function createProgrammaticAudio()') + '\nAUDIO_MODES')
+  const expected = { deepseek: [50, 104], claude: [53, 96], grok: [52, 116], kimi: [48, 100], chatgpt: [55, 112], gemini: [57, 108] }
+  assert.deepEqual(Object.keys(modes), Object.keys(expected))
+  for (const [id, [root, bpm]] of Object.entries(expected)) {
+    assert.equal(modes[id].root, root)
+    assert.equal(modes[id].bpm, bpm)
+    assert.ok(modes[id].echo <= .2 && modes[id].feedback <= .25)
+  }
+  const score = evaluate(section('  const melodies =', '  function bgmFrequency(') + '\n;({ melodies, chords })')
+  assert.equal(score.melodies.length, 2)
+  for (const phrase of score.melodies) {
+    assert.equal(phrase.length, 4)
+    for (const bar of phrase) {
+      assert.equal(bar.length, 8)
+      assert.ok(bar.includes(null), 'each bar leaves space for the accompaniment')
+      assert.ok(bar.every((note: number | null) => note === null || [0, 2, 4, 5, 7, 9, 11].includes(note % 12)))
+    }
+  }
+  assert.equal(JSON.stringify(score.chords.map((chord: any) => chord.root)), '[0,9,5,7]')
+  for (const chord of score.chords) assert.ok(chord.notes.every((note: number) => [0, 2, 4, 5, 7, 9, 11].includes(note % 12)))
+  const audio = section('function createProgrammaticAudio()', 'function DisplaySettingsPopover(')
+  assert.doesNotMatch(section('const AUDIO_MODES', 'function createProgrammaticAudio()'), /third\s*:/)
+  assert.doesNotMatch(audio, /\.018|createBiquadFilter|breath|sweep|Math\.random/)
+  assert.match(audio, /setInterval\(\(\) => scheduleBgm\(track, mode\), 25\)/)
+  assert.match(audio, /while \(track\.nextTime < context\.currentTime \+ \.12\)/)
+  assert.match(section('function stopBgm()', 'function syncBgm()'), /clearInterval\(bgmTimer\)/)
+  assert.match(section('    dispose() {', 'function DisplaySettingsPopover('), /clearInterval\(bgmTimer\)/)
+  assert.doesNotMatch(section('function scheduleBgmNote(', 'function stopBgm()'), /setTimeout/)
+  assert.match(audio, /exponentialRampToValueAtTime\(\.0001, at \+ duration\)/)
+  assert.match(audio, /source\.onended = \(\) =>/)
+})
+
 function audioHarness() {
   const events: any[] = []
   const contexts: any[] = []
   let timerId = 0
   const timers = new Map<number, () => void>()
+  const intervals = new Map<number, () => void>()
+  const nodes: any[] = []
   const param = () => ({
     value: 0,
     setValueAtTime(value: number, at: number) { this.value = value; events.push(['value', value, at]) },
@@ -116,12 +151,27 @@ function audioHarness() {
     exponentialRampToValueAtTime(value: number, at: number) { this.value = value; events.push(['envelope', value, at]) },
     setTargetAtTime(value: number) { this.value = value }, cancelScheduledValues() {},
   })
+  const node = (kind: string, extra: any = {}) => {
+    const result = {
+      kind, disconnected: false, connections: [] as any[], ...extra,
+      connect(target: any) { this.connections.push(target); return target },
+      disconnect() { this.disconnected = true; events.push(['disconnect']) },
+    }
+    nodes.push(result)
+    return result
+  }
   class AudioContextMock {
     state = 'running'; currentTime = 1; destination = {}; resumed = 0; closed = 0
     constructor() { contexts.push(this) }
-    createGain() { return { gain: param(), connect(node: any) { return node }, disconnect() { events.push(['disconnect']) } } }
-    createBiquadFilter() { return { frequency: param(), Q: param(), connect(node: any) { return node }, disconnect() { events.push(['disconnect']) } } }
-    createOscillator() { return { frequency: param(), connect(node: any) { return node }, disconnect() { events.push(['disconnect']) }, start(at: number) { events.push(['start', at]) }, stop(at: number) { events.push(['stop', at]) } } }
+    createGain() { return node('gain', { gain: param() }) }
+    createDelay() { return node('delay', { delayTime: param() }) }
+    createOscillator() {
+      return node('oscillator', {
+        frequency: param(), onended: null, startAt: 0, stopAt: Infinity, ended: false,
+        start(at: number) { this.startAt = at; events.push(['start', at]) },
+        stop(at = 0) { this.stopAt = at; events.push(['stop', at]) },
+      })
+    }
     resume() { this.resumed++; this.state = 'running'; return Promise.resolve() }
     close() { this.closed++; this.state = 'closed'; return Promise.resolve() }
   }
@@ -130,8 +180,21 @@ function audioHarness() {
     DEFAULT_DISPLAY_SETTINGS: defaults, window: { AudioContext: AudioContextMock }, document,
     setTimeout(callback: () => void) { const id = ++timerId; timers.set(id, callback); return id },
     clearTimeout(id: number) { timers.delete(id) },
+    setInterval(callback: () => void, ms: number) { assert.equal(ms, 25); const id = ++timerId; intervals.set(id, callback); return id },
+    clearInterval(id: number) { intervals.delete(id) },
   })
-  return { audio, events, contexts, document, timers }
+  function advance(seconds: number) {
+    contexts[0].currentTime += seconds
+    for (const oscillator of nodes.filter((item) => item.kind === 'oscillator' && !item.ended && item.stopAt <= contexts[0].currentTime)) {
+      oscillator.ended = true
+      oscillator.onended?.()
+    }
+    for (const callback of intervals.values()) callback()
+  }
+  function flushDisconnects() {
+    for (const [id, callback] of Array.from(timers)) { timers.delete(id); callback() }
+  }
+  return { audio, events, contexts, document, timers, intervals, nodes, advance, flushDisconnects }
 }
 
 test('audio stays silent before gestures, throttles ticks, and closes on disposal', () => {
@@ -162,35 +225,114 @@ test('audio stays silent before gestures, throttles ticks, and closes on disposa
 })
 
 test('BGM fades, stops and restarts without visibility callbacks resuming contexts', async () => {
-  const { audio, contexts, events, document, timers } = audioHarness()
+  const { audio, contexts, events, document, timers, intervals, nodes, advance, flushDisconnects } = audioHarness()
   const settings = { ...defaults, bgm: true }
   audio.configure(settings, 'deepseek', true)
   assert.equal(contexts.length, 0)
   audio.onUserGesture()
   const starts = () => events.filter((event) => event[0] === 'start').length
-  assert.equal(starts(), 7, 'three pads, three envelopes and one filter sweep')
-  assert.ok(events.some((event) => event[0] === 'ramp' && event[1] === .3))
+  assert.equal(starts(), 6, 'melody, arpeggio and bass each have a quiet octave harmonic')
+  assert.equal(intervals.size, 1)
+  assert.ok(events.some((event) => event[0] === 'ramp' && event[1] === .3 && event[2] === 2.02))
   assert.equal(contexts[0].resumed, 0)
   document.hidden = true
   audio.configure(settings, 'deepseek', false)
-  assert.equal(events.filter((event) => event[0] === 'stop').length, 7)
-  assert.ok(events.some((event) => event[0] === 'ramp' && event[1] === 0))
+  assert.equal(intervals.size, 0)
+  assert.ok(events.some((event) => event[0] === 'ramp' && event[1] === 0 && event[2] === 1.3))
+  const oldNodes = nodes.slice(1)
+  assert.ok(oldNodes.filter((node) => node.kind === 'oscillator').every((node) => node.stopAt <= 1.3))
   audio.play('level')
-  assert.equal(starts(), 7)
+  assert.equal(starts(), 6)
   document.hidden = false
   audio.configure(settings, 'deepseek', true)
-  assert.equal(starts(), 14)
+  assert.equal(starts(), 6, 'a restarted track waits for the previous fade')
+  advance(.2)
+  assert.equal(starts(), 12)
+  assert.ok(events.filter((event) => event[0] === 'start').slice(6).every((event) => event[1] >= 1.3))
   audio.configure(settings, 'grok', true)
-  assert.equal(starts(), 21, 'character changes replace the pad voices')
+  assert.equal(starts(), 12, 'character changes wait for the old music to fade')
+  assert.equal(intervals.size, 1, 'only the replacement scheduler survives')
+  advance(.2)
+  assert.equal(starts(), 18)
+  assert.ok(events.filter((event) => event[0] === 'start').slice(12).every((event) => event[1] >= 1.5))
+  flushDisconnects()
+  assert.ok(oldNodes.every((node) => node.disconnected), 'retired voices and echo feedback are disconnected')
   contexts[0].state = 'suspended'
   audio.configure(settings, 'grok', true)
   assert.equal(contexts[0].resumed, 0)
+  assert.equal(intervals.size, 0)
   audio.onUserGesture()
   await Promise.resolve()
   assert.equal(contexts[0].resumed, 1)
   audio.dispose()
   assert.equal(contexts[0].closed, 1)
   assert.equal(timers.size, 0)
+  assert.equal(intervals.size, 0)
+  assert.ok(nodes.slice(1).every((node) => node.disconnected), 'dispose also drains pending fade cleanups')
+})
+
+test('lookahead schedules three short voices, skips stalls and loops its written score', () => {
+  const { audio, contexts, nodes, timers, intervals, advance } = audioHarness()
+  audio.configure({ ...defaults, bgm: true }, 'deepseek', true)
+  audio.onUserGesture()
+  const eighth = 60 / 104 / 2
+  const firstVoices = nodes.filter((node) => node.kind === 'oscillator')
+  assert.equal(firstVoices.length, 6)
+  assert.deepEqual(firstVoices.filter((_node, i) => i % 2 === 0).map((node) => Math.round(node.frequency.value)), [587, 294, 147])
+  assert.ok(firstVoices.every((node) => node.stopAt - node.startAt <= .51 + 1e-9))
+  assert.equal(timers.size, 0, 'notes use AudioContext time and onended, never wall-clock timeouts')
+  advance(eighth - .08)
+  const offbeat = nodes.filter((node) => node.kind === 'oscillator').slice(6)
+  assert.equal(offbeat.length, 2, 'the first melody rest leaves only the arpeggio')
+  assert.ok(offbeat.every((node) => node.startAt > contexts[0].currentTime && node.startAt < contexts[0].currentTime + .12))
+  const beforeStall = nodes.length
+  advance(2)
+  assert.ok(nodes.slice(beforeStall).filter((node) => node.kind === 'oscillator').length <= 6, 'no catch-up burst after a stalled timer')
+  assert.ok(firstVoices.every((node) => node.disconnected), 'ended notes disconnect without stopping the score')
+
+  const loop = audioHarness()
+  loop.audio.configure({ ...defaults, bgm: true }, 'deepseek', true)
+  loop.audio.onUserGesture()
+  const initial = loop.nodes.filter((node) => node.kind === 'oscillator').map((node) => node.frequency.value)
+  for (let step = 1; step <= 64; step++) loop.advance(eighth)
+  const last = loop.nodes.filter((node) => node.kind === 'oscillator').slice(-6)
+  assert.deepEqual(last.map((node) => node.frequency.value), initial, 'the eight-bar score repeats exactly')
+  assert.ok(last.every((node) => Math.abs(node.startAt - (1.02 + 64 * eighth)) < 1e-9))
+  assert.ok(loop.nodes.filter((node) => node.kind === 'oscillator' && !node.disconnected).length < 20, 'live voices stay bounded over a full loop')
+  loop.audio.dispose()
+  audio.dispose()
+  assert.equal(intervals.size, 0)
+})
+
+test('unknown roles use DeepSeek and scheduler guards stop hidden or disabled music', () => {
+  const opening = (id: string) => {
+    const h = audioHarness()
+    h.audio.configure({ ...defaults, bgm: true }, id, true)
+    h.audio.onUserGesture()
+    const notes = h.nodes.filter((node) => node.kind === 'oscillator').map((node) => node.frequency.value)
+    h.audio.dispose()
+    return notes
+  }
+  assert.deepEqual(opening('unknown'), opening('deepseek'))
+  assert.deepEqual(opening('constructor'), opening('deepseek'))
+  const h = audioHarness()
+  const settings = { ...defaults, bgm: true }
+  h.audio.configure(settings, 'kimi', false)
+  h.audio.onUserGesture()
+  assert.equal(h.intervals.size, 0)
+  h.audio.configure(settings, 'kimi', true)
+  assert.equal(h.intervals.size, 1)
+  h.document.hidden = true
+  h.advance(.025)
+  assert.equal(h.intervals.size, 0, 'the interval itself also observes document visibility')
+  h.document.hidden = false
+  h.audio.configure(settings, 'kimi', true)
+  assert.equal(h.intervals.size, 1)
+  h.audio.configure(defaults, 'kimi', true)
+  assert.equal(h.intervals.size, 0)
+  h.audio.dispose()
+  assert.equal(h.timers.size, 0)
+  assert.ok(h.nodes.slice(1).every((node) => node.disconnected))
 })
 
 test('typewriter ticks only for timed Unicode triplets, never for direct completion', () => {
