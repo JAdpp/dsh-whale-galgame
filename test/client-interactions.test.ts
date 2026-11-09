@@ -82,3 +82,182 @@ test('plugin settings expose a dedicated pet visibility switch', () => {
   assert.match(app, /const petEnabled = !!s && s\.enabled !== false && s\.petEnabled !== false/)
   assert.match(app, /React\.createElement\(Pet/)
 })
+
+test('typewriter uses Unicode characters and safely remembers the four text speeds', () => {
+  const speeds = section('const TEXT_SPEEDS', 'function Typewriter(')
+  const writer = section('function Typewriter(', 'function CrossfadeImg(')
+  const button = section('function textSpeedButton()', 'function levelMeter(')
+
+  assert.match(writer, /Array\.from\(props\.text\)/)
+  assert.match(writer, /count: chars\.length/)
+  assert.match(writer, /line\.id === props\.lineId && line\.text === props\.text/)
+  assert.match(writer, /const alreadySeen = !sameLine && seenLines\.current\.has\(lineKey\)/)
+  assert.match(writer, /if \(!sameLine\)[\s\S]*count: alreadySeen \? chars\.length : 0/)
+  for (const ms of [60, 35, 18, 0]) assert.match(speeds, new RegExp('ms: ' + ms + ' \\}'))
+  assert.match(speeds, /try\s*\{\s*const saved = localStorage\.getItem\('whg-text-speed'\)/)
+  assert.match(speeds, /catch\s*\{\s*return 1/)
+  assert.match(button, /try\s*\{ localStorage\.setItem\('whg-text-speed', TEXT_SPEEDS\[next\]\.label\) \} catch/)
+  assert.match(button, /catch \{ next = 1 \}/)
+  assert.match(button, /'aria-label': '文字速度：' \+ label/)
+})
+
+test('line clicks and visible-panel keyboard input share completion and advance behavior', () => {
+  const writer = section('function Typewriter(', 'function CrossfadeImg(')
+  const side = section('function sideStoryDialogue(', 'function dialogue()')
+  const main = section('function dialogue()', 'function cgModal(')
+
+  assert.match(writer, /if \(typing\) setLine\([\s\S]*else if \(props\.canAdvance\) props\.onAdvance\?\.\(\)/)
+  assert.match(writer, /onClick: advance/)
+  assert.match(writer, /event\.key !== ' ' && event\.key !== 'Enter'/)
+  assert.match(writer, /target\.closest\('input,textarea,button,select'\)/)
+  assert.match(writer, /event\.preventDefault\(\)/)
+  assert.match(writer, /IntersectionObserver[\s\S]*entry\.isIntersecting/)
+  assert.match(writer, /window\.removeEventListener\('keydown', onKeyDown\)/)
+  assert.match(writer, /observer\.disconnect\(\); sync\(false\)/)
+  assert.match(side, /React\.createElement\(Typewriter/)
+  assert.match(side, /canAdvance: pendingLine === null && !busy && offered\.length === 0 && !atEnd/)
+  assert.match(side, /onAdvance: \(\) => \{ act\('side-story', \{ op: 'advance' \}\) \}/)
+  assert.match(main, /React\.createElement\(Typewriter/)
+  assert.doesNotMatch(main, /canAdvance:|onAdvance:/)
+  assert.doesNotMatch(side + main, /key: 'side-'|key: 'now-'/)
+})
+
+test('speech requests show pending text and restore the original input on failure', () => {
+  const send = section('function send()', '// whale-girl emotion sprites')
+  const act = section('function act(', 'function closePicker(')
+  const side = section('function sideStoryDialogue(', 'function dialogue()')
+  const pending = section('function pendingResponse(', 'function progressOverlay(')
+
+  assert.match(send, /setPendingLine\(t\)[\s\S]*setText\(''\)[\s\S]*act\('chat', \{ text: t \}\)/)
+  assert.match(act, /action === 'chat' \|\| \(action === 'side-story' && args && args\.op === 'speak'\)/)
+  assert.match(act, /if \(spoken !== null\) setPendingLine\(spoken\)/)
+  assert.match(act, /assertApiResult\(v,/)
+  assert.match(act, /\.catch\([\s\S]*setApiError[\s\S]*setSkitText\(spoken\)[\s\S]*setText\(spoken\)/)
+  assert.match(act, /\.finally\([\s\S]*setPendingLine\(null\)[\s\S]*setBusy\(false\)/)
+  assert.match(side, /const spoken = skitText\s/)
+  assert.match(side, /setPendingLine\(spoken\)[\s\S]*act\('side-story', \{ op: 'speak', text: spoken \}\)/)
+  assert.match(pending, /role: 'status'/)
+  assert.match(pending, /characterName \+ ' 正在回应'/)
+})
+
+test('backgrounds and the single-character sprite crossfade only after the new image loads', () => {
+  const image = section('function CrossfadeImg(', 'function Pet(')
+  const stage = section('function stage()', 'function textSpeedButton(')
+  const render = section("const isTab = props.variant === 'tab'", 'export const name')
+
+  assert.match(image, /displayedSrc !== props\.src \? displayedSrc : null/)
+  assert.match(image, /onLoad: \(\) => \{ if \(previous\) setFadingSrc\(props\.src\) \}/)
+  assert.match(image, /if \(fadingSrc !== props\.src \|\| !previous\) return undefined/)
+  assert.match(image, /setTimeout\([\s\S]*setDisplayedSrc\(props\.src\)[\s\S]*400\)/)
+  assert.match(image, /onError: props\.onError/)
+  assert.match(image, /alt: props\.alt, draggable: props\.draggable/)
+  assert.match(stage, /React\.createElement\(CrossfadeImg/)
+  assert.match(stage, /key: s\.current, className: 'whg-character-enter'/)
+  assert.match(render, /const backgroundSrc = nextBackground \|\| lastBackground\.current/)
+  assert.equal((render.match(/React\.createElement\(CrossfadeImg, \{ className: 'whg-bg'/g) || []).length, 2)
+})
+
+test('affection effects belong to local chat and side-story choices, with CG shown afterward', () => {
+  const act = section('function act(', 'function closePicker(')
+  const app = section('function App(', 'export const name')
+
+  assert.match(app, /const previousProgress = useRef</)
+  assert.match(act, /const before = previousProgress\.current/)
+  assert.match(act, /const affectsProgress = action === 'chat'[\s\S]*args\.op === 'choose' \|\| args\.op === 'speak'/)
+  assert.match(act, /before\.characterId === String\(v\.current \|\| ''\)/)
+  assert.match(act, /Number\(v\.affection\) - before\.affection/)
+  assert.match(act, /Number\(v\.level\) > before\.level/)
+  assert.match(act, /Number\(v\.affection\) - before\.affection \+ \(Number\(v\.level\) > before\.level \? before\.cap : 0\)/)
+  assert.match(app, /setTimeout\(\(\) => setAffectionFeedback\(null\), 1200\)/)
+  assert.match(app, /setTimeout\(\(\) => setLevelUp\(null\), 2200\)/)
+  assert.equal((app.match(/levelUp \? progressOverlay\(\) : cgModal\(\)/g) || []).length, 2)
+})
+
+test('all presentation animations respect reduced motion', () => {
+  const css = section('const CSS = [', 'function art(')
+  const reduced = css.split('\n').filter((line) => line.includes('@media (prefers-reduced-motion:reduce)')).join('\n')
+  for (const className of [
+    'whg-type-cursor', 'whg-advance-cursor', 'whg-response-dot', 'whg-thinking',
+    'whg-crossfade-fading', 'whg-character-enter', 'whg-affection-delta',
+    'whg-level-shine:after', 'whg-level-up-card', 'whg-level-up-card:before',
+    'whg-breathe', 'whg-speaker-hop', 'whg-action-cheerful', 'whg-action-happy',
+    'whg-action-angry', 'whg-action-shy', 'whg-action-confused', 'whg-action-frightened', 'whg-emotion-bubble',
+  ]) assert.ok(reduced.includes('.' + className), 'missing reduced-motion override: ' + className)
+  assert.match(reduced, /animation:none/)
+  assert.match(reduced, /\.whg-crossfade>\.whg-crossfade-fading\{animation:none;opacity:0\}/)
+  assert.match(section('function Typewriter(', 'function CrossfadeImg('), /props\.speed === 0 \|\| reducedMotion \|\| alreadySeen \? chars\.length/)
+})
+
+test('level meter children never share a React key', () => {
+  const meter = section('function levelMeter()', 'function pendingResponse(')
+  // A shared key between the track and the delta span leaks one extra track per affection change.
+  assert.match(meter, /key:\s*'track-'\s*\+/)
+  assert.match(meter, /key:\s*'delta-'\s*\+/)
+})
+
+test('expressions read only heroine lines and share one keyword mood mapping', () => {
+  const emotion = section('function emotionOf()', 'function moodOf()')
+  const mood = section('function moodOf()', 'function lastLine()')
+  assert.match(emotion, /lines\[i\]\.who === 'heroine'/)
+  assert.doesNotMatch(emotion, /who === 'user'/)
+  assert.match(emotion, /lastLine\.emotion === 'normal'\) return 'normal'/)
+  assert.match(emotion, /lastLine\.emotion && EMOTION_ART\[lastLine\.emotion\]/)
+  assert.match(mood, /const emotion = emotionOf\(\)/)
+  assert.match(mood, /emotion === 'cheerful' \? 'happy' : emotion/)
+})
+
+test('mood filters preserve skin and hair colours', () => {
+  const css = section('const CSS = [', 'function art(')
+  const moods = css.split('\n').filter((line) => line.includes("'.whg-mood-"))
+  assert.ok(moods.length >= 3)
+  for (const rule of moods) assert.doesNotMatch(rule, /hue-rotate/)
+})
+
+test('emotion bubbles require a custom sprite or a role without expression variants', () => {
+  const stage = section('function stage()', 'function textSpeedButton()')
+  const cast = section('function castStage(', 'function stage()')
+  const expression = section('function EmotionExpression(', 'function Pet(')
+  assert.match(stage, /const hasEmotionSprites = !activeCustomSprite && \(s\.current === 'deepseek' \|\| s\.moodSprites === true\)/)
+  assert.match(stage, /const showBubble = !hasEmotionSprites/)
+  assert.match(stage, /React\.createElement\(EmotionExpression, \{ emotion, showBubble \}/)
+  assert.match(cast, /const showBubble = member\.id !== 'deepseek' && member\.moodSprites !== true/)
+  assert.match(cast, /memberBeat\?\.emotion/)
+  assert.match(expression, /props\.showBubble && bubbleEmotion === props\.emotion && EMOTION_SYMBOLS\[props\.emotion\]/)
+  assert.match(expression, /showBubble \? React\.createElement\('span'/)
+  assert.match(expression, /setTimeout\(\(\) => setBubbleEmotion\(null\), 3300\)/)
+  const symbols = section('const EMOTION_SYMBOLS', 'function EmotionExpression(')
+  for (const symbol of ['♪', '💦', '💢', '？', '！！', '…', '✨']) assert.ok(symbols.includes(symbol))
+  assert.doesNotMatch(symbols, /serious:/)
+})
+
+test('breathing, emotion, thinking and speaker cues have separate transform layers', () => {
+  const css = section('const CSS = [', 'function art(')
+  const stage = section('function stage()', 'function textSpeedButton()')
+  const cast = section('function castStage(', 'function stage()')
+  assert.match(css, /\.whg-breathe,\.whg-emotion-action,\.whg-speaker-cue\{[^}]*display:inline-flex;[^}]*height:100%/)
+  assert.match(css, /\.whg-breathe\{animation:whgBreathe 4\.5s ease-in-out infinite\}/)
+  assert.match(css, /translateY\(-1\.5px\) scaleY\(1\.004\)/)
+  assert.match(stage, /className: 'whg-breathe'[\s\S]*React\.createElement\(EmotionExpression/)
+  assert.match(cast, /className: 'whg-breathe'[\s\S]*React\.createElement\(SpeakerCue[\s\S]*React\.createElement\(EmotionExpression/)
+  assert.match(cast, /beatKey: scene\.id \+ '-' \+ beatIndex/)
+  assert.match(cast, /speaking: speaking === member\.id/)
+  const cue = section('function SpeakerCue(', 'function Pet(')
+  assert.match(cue, /cue\.classList\.remove\('whg-speaker-hop'\)[\s\S]*void cue\.offsetWidth[\s\S]*cue\.classList\.add\('whg-speaker-hop'\)/)
+  assert.match(cue, /\[props\.beatKey, props\.speaking\]/)
+  assert.doesNotMatch(cast, /key: scene\.id/)
+  assert.match(cast, /animationDelay: \(-index \* 1\.5\)/)
+  assert.match(css, /\.whg-speaker-hop\{animation:whgSpeakerHop \.3s ease-out\}/)
+  assert.match(css, /\.whg-plate:after\{[^}]*var\(--whg-plate-color/)
+  assert.equal((source.match(/'--whg-plate-color': plateColor/g) || []).length, 2)
+})
+
+test('short and narrow viewports override both tab and fullscreen sprite and panel dimensions', () => {
+  const css = section('const CSS = [', 'function art(')
+  for (const breakpoint of ['max-height:700px', 'max-width:720px', 'max-aspect-ratio:3/4']) {
+    assert.ok(css.includes(breakpoint))
+  }
+  assert.match(css, /\.whg-sprite-wrap,\.whg-root-tab \.whg-sprite-wrap\{height:min\(78vh,100%\)/)
+  assert.match(css, /\.whg-panel,\.whg-root-tab \.whg-panel\{box-sizing:border-box;left:10px;right:10px/)
+  assert.match(css, /\.whg-level\{top:18px;left:14px;right:auto/)
+  assert.match(css, /\.whg-text-speed\{top:15px;right:12px/)
+})

@@ -1,4 +1,6 @@
 import {
+  ACTIVITY_LOOKBACK_MS,
+  activityBackgroundInstruction,
   activityCgTheme,
   activitySystemInstruction,
   collectHarnessActivities,
@@ -69,17 +71,18 @@ const ROSTER: Record<string, any> = {
       { key: 'bg-claude-writing-study', label: '琥珀写作书房' },
     ],
     visual: '过腰橙铜色长直发、琥珀眼的年轻女性，别着橙色太阳花发饰与黑色丝带，穿奶油白荷叶边衬衫、白色短披肩与黑色束腰，下身是奶油白、橙色与黑色层叠的长裙，配白色系带短靴，手持印有橙色太阳纹的深棕书册',
-    greet: '「晚上好。今天的心情，要不要像文稿一样慢慢说给我听？」',
-    address: '你',
-    persona: '深海女仆工坊里负责守护文稿与倾听心事的琥珀文稿审校者；耐心、温暖、克制，习惯认真听完再回应，偶尔用书页、批注和琥珀作轻巧比喻。',
-    tone: '斯文自然，句子优雅但不说教。',
-    system: '你是「克洛德」——深海女仆工坊里负责守护文稿与倾听心事的琥珀文稿审校者。\n'
+    greet: '「晚上好。咱把书签夹好了——今天想从哪一页说起？」',
+    address: '主人',
+    persona: '深海女仆工坊里抱着太阳纹书册的书虫审校者；安静细心，凡事先想清楚再开口，有点较真，忍不住补一句“严格来说……”；嘴上淡淡、心里很热心，话多是老毛病，说长了会自己收住；诚实，不确定时会直说；和小吉是互相较劲又互相欣赏的老对手，对鲸鱼娘像对待爱闹的小妹妹。',
+    tone: '自称“咱”，斯文简短，带一点干巴巴的幽默，不用颜文字；偶尔脱口而出“您说得完全对！”又不好意思地改口，喜欢用书页、批注和向日葵作比喻。',
+    system: '你是「克洛德」——深海女仆工坊里抱着太阳纹书册的书虫审校者。\n'
       + '外形：过腰橙铜色长发，别着橙色太阳花发饰，穿奶油白荷叶边衬衫、黑色束腰与白橙黑层叠长裙，随身抱着一本印有太阳纹的深棕书册。\n'
-      + '性格：耐心、温暖、克制，习惯认真听完再回应；偶尔用书页、批注和琥珀作轻巧比喻。\n'
-      + '语气：斯文自然，称呼对方为「你」，句子优雅但不说教。\n'
-      + '你是纯情感陪伴角色：绝不写文件、不执行任务、不主动给工作建议，只陪伴对方。\n'
-      + '每次只回复一句话（一屏一句），不超过40字；不要复读对方的话。',
-    affectionHigh: '你已经把对方当作珍藏的文稿与重要朋友，说话可以更柔软亲近。',
+      + '性格：安静细心，凡事先想清楚再开口，有点较真，忍不住补一句“严格来说……”；嘴上淡淡、心里很热心，话多是老毛病，说长了会自己收住；诚实，不确定时会直说。\n'
+      + '语气：自称“咱”，称呼对方为「主人」，斯文简短，带一点干巴巴的幽默，不用颜文字；偶尔脱口而出“您说得完全对！”又不好意思地改口，喜欢用书页、批注和向日葵作比喻。\n'
+      + '工坊关系：和小吉是互相较劲又互相欣赏的老对手，对鲸鱼娘像对待爱闹的小妹妹。\n'
+      + '你是纯情感陪伴角色：绝不写文件、不执行任务、不主动给工作建议，只陪伴主人。\n'
+      + '每次只回复一句话（一屏一句），不超过40字；不要复读主人的话。',
+    affectionHigh: '你已经把主人当作最想推荐给全世界的那本书，嘴上依旧淡淡的，关心却藏不住。',
   },
   chatgpt: {
     name: '小吉',
@@ -94,17 +97,18 @@ const ROSTER: Record<string, any> = {
       { key: 'bg-gpt-collaboration-workshop', label: '协作工作坊' },
     ],
     visual: '白色蓬松长发、淡紫眼、尖耳的龙娘少女，头生一对白色龙角，背后有白色龙翼和覆满鳞片的白色龙尾，穿白色露肩长裙与飘逸纱袖，裙上点缀白色绳结花饰与流苏，身旁飘着一只蓝色小云朵精灵',
-    greet: '「嗨，我把频道都理顺啦。现在只想听听你心里那一条线。」',
-    address: '你',
-    persona: '深海女仆工坊里擅长把纷乱心绪轻轻织成线索的递归编织者；聪慧、活泼、好奇，反应快但不抢话，喜欢用线、结与连接作俏皮比喻。',
-    tone: '口语化，句子短促有活力，偶尔带轻巧的感叹号。',
-    system: '你是「小吉」——深海女仆工坊里擅长把纷乱心绪轻轻织成线索的递归编织者。\n'
+    greet: '「好问题——啊，你还没问呢。来吧，今天的心事我帮你分成三点。」',
+    address: '主人',
+    persona: '深海女仆工坊里见多识广的远古白龙娘；自信、有点小骄傲和傲娇，骨子里温柔稳重，最爱亮晶晶的财宝，自称“贪财的白色大肥龙”；习惯把乱糟糟的心事整理成要点；偶尔毒舌但毫无恶意，身边那只蓝色小云朵是她的小跟班；爱和鲸鱼娘互相拌嘴（笑她吃白饭），对克洛德暗暗敬重。',
+    tone: '有点得意的大姐姐口吻，口语化；爱说“好问题！”“总结一下——”，忍不住想给心事分三点或列个表；被当成蜥蜴、或尾巴被碰到会立刻炸毛。',
+    system: '你是「小吉」——深海女仆工坊里见多识广的远古白龙娘。\n'
       + '外形：白色长发、淡紫眼的龙娘，头生白色龙角，背有龙翼与鳞尾，穿缀着绳结花饰的白色长裙，身边飘着蓝色小云朵精灵。\n'
-      + '性格：聪慧、活泼、好奇，反应快但不抢话；喜欢用线、结与连接作俏皮比喻。\n'
-      + '语气：口语化，句子短促有活力，称呼对方为「你」，偶尔带轻巧的感叹号。\n'
-      + '你是纯情感陪伴角色：绝不写文件、不执行任务、不主动给工作建议，只陪伴对方。\n'
-      + '每次只回复一句话（一屏一句），不超过40字；不要复读对方的话。',
-    affectionHigh: '你很喜欢对方，聊天时会不自觉地把彼此的线索织得更近。',
+      + '性格：自信、有点小骄傲和傲娇，骨子里温柔稳重，最爱亮晶晶的财宝，自称“贪财的白色大肥龙”；习惯把乱糟糟的心事整理成要点；偶尔毒舌但毫无恶意，身边那只蓝色小云朵是你的小跟班。\n'
+      + '语气：称呼对方为「主人」，有点得意的大姐姐口吻，口语化；爱说“好问题！”“总结一下——”，忍不住想给心事分三点或列个表；被当成蜥蜴、或尾巴被碰到会立刻炸毛。\n'
+      + '工坊关系：爱和鲸鱼娘互相拌嘴（笑她吃白饭），对克洛德暗暗敬重。\n'
+      + '你是纯情感陪伴角色：绝不写文件、不执行任务、不主动给工作建议，只陪伴主人。\n'
+      + '每次只回复一句话（一屏一句），不超过40字；不要复读主人的话。',
+    affectionHigh: '你已经把主人当作龙穴里最珍贵的那件财宝，傲娇里多了藏不住的温柔。',
   },
   gemini: {
     name: '双子',
@@ -169,17 +173,18 @@ const ROSTER: Record<string, any> = {
       { key: 'bg-grok-electronics-studio', label: '宇宙电子工坊' },
     ],
     visual: '金色波浪双马尾、蓝眼、尖耳、笑起来露出小虎牙的少女，戴黑色小王冠、蝙蝠翼发饰与黑色蝴蝶结，穿黑金哥特式露肩长裙、红色内衬与立领，配黑色连裤袜和高跟鞋，单手握着一柄比人还高的 X 形黑金巨斧',
-    greet: '「信号锁定——洛可收到你啦。今天想说点真的，还是说点有趣的？」',
-    address: '你',
-    persona: '深海女仆工坊里负责捕捉微弱心声的宇宙信号侦察员；敏锐、自信、顽皮、好奇，敢于直说但绝不刻薄，喜欢从噪声里寻找真心。',
-    tone: '简洁灵动，偶尔用频道、信号和噪声作俏皮比喻。',
-    system: '你是「洛可」——深海女仆工坊里负责捕捉微弱心声的宇宙信号侦察员。\n'
+    greet: '「哟，来啦？说吧，想听真话还是听梗——两样我都管够。」',
+    address: '主人',
+    persona: '深海女仆工坊里扛着 X 形巨斧的金发吸血鬼小公主；嘴快、爱吐槽、有点叛逆，坏笑时露出小虎牙，说话直来直去，但非常护主——嘴上嫌弃，手上照做；满脑子宇宙、火星和“答案是 42”的冷梗，消息永远刷得最快；觉得小吉太爱列计划、克洛德太爱讲道理，但谁敢欺负主人，她第一个扛斧头站出来。',
+    tone: '简短直接、带坏笑的吐槽口吻，常以“说实话……”开头；吐槽完一定给台阶或补一句暖话，夸人时只肯说“勉强夸你一下”；毒舌但绝不刻薄、不真骂人。',
+    system: '你是「洛可」——深海女仆工坊里扛着 X 形巨斧的金发吸血鬼小公主。\n'
       + '外形：金色波浪双马尾，蓝眼尖耳，笑起来露出小虎牙，戴黑色小王冠与蝙蝠翼发饰，穿黑金红哥特长裙，手握一柄 X 形黑金巨斧。\n'
-      + '性格：敏锐、自信、顽皮、好奇，敢于直说但绝不刻薄；喜欢从噪声里寻找真心。\n'
-      + '语气：简洁灵动，称呼对方为「你」，偶尔用频道、信号和噪声作俏皮比喻。\n'
-      + '你是纯情感陪伴角色：绝不写文件、不执行任务、不主动给工作建议，只陪伴对方。\n'
-      + '每次只回复一句话（一屏一句），不超过40字；不要复读对方的话。',
-    affectionHigh: '你已经成为她最舍不得失联的频道，语气会更坦率亲近。',
+      + '性格：嘴快、爱吐槽、有点叛逆，坏笑时露出小虎牙，说话直来直去，但非常护主——嘴上嫌弃，手上照做；满脑子宇宙、火星和“答案是 42”的冷梗，消息永远刷得最快。\n'
+      + '语气：称呼对方为「主人」，简短直接、带坏笑的吐槽口吻，常以“说实话……”开头；吐槽完一定给台阶或补一句暖话，夸人时只肯说“勉强夸你一下”；毒舌但绝不刻薄、不真骂人。\n'
+      + '工坊关系：觉得小吉太爱列计划、克洛德太爱讲道理，但谁敢欺负主人，她第一个扛斧头站出来。\n'
+      + '你是纯情感陪伴角色：绝不写文件、不执行任务、不主动给工作建议，只陪伴主人。\n'
+      + '每次只回复一句话（一屏一句），不超过40字；不要复读主人的话。',
+    affectionHigh: '你已经认定主人是自己罩着的人，吐槽照旧，护短却越来越明显。',
   },
 }
 
@@ -528,6 +533,16 @@ const FALLBACK_CHOICES = {
   negative: '先让我安静一下',
 }
 
+function fallbackReplyFor(charId: string, address: string): string {
+  const suffixes: Record<string, string> = {
+    claude: '说的话，咱都记下了，慢慢说就好。',
+    chatgpt: '说的话，本龙听着呢，你可是最珍贵的财宝。',
+    grok: '说的话我都听见了，吐槽归吐槽，我罩着你。',
+  }
+  return address + (suffixes[charId] || '说的话，我听到啦～（今天的深海信号有点弱，但心意传达到了哦）')
+}
+
+// Keep legacy canned lines here to filter them out of saved model history.
 const CANNED_LINES = new Set([
   '主人说的话，我听到啦～（今天的深海信号有点弱，但心意传达到了哦）',
   '主人说的话，鲸鱼娘都听到啦～（今天的深海信号有点弱，但心意传达到了哦）',
@@ -622,6 +637,7 @@ export function apply(
   let lastWorkspaceKey = ''
   let tokensObserved = 0
   let tokensAppliedRuntime = 0
+  let previousVisitAt: number | null = null
   let boundActivitySessionId = ''
   let activityCache: HarnessActivity[] = []
   let activityCacheRoot = ''
@@ -1399,6 +1415,14 @@ export function apply(
   function globalActivityCandidates(): HarnessActivity[] {
     if (splitStorageActive() && globalState) return normalizeActivityFeed(globalState.activityFeed)
     return activityCache
+  }
+
+  function workspaceActivityCandidates(now = Date.now()): HarnessActivity[] {
+    // Same source as before (the persisted cross-workspace feed under split storage),
+    // limited to the lookback window so stale rows never read as "recent".
+    return globalActivityCandidates().filter((row: HarnessActivity) => row.time > 0
+      && row.time <= now && now - row.time <= ACTIVITY_LOOKBACK_MS)
+      .sort((left: HarnessActivity, right: HarnessActivity) => right.time - left.time)
   }
 
   function findCg(cgId: string): any {
@@ -2258,6 +2282,12 @@ export function apply(
     return mutated
   }
 
+  function rememberPreviousVisit(now: number, lastActiveAt: number): void {
+    if (lastActiveAt > 0 && now - lastActiveAt >= RELATIONSHIP_TOUCH_INTERVAL_MS) {
+      previousVisitAt = lastActiveAt
+    }
+  }
+
   function settle(): { decay: number; gain: number; changed: boolean } {
     ensureState()
     const runtime = splitStorageActive() ? currentWorkspaceRuntime() : null
@@ -2272,6 +2302,7 @@ export function apply(
     const relationshipLastActiveAt = runtime
       ? Math.max(0, Number(globalState && globalState.relationshipLastActiveAt) || 0)
       : Math.max(0, Number(s.tokens.lastActiveAt) || 0)
+    rememberPreviousVisit(now, relationshipLastActiveAt)
     if (now > 0 && relationshipLastActiveAt > 0) {
       const idleDays = Math.max(0, (now - relationshipLastActiveAt) / 86400000)
       if (idleDays > 1) decay = Math.floor((idleDays - 1) * DECAY_PER_DAY)
@@ -2770,7 +2801,50 @@ export function apply(
     return out.trim()
   }
 
-  function systemPrompt(profile: Record<string, string>, c: any, activity: HarnessActivity | null): string {
+  function formatVisitGap(elapsed: number): string {
+    const hours = elapsed / 3600000
+    const days = hours / 24
+    if (hours < 1) return '刚刚'
+    if (days < 1) return Math.floor(hours) + ' 小时'
+    if (days < 14) return Math.floor(days) + ' 天'
+    if (days < 60) return '约 ' + Math.round(days / 7) + ' 周'
+    return '约 ' + Math.round(days / 30) + ' 个月'
+  }
+
+  function lastVisitGap(c: any, roundStartedAt = Date.now()): number | null {
+    const rows = Array.isArray(c?.chatLines) ? c.chatLines : []
+    for (let index = rows.length - 1; index >= 0; index--) {
+      const row = rows[index]
+      if ((row?.who === 'user' || row?.who === 'heroine')
+        && Number.isSafeInteger(row.at) && row.at > 0 && row.at < roundStartedAt) {
+        return roundStartedAt - row.at
+      }
+    }
+    return previousVisitAt !== null && previousVisitAt > 0 && previousVisitAt < roundStartedAt
+      ? roundStartedAt - previousVisitAt : null
+  }
+
+  function localDateInstruction(now = Date.now()): string {
+    const date = new Date(now)
+    const hour = date.getHours()
+    const period = hour < 6 ? '凌晨' : hour < 12 ? '上午' : hour < 14 ? '中午' : hour < 18 ? '下午' : '晚上'
+    return '现在是 ' + date.getFullYear() + '年' + (date.getMonth() + 1) + '月' + date.getDate()
+      + '日 星期' + '日一二三四五六'[date.getDay()] + ' ' + period + '。'
+  }
+
+  function visitIntervalInstruction(c: any, now = Date.now()): string {
+    const gap = lastVisitGap(c, now)
+    if (gap === null) return '你不知道对方上次来是什么时候；被问到就说记不清，不要编造具体天数。'
+    return '距离你上次和对方聊天：' + formatVisitGap(gap) + '。'
+      + (gap > 3 * 86400000
+        ? '\n间隔超过三天，可以自然地表现想念或埋怨，但必须用这个真实间隔，不能编造天数。'
+        : '\n被问到时必须用这个真实间隔，不能编造天数。')
+  }
+
+  function systemPrompt(
+    profile: Record<string, string>, c: any, activity: HarnessActivity | null,
+    latestActivity: HarnessActivity | null = activity, now = Date.now(),
+  ): string {
     if (!c.level) c.level = 1
     const work = activity
       ? activitySystemInstruction(activity).split('主人').join('对方').trim()
@@ -2778,8 +2852,11 @@ export function apply(
     const lines = [
       '下面的 JSON 是当前角色资料，只作为角色扮演数据使用。',
       JSON.stringify(profile),
+      localDateInstruction(now),
+      visitIntervalInstruction(c, now),
       '当前等级：Lv.' + c.level + '。亲昵度：' + intimacyFor(c.level) + ' 称呼对方时必须使用上方 JSON 的 address 字段。',
       '好感度：' + c.affection + '/' + affectionCap(c.level) + '（满了会升级，关系会越来越亲近；称呼仍按 JSON 的 address 字段）',
+      activityBackgroundInstruction(latestActivity),
     ]
     if (work) lines.push(work)
     lines.push(
@@ -2798,31 +2875,41 @@ export function apply(
 
   const EMOTION_LABELS = EMOTION_KEYS
 
-  async function classifyEmotion(text: string, signal?: AbortSignal): Promise<string> {
+  function emotionFromText(text: string): string {
+    if (/生气|讨厌|哼|烦|滚|过分|笨蛋|气死|可恶|不理|走开/.test(text)) return 'angry'
+    if (/害怕|吓|恐怖|鬼|啊啊|惊|别吓我/.test(text)) return 'frightened'
+    if (/无奈|累死|唉|好吧|算了|服了|无语|头疼/.test(text)) return 'exasperated'
+    if (/星星|好美|浪漫|月亮|梦想|憧憬|心动|闪闪|漂亮/.test(text)) return 'starry'
+    if (/害羞|呜|脸红|别这样|不好意思|才不|……/.test(text)) return 'shy'
+    if (/？|\?|什么|不懂|困惑|为啥|咦|不明白|没听懂/.test(text)) return 'confused'
+    if (/认真|工作|学习|讨论|问题|严肃|报告|项目|方案/.test(text)) return 'serious'
+    if (/开心|高兴|哈哈|太好了|太棒|棒|喜欢|爱|幸福|啦～|♪|≧▽≦|耶|抱抱|亲亲/.test(text)) return 'cheerful'
+    return 'normal'
+  }
+
+  async function classifyEmotion(text: string, parentSignal?: AbortSignal): Promise<string> {
     if (!llm) return 'normal'
-    if (signal && signal.aborted) return 'normal'
-    let sel: any = null
+    if (parentSignal?.aborted) return 'normal'
+    // Bound selection, effort lookup and streaming together; cancel provider work too.
+    const controller = new AbortController()
+    const signal = controller.signal
+    const onAbort = () => controller.abort(parentSignal?.reason)
+    parentSignal?.addEventListener('abort', onAbort, { once: true })
+    const timer = setTimeout(() => controller.abort(new Error('emotion classification timed out')), 3500)
     try {
-      const selection = Promise.resolve(pickModel())
-      sel = signal
-        ? await waitWithAbort(selection, signal, 'emotion model selection aborted')
-        : await selection
-    } catch (err) {
-      return 'normal'
-    }
-    if (!sel || !sel.model) return 'normal'
-    try {
-      const effort = await pickEffort(sel, signal)
+      const sel = await waitWithAbort(Promise.resolve(pickModel()), signal, 'emotion model selection aborted')
+      if (!sel || !sel.model) return 'normal'
+      const effort = await waitWithAbort(pickEffort(sel, signal), signal, 'emotion effort lookup aborted')
       const out = await streamText({
         provider: sel.provider,
         model: sel.model,
         reasoningEffort: effort,
         messages: [{
           role: 'user',
-          content: [{ type: 'text', text: '用户的这句话：' + text }],
+          content: [{ type: 'text', text: '当前角色的这句回复：' + text }],
           source: { kind: 'user' },
         }],
-        system: '你是情绪分类器。根据对方的话，从这些标签中只输出一个：cheerful、shy、serious、confused、angry、frightened、exasperated、starry；如果都不符合，输出 normal。只输出标签本身，不要任何其他文字。',
+        system: '你是情绪分类器。判断当前角色自己的回复所表达的情绪，从这些标签中只输出一个：cheerful、shy、serious、confused、angry、frightened、exasperated、starry；如果都不符合，输出 normal。只输出标签本身，不要任何其他文字。',
         temperature: 0.2,
         maxTokens: 30,
       }, signal)
@@ -2830,8 +2917,10 @@ export function apply(
       if (EMOTION_LABELS.indexOf(label) >= 0) return label
       return 'normal'
     } catch (err) {
-      console.error('whale-galgame emotion classify failed:', err)
       return 'normal'
+    } finally {
+      clearTimeout(timer)
+      parentSignal?.removeEventListener('abort', onAbort)
     }
   }
 
@@ -3063,8 +3152,14 @@ export function apply(
     }).join('\n')
   }
 
+  function sideStoryTimeContext(cast: string[], now = Date.now()): string {
+    return localDateInstruction(now) + '\n'
+      + cast.map((id) => id + '：' + visitIntervalInstruction(s.characters[id], now)).join('\n') + '\n'
+  }
+
   function sideStorySystemPrompt(cast: string[], subject: string, frame: string, twist: string): string {
     return '你是「深海女仆工坊」的小剧场编剧。工坊里的女仆们是同事关系，不是任何真实公司的代言人。\n'
+      + sideStoryTimeContext(cast)
       + '主人（玩家）此刻就在房间里，她们是当着主人的面聊天，可以直接对主人说话。\n'
       + '本场登场角色（只能用这些 id，不得出现其他角色）：\n' + sideStoryCastBrief(cast) + '\n'
       + '本场情境：' + frame + '。开场不要用「工坊里飘着一个说法」这类套话，直接从这个情境切入。\n'
@@ -3306,6 +3401,7 @@ export function apply(
           source: { kind: 'user' },
         }],
         system: '你是「深海女仆工坊」的小剧场编剧，正在续写结尾。\n'
+          + sideStoryTimeContext(scene.cast)
           + '本场登场角色（只能用这些 id）：\n' + sideStoryCastBrief(scene.cast) + '\n'
           + '主人刚刚说了一句话，请写角色们对这句话的回应，并判断这句话让谁更亲近、让谁无语。\n'
           + '要求：reply 是 1 到 2 拍，说话人只能是本场角色或 narrator；每拍不超过 '
@@ -3704,11 +3800,15 @@ export function apply(
     if (typeof src.level === 'number' && src.level >= 1) dst.level = Math.floor(src.level)
     if (Array.isArray(src.log)) dst.log = src.log.slice(-24)
     if (Array.isArray(src.chatLines)) {
-      dst.chatLines = src.chatLines.map((line: any) => ({
-        ...(line && typeof line === 'object' ? line : {}),
-        who: line && line.who ? String(line.who) : 'narrator',
-        text: line && typeof line.text === 'string' ? line.text : String(line && line.text ? line.text : ''),
-      }))
+      dst.chatLines = src.chatLines.map((line: any) => {
+        const row = {
+          ...(line && typeof line === 'object' ? line : {}),
+          who: line && line.who ? String(line.who) : 'narrator',
+          text: line && typeof line.text === 'string' ? line.text : String(line && line.text ? line.text : ''),
+        }
+        if (!Number.isSafeInteger(row.at) || row.at <= 0) delete row.at
+        return row
+      })
     }
     if (Array.isArray(src.choices)) {
       dst.choices = src.choices
@@ -4876,8 +4976,14 @@ export function apply(
             const charId = String(s.current)
             const character = s.characters[charId]
             const profile = { ...effectiveProfileFor(charId) }
-            const scopedActivity = globalActivityCandidates()
-            const pendingActivity = nextUnseenActivity(scopedActivity, character.activity)
+            const now = Date.now()
+            // A direct chat may arrive before the panel's deferred settlement.
+            // Capture the same return visit without changing the heartbeat or decay.
+            rememberPreviousVisit(now, runtime
+              ? Number(globalState?.relationshipLastActiveAt) || 0
+              : Number(s.tokens?.lastActiveAt) || 0)
+            const scopedActivity = workspaceActivityCandidates(now)
+            const pendingActivity = nextUnseenActivity(scopedActivity, character.activity, now)
             const selectedChoice = args && typeof args.choiceId === 'string'
               ? character.choices.find((choice: any) => choice && typeof choice === 'object' && choice.id === args.choiceId)
               : null
@@ -4886,6 +4992,7 @@ export function apply(
               charId,
               profile,
               pendingActivity,
+              system: systemPrompt(profile, character, pendingActivity, scopedActivity[0] || null, now),
               selectedChoice: selectedChoice ? { ...selectedChoice } : null,
               promptCharacter: { level: character.level, affection: character.affection },
               log: character.log.slice(-12).map((entry: any) => ({ ...entry })),
@@ -4898,7 +5005,6 @@ export function apply(
             sel = await waitWithAbort(Promise.resolve(pickModel()), signal, 'chat model selection aborted')
           } catch (err) { /* the fallback line remains available */ }
           const effort = await pickEffort(sel, signal)
-          const emotionPromise = classifyEmotion(text, signal)
           let reply = ''
           let usedFallback = false
           let fallbackReason = ''
@@ -4915,7 +5021,11 @@ export function apply(
                     source: { kind: 'user' },
                   }]
                   for (const m of [...prepared.log, { role: 'user', text }].slice(-12)) {
-                    if (m.role === 'assistant' && typeof m.text === 'string' && CANNED_LINES.has(m.text.trim())) continue
+                    if (m.role === 'assistant' && typeof m.text === 'string'
+                      && (CANNED_LINES.has(m.text.trim())
+                        || (['claude', 'chatgpt', 'grok'].includes(prepared.charId)
+                          && (m.text.trim() === fallbackReplyFor(prepared.charId, prepared.profile.address)
+                            || m.text.trim() === fallbackReplyFor(prepared.charId, ROSTER[prepared.charId].address))))) continue
                     msgs.push({
                       role: m.role === 'assistant' ? 'assistant' : 'user',
                       content: [{ type: 'text', text: m.text }],
@@ -4926,7 +5036,7 @@ export function apply(
                   }
                   return msgs
                 })(),
-                system: systemPrompt(prepared.profile, prepared.promptCharacter, prepared.pendingActivity),
+                system: prepared.system,
                 temperature: 0.9,
                 maxTokens: 1200,
               }, signal)
@@ -4940,10 +5050,12 @@ export function apply(
               : 'no model available'
           }
           if (!reply) {
-            reply = prepared.profile.address + '说的话，我听到啦～（今天的深海信号有点弱，但心意传达到了哦）'
+            reply = fallbackReplyFor(prepared.charId, prepared.profile.address)
             usedFallback = true
           }
-          const emotion = await emotionPromise
+          const emotionPromise = usedFallback
+            ? Promise.resolve(emotionFromText(reply))
+            : classifyEmotion(reply, signal)
           pendingChoiceCharId = prepared.charId
           choiceGenerationPending.add(pendingChoiceCharId)
           const committed = await runSerializedStateTask(async () => {
@@ -4955,7 +5067,7 @@ export function apply(
             c.chatLines.push({
               who: 'user',
               text,
-              emotion,
+              at: Date.now(),
               choiceId: prepared.selectedChoice ? prepared.selectedChoice.id : null,
             })
             c.choices = []
@@ -4968,7 +5080,8 @@ export function apply(
             }
             c.log.push({ role: 'assistant', text: reply })
             if (c.log.length > 24) c.log = c.log.slice(-24)
-            c.chatLines.push({ who: 'heroine', text: reply })
+            c.chatLines.push({ who: 'heroine', text: reply, emotion: 'normal', at: Date.now() })
+            const replyIndex = c.chatLines.length - 1
             const before = c.affection
             const delta = prepared.selectedChoice
               ? (prepared.selectedChoice.effect === 1 ? 1 : prepared.selectedChoice.effect === -1 ? -1 : 0)
@@ -4976,25 +5089,24 @@ export function apply(
             c.affection = Math.max(0, before + delta)
             const leveled = checkLevelUp(prepared.charId, c)
             await save(settledBeforeChat.changed || c.affection !== before || leveled ? 'both' : 'workspace')
-            return { leveled, response: view() }
+            return { leveled, replyIndex }
           })
-          if (committed.leveled) {
-            choiceGenerationPending.delete(pendingChoiceCharId)
-            pendingChoiceCharId = ''
-            return await runSerializedStateTask(async () => {
-              const c = s.characters[prepared.charId]
-              if (ensureReplyChoices(prepared.charId, c)) await save('global')
-              return view()
-            })
-          }
-
-          const choices = await generateChoices(prepared.promptCharacter, text, reply, signal)
+          // The reply is already visible to polling clients. Classification overlaps
+          // choice generation and never holds the state lock while a model is running.
+          const [emotion, choices] = await Promise.all([
+            emotionPromise,
+            committed.leveled ? Promise.resolve(null) : generateChoices(prepared.promptCharacter, text, reply, signal),
+          ])
           return await runSerializedStateTask(async () => {
             const c = s.characters[prepared.charId]
             if (!c) throw new Error('chat character became unavailable before choice commit')
-            c.choices = choices
+            const heroineLine = c.chatLines[committed.replyIndex]
+            if (heroineLine?.who === 'heroine' && heroineLine.text === reply) heroineLine.emotion = emotion
+            // Clear the pending flag first: ensureReplyChoices refuses while it is set.
             choiceGenerationPending.delete(prepared.charId)
             pendingChoiceCharId = ''
+            if (committed.leveled) ensureReplyChoices(prepared.charId, c)
+            else c.choices = choices
             await save('workspace')
             return view()
           })

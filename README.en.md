@@ -26,6 +26,14 @@ Between Harness tasks, discover an “extraordinary” coworker relationship wit
 - Each turn offers close, neutral, and distant reply options in shuffled positions. Free-text input remains available.
 - Switching roles also switches to that role's built-in background. The whale-girl still defaults to the deep-sea palace; her new seaside study is an optional built-in alternative. A user upload or saved CG overrides role defaults until a built-in background is restored.
 - Manage the background, per-role sprite, dialogue archive, CG gallery, and desktop pet from the interface. Clicking the pet opens the `galgame` tab.
+- Dialogue has a typewriter effect with four speed options. Click the line or press Space or Enter to reveal it in full; in Side Story, repeat once the line is complete to advance to the next one.
+- While waiting for a reply, your message appears first, along with an indicator that the character is responding.
+- Background and sprite changes crossfade; a newly selected character slides in from below, and sprites have a gentle idle breathing animation.
+- Expressions follow the character's own reply. Characters without expression variants show their mood through emotion bubbles and motion.
+- The speaking character gives a small hop in Side Story, and nameplates have a little pointer toward the character.
+- Affection changes display a floating “♡±N”, while level-ups play a full-screen sequence.
+- Brass and deep-sea dialogue panels use character-specific accent colors, with ambient particles and rippling light over the background. Short windows and narrow screens leave room for the character's face.
+- Claude (克洛德) is a meticulous, book-loving proofreader; GPT (小吉) is a confident, slightly tsundere ancient white dragon girl who loves organizing thoughts into key points; Grok (洛可) is a quick-witted, fiercely protective vampire princess fond of space jokes. All three call you “Master” (主人) and have their own relationships with their workshop companions.
 
 ## Affection and cross-session context
 
@@ -146,6 +154,12 @@ package is prebuilt and runs no install-time scripts.
 The Galgame top bar controls the displayed character and actual dialogue model. It also accepts a background or a sprite for the current role. PNG, JPEG, WebP, and AVIF are supported, with a 12 MB browser-side limit per file.
 
 Settings → Plugins → Whale Girl (`鲸鱼娘`) contains the plugin toggle, a separate desktop-pet visibility switch, and the default character and reply-model choices. Hiding the pet still leaves the `galgame` conversation tab available for restoring it. Disabling the whole plugin pauses Galgame dialogue and affection settlement without deleting existing data.
+
+### Display settings and shortcuts
+
+Click the gear in the top-right corner of the dialogue box to open **Display settings** (`显示设置`). Choose a text speed (slow, medium, fast, or instant) and dialogue font (literary or system), toggle ambient effects, sound effects, and BGM, and adjust the volume. Literary fonts use fonts already installed on your device. Sound effects and background music are synthesized with Web Audio and are both off by default.
+
+Press H on the stage, or right-click the background or a character sprite, to hide the interface and enjoy the art. Click anywhere or press H / Esc to restore it. Scroll upward over the dialogue panel to open the dialogue history, including the expression recorded with each character line.
 
 ### Customize a character profile
 

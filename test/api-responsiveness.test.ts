@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict'
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { Readable } from 'node:stream'
-import test from 'node:test'
+import test, { after } from 'node:test'
 import { apply } from '../src/index.ts'
+
+const storageRoot = mkdtempSync(join(tmpdir(), 'dsh-whale-responsive-'))
+after(() => rmSync(storageRoot, { recursive: true, force: true }))
 
 function never(): Promise<never> {
   return new Promise(() => {})
@@ -30,6 +36,7 @@ function responsiveHarness(options: {
   const files = new Map<string, string>()
   let routeHandler: any = null
   let readSessionCalls = 0
+  const harnessStorage = mkdtempSync(join(storageRoot, 'harness-'))
   const services: any = {
     fs: {
       resolve: async (name: string, scope?: any) => scope && scope.cwd
@@ -45,7 +52,7 @@ function responsiveHarness(options: {
     sessions: { list: () => [{ header, live: true, persisted: true, events: [] }] },
     workspaceRegistry: { list: () => [{ path: root }] },
     agentDefaultModel: { currentSelection: () => ({ provider: 'fast-provider', model: 'fast-model' }) },
-    dshHomePath: (...segments: string[]) => 'C:\\dsh-test\\' + segments.join('\\'),
+    dshHomePath: (...segments: string[]) => join(harnessStorage, ...segments),
     sessionQuery: {
       listSessions: async () => [{ header, live: true, persisted: true }],
       listEvents: async () => [],
@@ -176,4 +183,81 @@ test('a hanging model stream does not block settings or other short state mutati
   assert.equal(chat.history.some((line: any) => line.text === '请陪我聊一会儿'), true)
   assert.equal(signals.length >= 2, true)
   assert.equal(signals.every((signal) => signal && typeof signal.addEventListener === 'function'), true)
+})
+
+test('classifies the heroine reply and never adds emotion to the user line', async () => {
+  const prompts: string[] = []
+  const harness = responsiveHarness({
+    stream: async function* (request: any): AsyncGenerator<any> {
+      const system = String(request.system || '')
+      if (system.includes('情绪分类器')) {
+        prompts.push(request.messages[0].content[0].text)
+        yield { type: 'text-delta', text: 'cheerful' }
+      } else if (system.includes('对话选项生成器')) {
+        yield { type: 'text-delta', text: '{"positive":"再靠近一点","neutral":"继续聊聊","negative":"先静一静"}' }
+      } else {
+        yield { type: 'text-delta', text: '见到你真开心！' }
+      }
+    },
+  })
+  const result = await harness.post('chat', { text: '气死我了，真讨厌！' })
+  assert.deepEqual(prompts, ['当前角色的这句回复：见到你真开心！'])
+  assert.equal(result.history.at(-1).who, 'heroine')
+  assert.equal(result.history.at(-1).emotion, 'cheerful')
+  assert.equal(result.history.at(-2).who, 'user')
+  assert.equal(Object.hasOwn(result.history.at(-2), 'emotion'), false)
+  assert.equal((await harness.post('view')).history.at(-1).emotion, 'cheerful')
+})
+
+test('emotion timeout cancels classification while choices and settings remain responsive', async () => {
+  let markChoices!: () => void
+  const choicesStarted = new Promise<void>((resolve) => { markChoices = resolve })
+  let emotionSignal: AbortSignal | undefined
+  const harness = responsiveHarness({
+    stream: async function* (request: any): AsyncGenerator<any> {
+      const system = String(request.system || '')
+      if (system.includes('情绪分类器')) {
+        emotionSignal = request.signal
+        await never()
+      } else if (system.includes('对话选项生成器')) {
+        markChoices()
+        yield { type: 'text-delta', text: '{"positive":"再靠近一点","neutral":"继续聊聊","negative":"先静一静"}' }
+      } else {
+        yield { type: 'text-delta', text: '见到你真开心！' }
+      }
+    },
+  })
+  const chat = harness.post('chat', { text: '陪我坐一会儿' })
+  await beforeDeadline(choicesStarted, 1000, 'choices waited for emotion classification')
+  await beforeDeadline(harness.post('pet-set', { enabled: false }), 500, 'classification held the state lock')
+  const result = await beforeDeadline(chat, 4000, 'emotion classification did not time out')
+  assert.equal(emotionSignal?.aborted, true)
+  assert.equal(result.history.at(-1).emotion, 'normal')
+  assert.equal(result.choices.length, 3)
+})
+
+test('classification failures default to normal and fallback replies skip the classifier', async () => {
+  for (const fallback of [false, true]) {
+    let classificationCalls = 0
+    const harness = responsiveHarness({
+      stream: async function* (request: any): AsyncGenerator<any> {
+        const system = String(request.system || '')
+        if (system.includes('情绪分类器')) {
+          classificationCalls++
+          throw new Error('simulated classification failure')
+        }
+        if (system.includes('对话选项生成器')) {
+          yield { type: 'text-delta', text: '{"positive":"再靠近一点","neutral":"继续聊聊","negative":"先静一静"}' }
+        } else if (!fallback) {
+          yield { type: 'text-delta', text: '见到你真开心！' }
+        }
+      },
+    })
+    const result = await harness.post('chat', { text: '真讨厌' })
+    assert.equal(result.fallbackUsed, fallback)
+    assert.equal(classificationCalls, fallback ? 0 : 1)
+    assert.equal(result.history.at(-1).who, 'heroine')
+    assert.equal(result.history.at(-1).emotion, fallback ? 'cheerful' : 'normal')
+    assert.equal(Object.hasOwn(result.history.at(-2), 'emotion'), false)
+  }
 })
