@@ -1,6 +1,6 @@
 {
-  "version": 2,
-  "generatedOn": "2026-11-12",
+  "version": 3,
+  "generatedOn": "2026-11-13",
   "assets": [
     {
       "key": "workshop-map-atlas",
@@ -39,6 +39,17 @@
       "model": "Codex built-in image generation",
       "sourceId": "exec-8c4fe3c7-dbee-45f4-af18-b1c7cb3b48fb",
       "reference": "residents-atlas-builtin.png"
+    },
+    {
+      "key": "workshop-decor-atlas",
+      "file": "decor-atlas-builtin.png",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "28b06bed3e887fc68b5eaf72c797429067bbfbc645d47858db816e4fcc1fea0d",
+      "model": "Codex built-in image generation",
+      "modelVersionExposed": false,
+      "sourceId": "exec-05972b28-3e94-40f8-a148-cadb44d8b477",
+      "reference": "themed-rooms-atlas.png"
     }
   ],
   "logo": {
@@ -231,7 +242,9 @@
       "themed-rooms-atlas.png",
       "public-rooms-atlas.png"
     ],
-    "composition": "Six themed dormitories reflect their corresponding built-in visual-novel backgrounds. Complete public interiors retain furniture and architectural details without cropped furniture patches; transparent seated workstation sprites occupy the authored office floor islands. Gallery floor samples use clean marble away from decorations."
+    "composition": "Six themed dormitories reflect their corresponding built-in visual-novel backgrounds. Complete public interiors retain furniture and architectural details without cropped furniture patches; transparent seated workstation sprites occupy the authored office floor islands. Gallery floor samples use clean marble away from decorations.",
+    "floorCoverage": "Entire world rectangle; rooms render over continuous marble, leaving no uncovered outdoor gaps.",
+    "labels": "No room plaques or resident nameplates in the map scene; the sidebar retains the roster and activity status."
   },
   "supersededImage26Environment": {
     "key": "workshop-map-atlas",
@@ -274,5 +287,57 @@
       "kimi": "Chinese moonlit archive",
       "grok": "Cyan mechanical workshop"
     }
+  },
+  "decorLayout": {
+    "columns": 3,
+    "rows": 2,
+    "items": [
+      "palm",
+      "hydrangea",
+      "floor-lamp",
+      "bookcase",
+      "bench",
+      "armillary"
+    ],
+    "bounds": [
+      {
+        "x": 0.201171875,
+        "y": 0.021484375,
+        "width": 0.6328125,
+        "height": 0.955078125
+      },
+      {
+        "x": 0.251953125,
+        "y": 0.04296875,
+        "width": 0.494140625,
+        "height": 0.927734375
+      },
+      {
+        "x": 0.27734375,
+        "y": 0.01953125,
+        "width": 0.32421875,
+        "height": 0.9453125
+      },
+      {
+        "x": 0.091796875,
+        "y": 0.103515625,
+        "width": 0.822265625,
+        "height": 0.85546875
+      },
+      {
+        "x": 0.0859375,
+        "y": 0.1875,
+        "width": 0.859375,
+        "height": 0.685546875
+      },
+      {
+        "x": 0.21875,
+        "y": 0.01953125,
+        "width": 0.513671875,
+        "height": 0.953125
+      }
+    ],
+    "alphaBoundsThreshold": 24,
+    "rendering": "Complete furniture silhouettes, anchored at bottom centre. Decorations avoid rooms, door approaches, navigation segments and other furniture."
   }
 }

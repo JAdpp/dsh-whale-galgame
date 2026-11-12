@@ -26,7 +26,9 @@ Galgame 顶栏“工坊地图”在当前 Galgame 内打开俯视像素地图，
 
 导航采用 48px 正交网格，路线穿门通行。六个主题宿舍分别参考各角色默认视觉小说背景，保留各自的家具、窗饰、配色和标志物，并加入床铺与收纳：DeepSeek 的蓝金宫殿、Claude 的暖木写作书房、GPT 的绿色协作工作坊、Gemini 的蓝紫双棱镜工坊、Kimi 的中式月夜书房和 Grok 的机械工具工坊。DeepSeek 参考实际默认的深海宫殿，海边书房仍只是可选替代背景；地图主题不跟随用户上传背景重新生成。
 
-主题宿舍以及公共工作区、茶水休息室、海底观景室与回廊采用完整重绘的背景，保留床铺、书架、桌椅、地毯和摆设，不把房间拆成家具贴片。专属工位布置在工作区室内地板上，房名牌放在房间外。所有地图场景均不含电脑或显示屏；Gemini 原参考图中的屏幕转译为画板、卡册和棱镜。当前地图背景、人物与工位图集均由 Codex 内置绘图制作，工具未暴露具体模型版本。
+主题宿舍以及公共工作区、茶水休息室、海底观景室与回廊采用完整重绘的背景，保留床铺、书架、桌椅、地毯和摆设，不把房间拆成家具贴片。专属工位布置在工作区室内地板上。所有室外空地、房间间隙和边缘连续铺砖，装饰图集提供盆栽、花台、落地灯、书柜、长凳和天球仪，布置时避开门口与通路。地图场景不显示房名或人物姓名，侧栏“工坊里的她们”继续提供角色名单、实时状态和选择入口。
+
+所有地图场景均不含电脑或显示屏；Gemini 原参考图中的屏幕转译为画板、卡册和棱镜。当前地图背景、人物、工位与室外装饰图集均由 Codex 内置绘图制作，工具未暴露具体模型版本。
 
 工作区独立扩大，每个工位为 192 × 192。路线脚点在桌子南侧地面，到达后切换为人物与桌椅合成的入座动作，桌面自然遮住下半身。六位角色各有三帧循环与一帧等待状态：鲸鱼娘做潮汐推演、Claude 羽笔校稿、GPT 圆规制图、Gemini 棱镜译码、Kimi 月卷归档、Grok 机械检修。工作结束后角色回到宿舍，再到公共区域散步、喝茶或看海。首次打开地图时，正在工作的角色直接显示在工位。
 
@@ -86,8 +88,8 @@ Galgame 顶栏“工坊地图”在当前 Galgame 内打开俯视像素地图，
 
 ## 美术清单与构建说明
 
-安装包保留原有 22 项默认美术：六张角色立绘、七张内置背景、八张原始分辨率透明 `whale-*.webp` 表情，以及一张 8 列 × 11 行的 `pet-spritesheet.webp` 桌宠动画图集；另内嵌公共区、主题宿舍、角色行走与专属办公四张图集。逐文件用途、来源、改动与桌宠图集 SHA-256 保留在[默认美术清单](../assets/default/README.md)、[庄园美术清单](../assets/workshop/README.md)和 [NOTICE](../NOTICE.md)，许可索引见[第三方许可](../THIRD_PARTY_LICENSES.md)。
+安装包保留原有 22 项默认美术：六张角色立绘、七张内置背景、八张原始分辨率透明 `whale-*.webp` 表情，以及一张 8 列 × 11 行的 `pet-spritesheet.webp` 桌宠动画图集；另内嵌公共区、主题宿舍、角色行走、专属办公与室外装饰五张图集。逐文件用途、来源、改动与桌宠图集 SHA-256 保留在[默认美术清单](../assets/default/README.md)、[庄园美术清单](../assets/workshop/README.md)和 [NOTICE](../NOTICE.md)，许可索引见[第三方许可](../THIRD_PARTY_LICENSES.md)。
 
-npm 包只携带内嵌美术的客户端 bundle，不重复收录导出原图或生成图源码。Galgame 布局、对话框、控件与装饰的实现公开在 `src/client/index.ts`，没有额外的未公开 UI 图片包。地图图块与人物动作渲染在 `src/client/workshop-art.ts`，交互和路径分别在 `workshop-map.ts` 与 `workshop-world.ts`。当前公共区使用 1254 × 1254 的 `public-rooms-atlas.png` 四格图集，主题宿舍使用 1536 × 1024 的 `themed-rooms-atlas.png` 六格图集，角色行走图集为 1536 × 1024 透明 PNG，专属办公图集为 1374 × 1145 透明 PNG；来源、提示、像素尺寸与完整性记录见 [`assets/workshop/README.md`](../assets/workshop/README.md)。这四张图集随客户端 bundle 内嵌，不需运行时下载。旧 `manor-atlas-image26.png` 及其生成记录仅保留在源码历史素材中，不再作为当前运行图内嵌。README Logo 说明见 [`docs/brand/README.md`](brand/README.md)。
+npm 包只携带内嵌美术的客户端 bundle，不重复收录导出原图或生成图源码。Galgame 布局、对话框、控件与装饰的实现公开在 `src/client/index.ts`，没有额外的未公开 UI 图片包。地图图块与人物动作渲染在 `src/client/workshop-art.ts`，交互和路径分别在 `workshop-map.ts` 与 `workshop-world.ts`。当前公共区使用 1254 × 1254 的 `public-rooms-atlas.png` 四格图集，主题宿舍使用 1536 × 1024 的 `themed-rooms-atlas.png` 六格图集，角色行走图集为 1536 × 1024 透明 PNG，专属办公图集为 1374 × 1145 透明 PNG，新增 `decor-atlas-builtin.png` 为 1536 × 1024 的透明六格装饰图集；来源、提示、像素尺寸与完整性记录见 [`assets/workshop/README.md`](../assets/workshop/README.md)。这五张图集随客户端 bundle 内嵌，不需运行时下载。旧 `manor-atlas-image26.png` 及其生成记录仅保留在源码历史素材中，不再作为当前运行图内嵌。README Logo 说明见 [`docs/brand/README.md`](brand/README.md)。
 
 `lib/`、`src/client/art.generated.ts` 和 `src/client/workshop.generated.ts` 是不提交的构建产物。`prepare` 在源码安装时嵌入默认美术与庄园图集后执行 `tsdown`；克隆后执行 `npm install` 可在本地生成。`npm run sanitize:backgrounds` 剥离六张角色背景的非画面 WebP 元数据，`npm run embed:art` 将白名单原图与校验后的庄园素材写入运行时，`npm run export:art` 反向导出原有 22 项默认美术以供核对。

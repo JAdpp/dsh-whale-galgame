@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { DEFAULT_NAMES, drawWorkshop, drawResident } from './workshop-art'
-import { WORKSHOP_ART, WORKSHOP_SPRITE_ANCHORS, WORKSHOP_WORK_ACTIVITIES } from './workshop.generated'
+import { WORKSHOP_ART, WORKSHOP_SPRITE_ANCHORS, WORKSHOP_WORK_ACTIVITIES, WORKSHOP_DECOR_BOUNDS } from './workshop.generated'
 import { createWorkshopLayout, createResidents, syncResidents, stepResidents, settleResidents, residentActivity, type Resident, type Presence } from './workshop-world'
 
 export const WORKSHOP_CSS = `
@@ -13,7 +13,7 @@ export const WORKSHOP_CSS = `
 .whg-map-floor{position:relative;width:100%;min-width:1152px;margin:auto;isolation:isolate;flex:none}.whg-map-floor[data-zoom=true]{width:150%;min-width:1728px}.whg-map-scene{display:block;width:100%;height:100%;image-rendering:auto}
 .whg-map-person{position:absolute;z-index:2;width:72px;height:96px;transform:translate(-50%,-88px) scale(var(--whg-map-scale,1));transform-origin:50% 88px;padding:0;border:0;background:transparent;color:#315661;overflow:visible;touch-action:manipulation}.whg-map-person:hover,.whg-map-person:focus-visible{z-index:4}.whg-map-person:focus-visible{outline-offset:-4px;border-radius:8px}
 .whg-map-person canvas{position:absolute;display:block;width:96px;height:112px;left:50%;top:-12px;transform:translateX(-50%);margin:0;image-rendering:auto;filter:drop-shadow(0 3px 1px #638b7540)}.whg-map-person:hover canvas{filter:drop-shadow(0 0 5px #fffbd7)}
-.whg-map-person[data-at-desk="true"]{width:192px;height:216px;transform:translate(-50%,-216px) scale(var(--whg-map-scale,1));transform-origin:50% 216px}.whg-map-person[data-at-desk="true"] canvas{width:224px;height:240px;top:0}.whg-map-person[data-at-desk="true"] .whg-map-name{top:224px}.whg-map-name{position:absolute;top:94px;left:50%;transform:translateX(-50%);border:1px solid #aac7bd;border-radius:5px;padding:2px 8px;background:#fffff5f2;color:#2d5c69;font:600 11px/1.4 system-ui,sans-serif;white-space:nowrap;pointer-events:none;box-shadow:0 2px 3px #406f6c15}.whg-map-person[data-status=running] .whg-map-name{border-color:#77af93;background:#eff9ec}.whg-map-person[data-status=waiting] .whg-map-name{border-color:#ceb789;background:#fff7e6}
+.whg-map-person[data-at-desk="true"]{width:192px;height:216px;transform:translate(-50%,-216px) scale(var(--whg-map-scale,1));transform-origin:50% 216px}.whg-map-person[data-at-desk="true"] canvas{width:224px;height:240px;top:0}
 .whg-map-roster{display:flex;flex-direction:column;min-height:0;overflow:auto;border-left:1px solid var(--whg-map-line);background:#f9faf1;padding:22px 15px}.whg-map-roster h2{margin:0 8px 5px;color:#3e6c71;font-size:14px;font-weight:600;letter-spacing:2px}.whg-map-roster-note{margin:0 8px 17px;color:#85948b;font-size:11px;line-height:1.7}.whg-map-resident{display:flex;align-items:center;gap:11px;width:100%;min-height:76px;padding:8px 6px;border:1px solid transparent;border-bottom-color:#dee6d9;background:transparent;color:inherit;text-align:left;border-radius:7px}.whg-map-resident:hover{border-color:#b8d0c2;background:#edf4e9}.whg-map-resident canvas{width:44px;height:52px;flex:none;image-rendering:auto}.whg-map-resident-meta{flex:1;min-width:0}.whg-map-resident-name{display:block;font-size:13px;font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.whg-map-resident-status{display:block;margin-top:4px;font-size:11px;color:#7b9089;line-height:1.5}.whg-map-resident-arrow{color:#8ea89e;font-size:14px}
 .whg-map-presence-dot{display:inline-block;width:6px;height:6px;margin:0 6px 1px 0;border-radius:2px;background:#a2b6ae}.whg-map-resident[data-status=running] .whg-map-presence-dot{background:#65a98b}.whg-map-resident[data-status=waiting] .whg-map-presence-dot{background:#cca361}
 .whg-map-legend{display:flex;gap:12px;flex-wrap:wrap;margin:auto 7px 0;padding-top:24px;color:#83968b;font-size:10px}.whg-map-legend span{display:inline-flex;align-items:center;gap:5px}.whg-map-legend i{width:6px;height:6px;border-radius:2px;display:inline-block;background:#a2b6ae}.whg-map-legend i.running{background:#65a98b}.whg-map-legend i.waiting{background:#cca361}
@@ -25,7 +25,7 @@ export const WORKSHOP_CSS = `
 @media(prefers-reduced-motion:reduce){.whg-map-person{scroll-behavior:auto}.whg-map-loading .whg-map-empty-symbol{animation:none}}
 `
 
-type WorkshopImages = { atlas: HTMLImageElement; publicAtlas: HTMLImageElement; roomAtlas: HTMLImageElement; residentAtlas: HTMLImageElement; workstationAtlas: HTMLImageElement; atlasColumns: number; atlasRows: number; residentAnchors: Array<Array<{ x: number; y: number }>> }
+type WorkshopImages = { atlas: HTMLImageElement; publicAtlas: HTMLImageElement; roomAtlas: HTMLImageElement; residentAtlas: HTMLImageElement; workstationAtlas: HTMLImageElement; decorAtlas: HTMLImageElement; decorBounds: Array<{ x: number; y: number; width: number; height: number }>; atlasColumns: number; atlasRows: number; residentAnchors: Array<Array<{ x: number; y: number }>> }
 let workshopImages: Promise<WorkshopImages> | null = null
 
 function loadWorkshopImages(): Promise<WorkshopImages> {
@@ -39,8 +39,8 @@ function loadWorkshopImages(): Promise<WorkshopImages> {
     image.src = source
   })
   workshopImages = Promise.all([load('workshop-map-atlas'), load('workshop-resident-atlas'), load('workshop-workstation-atlas'),
-    load('workshop-room-atlas')])
-    .then(([atlas, residentAtlas, workstationAtlas, roomAtlas]) => ({ atlas, publicAtlas: atlas, residentAtlas, workstationAtlas, roomAtlas, atlasColumns: 2, atlasRows: 2, residentAnchors: WORKSHOP_SPRITE_ANCHORS }))
+    load('workshop-room-atlas'), load('workshop-decor-atlas')])
+    .then(([atlas, residentAtlas, workstationAtlas, roomAtlas, decorAtlas]) => ({ atlas, publicAtlas: atlas, residentAtlas, workstationAtlas, roomAtlas, decorAtlas, decorBounds: WORKSHOP_DECOR_BOUNDS, atlasColumns: 2, atlasRows: 2, residentAnchors: WORKSHOP_SPRITE_ANCHORS }))
     .catch((error) => { workshopImages = null; throw error })
   return workshopImages
 }
@@ -260,13 +260,12 @@ export function WorkshopMap(props: {
               style: { left: resident.x / layout.width * 100 + '%', top: resident.y / layout.height * 100 + '%' },
               disabled: !!entering, onClick: () => void enter(resident),
               'aria-label': '与' + resident.name + '对话，' + statusText(resident),
-              title: resident.name + ' · ' + statusText(resident) + ' · 点击对话',
-            }, React.createElement(PixelAvatar, { resident, frame, images: images! }), React.createElement('span', { className: 'whg-map-name' }, entering === resident.id ? '进入中…' : resident.name))),
+            }, React.createElement(PixelAvatar, { resident, frame, images: images! }))),
           ),
         ),
         React.createElement('aside', { className: 'whg-map-roster', 'aria-label': '工坊角色名单' },
-          React.createElement('h2', null, '庄园里的她们'),
-          React.createElement('p', { className: 'whg-map-roster-note' }, '点击像素小人或名字，和她聊一会儿。'),
+          React.createElement('h2', null, '工坊里的她们'),
+          React.createElement('p', { className: 'whg-map-roster-note' }, '点击像素小人或名单，和她聊一会儿。'),
           catalogError ? React.createElement('p', { className: 'whg-map-catalog-note', role: 'status' }, '模型目录暂时无法更新，先保留已接入的角色。') : null,
           people.map((resident) => React.createElement('button', {
             key: resident.id, type: 'button', className: 'whg-map-resident', 'data-status': resident.status,

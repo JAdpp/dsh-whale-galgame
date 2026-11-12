@@ -32,6 +32,7 @@ Between Harness tasks, discover an “extraordinary” coworker relationship wit
 - Open “工坊地图” in the Galgame toolbar; the map opens inside the current Galgame. Click a character or roster entry to enter her dialogue; this pins her appearance while preserving your reply-model setting. An existing side story can be resumed with “继续小剧场”.
 - The map supports concurrent models and subagents, waiting indicators, zoom, scrolling, and paused strolling. It respects reduced-motion settings and does not call a model or save idle positions.
 - Each character has a themed dorm based on her default visual-novel background: the deep-sea palace, amber writing study, collaboration workshop, twin-prism studio, moonlit reading study, or electronics workshop. Furniture, curtains and ornaments stay in the complete room illustrations; the shared workroom, tea lounge, observatory and gallery use newly drawn complete backgrounds. The map contains no computers or monitors.
+- Outdoor gaps and borders are continuously tiled, with plants, flower stands, lamps, bookcases, benches and an armillary sphere placed clear of walking paths. The scene has no room or character nameplates; the “工坊里的她们” sidebar keeps selectable names and live status.
 - Four text speeds, dialogue history with recorded expressions, and H / right-click to hide the interface.
 - Web Audio sound effects and BGM, with separate toggles and volume control; both are off by default.
 - Replies informed by recent DSH task categories, the local date, and time since your last conversation.
@@ -188,7 +189,7 @@ Thanks to the creators and upstream projects:
 - **ZipZipPipe** drew the default Claude, GPT, and Grok sprites ([original post](https://www.bilibili.com/opus/1233069202138464289)); this project removed the white backgrounds, cropped the figures, and converted them to WebP.
 - **f0909172434 / [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet)** supplied the pet implementation and unchanged atlas; this project adapted integration and styling and added click-to-open Galgame.
 - The Gemini and Kimi sprites, six character backgrounds, and Galgame UI are unofficial AI-assisted work made for this project.
-- The current themed dorms, shared areas, resident and workstation atlases, and minimalist logo were made with Codex's built-in image generator, which does not expose its exact model version. See the [workshop-art guide](assets/workshop/README.md) for references, licenses and historical asset records.
+- The five current themed-dorm, shared-area, resident, workstation and outdoor-decoration atlases, and the minimalist logo were made with Codex's built-in image generator, which does not expose its exact model version. See the [workshop-art guide](assets/workshop/README.md) for references, licenses and historical asset records.
 
 The [default-art guide](assets/default/README.md) preserves the full file list, sources, and hash information. See [NOTICE](NOTICE.md), the [third-party index](THIRD_PARTY_LICENSES.md), and [upstream license texts](assets/default/licenses/) for file-level licensing. All characters are unofficial fan designs; names and trademarks belong to their owners, with no affiliation, partnership, or endorsement.
 

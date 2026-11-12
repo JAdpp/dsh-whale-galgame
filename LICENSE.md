@@ -47,7 +47,7 @@ The preserved `dsh-deep-whale` license and attribution notice are available at:
 
 ## Workshop and brand images — CC BY-NC-SA 4.0
 
-The project-produced public-interior, themed-dormitory, resident-animation and workstation-animation atlases under [`assets/workshop/`](assets/workshop/README.md), and the generated project logo documented under [`docs/brand/`](docs/brand/README.md), follow the same CC BY-NC-SA 4.0 artwork terms and rights limitations described above. The character atlases use the project's existing unofficial character designs; preserve their attribution in [NOTICE.md](NOTICE.md). Embedded image payloads retain those terms, while the surrounding map layout, animation, loading code and documentation remain under MIT.
+The five project-produced public-interior, themed-dormitory, resident-animation, workstation-animation and outdoor-decoration atlases under [`assets/workshop/`](assets/workshop/README.md), and the generated project logo documented under [`docs/brand/`](docs/brand/README.md), follow the same CC BY-NC-SA 4.0 artwork terms and rights limitations described above. The character atlases use the project's existing unofficial character designs; preserve their attribution in [NOTICE.md](NOTICE.md). Embedded image payloads retain those terms, while the surrounding map layout, animation, loading code and documentation remain under MIT.
 
 ## Desktop-pet code and atlas — MIT
 
