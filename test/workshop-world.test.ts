@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   createWorkshopLayout, createResidents, syncResidents, stepResidents, settleResidents,
-  walkingRoute, RESIDENT_IDS, TILE_SIZE, type WorkshopLayout, type Point, type Bounds,
+  walkingRoute, RESIDENT_IDS, TILE_SIZE, OFFICE_ART, type WorkshopLayout, type Point, type Bounds,
 } from '../src/client/workshop-world.ts'
 
 test('rooms follow connected families, coalescing model versions and aliases', () => {
@@ -90,7 +90,8 @@ test('the workshop has six non-overlapping full-size stations with walkpoints so
   const layout = createWorkshopLayout()
   const office = layout.rooms.find((room) => room.kind === 'office')!
   assert.equal(layout.stations.length, 6)
-  assert.ok(office.width >= 960 && office.height >= 672)
+  assert.equal(office.width, 960)
+  assert.equal(office.height, 960)
   for (const station of layout.stations) {
     assert.equal(station.width, 192)
     assert.equal(station.height, 192)
@@ -106,13 +107,34 @@ test('the workshop has six non-overlapping full-size stations with walkpoints so
   }
   const one = createWorkshopLayout(['deepseek'])
   assert.equal(one.stations.length, 1)
-  assert.ok(one.rooms.find((room) => room.kind === 'office')!.height < office.height)
+  assert.equal(one.rooms.find((room) => room.kind === 'office')!.height, office.height)
+})
+
+test('the office stays square and each station follows its painted rug for every occupied row', () => {
+  for (const count of [1, 3, 4, 6]) {
+    const layout = createWorkshopLayout(RESIDENT_IDS.slice(0, count))
+    const office = layout.rooms.find((room) => room.kind === 'office')!
+    assert.equal(office.width / office.height, 1)
+    const scale = office.width / OFFICE_ART.cellSize
+    assert.equal(layout.stations.length, count)
+    layout.stations.forEach((station, index) => {
+      const rug = OFFICE_ART.rugs[index]
+      const rugCentre = office.x + (rug.x0 + rug.x1) / 2 * scale
+      const rugBottom = office.y + rug.y1 * scale
+      assert.ok(Math.abs(station.x + station.width / 2 - rugCentre) <= 1, `${station.id} centres on its rug`)
+      assert.ok(Math.abs(rugBottom - station.y - station.height - 20) <= 1, `${station.id} sits 20px above the rug bottom`)
+      assert.deepEqual({ x: station.walkPoint.x - TILE_SIZE * 2, y: station.walkPoint.y - TILE_SIZE * 4.5 },
+        { x: station.x, y: station.y }, 'the seated frame uses the same origin as the empty desk')
+      assert.ok(Number.isInteger(station.x) && Number.isInteger(station.y), 'desk frames align to world pixels')
+    })
+  }
 })
 
 test('every navigation edge avoids table blocking bounds, including trips from shared areas', () => {
-  for (const ids of [['deepseek'], ['claude', 'kimi'], [...RESIDENT_IDS]]) {
+  for (const ids of [[], ['deepseek'], ['claude', 'kimi'], RESIDENT_IDS.slice(0, 3), RESIDENT_IDS.slice(0, 4), [...RESIDENT_IDS]]) {
     const layout = createWorkshopLayout(ids)
     for (const [from, neighbors] of Object.entries(layout.edges)) for (const to of neighbors) {
+      assert.ok(layout.nodes[from].x === layout.nodes[to].x || layout.nodes[from].y === layout.nodes[to].y, `${from}→${to} stays orthogonal`)
       for (const station of layout.stations) {
         assert.equal(crossesTable(layout.nodes[from], layout.nodes[to], station.tableBounds), false, `${from}→${to} crosses ${station.id}'s desk`)
       }

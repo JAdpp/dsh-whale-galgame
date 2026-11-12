@@ -51,14 +51,25 @@ function PixelAvatar(props: { resident: Resident; frame: number; images: Worksho
   const atDesk = !props.small && resident.status !== 'idle' && resident.route.length === 0 && resident.node === 'work-' + resident.id
   const width = atDesk ? 224 : 96, height = atDesk ? 240 : 112
   useEffect(() => {
-    const ctx = ref.current?.getContext('2d')
+    const canvas = ref.current
+    if (!canvas) return
+    const atlas = atDesk ? props.images.workstationAtlas : props.images.residentAtlas
+    const cellWidth = (atlas.naturalWidth || atlas.width) / 6
+    const scale = cellWidth / (atDesk ? 192 : 96)
+    const backingWidth = Math.round(width * scale), backingHeight = Math.round(height * scale)
+    // Keep one source pixel per backing pixel; CSS handles the display scaling.
+    // Resizing clears the canvas state, so only resize when the atlas/mode needs it.
+    if (canvas.width !== backingWidth) canvas.width = backingWidth
+    if (canvas.height !== backingHeight) canvas.height = backingHeight
+    const ctx = canvas.getContext('2d')
     if (!ctx) return
-    ctx.setTransform(2, 0, 0, 2, 0, 0)
+    ctx.setTransform(scale, 0, 0, scale, 0, 0)
     ctx.clearRect(0, 0, width, height)
-    ctx.imageSmoothingEnabled = false
+    ctx.imageSmoothingEnabled = true
+    ctx.imageSmoothingQuality = 'high'
     drawResident(ctx, resident.id, atDesk ? 112 : 48, atDesk ? 216 : 100, frame, resident.status, !props.small && resident.route.length > 0, props.images, atDesk)
   }, [resident.id, resident.status, resident.route.length > 0, frame, props.small, props.images, atDesk])
-  return React.createElement('canvas', { ref, width: width * 2, height: height * 2, 'aria-hidden': true })
+  return React.createElement('canvas', { ref, 'aria-hidden': true })
 }
 
 export function WorkshopMap(props: {

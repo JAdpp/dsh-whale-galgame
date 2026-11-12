@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { findMetadataChunks, readWebpDimensions } from './webp.mjs'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const directory = resolve(root, 'assets/workshop')
@@ -14,7 +15,15 @@ const entries = expectedKeys.map((key) => {
   if (bytes.subarray(0, 8).toString('hex') !== '89504e470d0a1a0a') throw new Error('Expected PNG: ' + asset.file)
   if (bytes.readUInt32BE(16) !== asset.width || bytes.readUInt32BE(20) !== asset.height) throw new Error('Workshop image dimensions changed: ' + asset.file)
   if (createHash('sha256').update(bytes).digest('hex') !== asset.sha256) throw new Error('Workshop image hash changed: ' + asset.file)
-  return `  '${key}': 'data:image/png;base64,${bytes.toString('base64')}',`
+  const runtime = asset.runtime
+  if (!runtime || !/^[a-z0-9-]+\.webp$/.test(runtime.file)) throw new Error('Missing workshop runtime asset: ' + key)
+  const runtimeBytes = readFileSync(resolve(directory, runtime.file))
+  if (createHash('sha256').update(runtimeBytes).digest('hex') !== runtime.sha256) throw new Error('Workshop runtime image hash changed: ' + runtime.file)
+  const { width, height } = readWebpDimensions(runtimeBytes, runtime.file)
+  if (width !== asset.width || height !== asset.height) throw new Error('Workshop runtime image dimensions changed: ' + runtime.file)
+  const metadata = findMetadataChunks(runtimeBytes, runtime.file)
+  if (metadata.length) throw new Error(`${runtime.file} contains non-visual WebP metadata chunk ${metadata.join(', ')}.`)
+  return `  '${key}': 'data:image/webp;base64,${runtimeBytes.toString('base64')}',`
 })
 const anchors = manifest.residentLayout?.footAnchors
 if (!Array.isArray(anchors) || anchors.length !== 4 || anchors.some((row) => !Array.isArray(row) || row.length !== 6 || row.some((point) => !Number.isFinite(point.x) || !Number.isFinite(point.y) || point.x < 0 || point.x > 256 || point.y < 0 || point.y > 256))) {
