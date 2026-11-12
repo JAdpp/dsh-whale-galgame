@@ -21,7 +21,7 @@ Between Harness tasks, discover an “extraordinary” coworker relationship wit
 - **Side Story mode**: Go beyond one-to-one Q&A with multi-character daily scenes, work-recap skits, and dedicated milestone stories.
 - **A bond system that grows with you**: Daily interaction and accumulated work tokens both raise affection, unlocking more intimate dialogue styles and AI-generated commemorative CGs.
 - **A lightweight, lovable desktop pet**: Keep it in a corner of the screen and click once to jump into the Galgame view.
-- **A pixel-art Deep Sea Workshop map**: Dorm rooms adapt to the model families connected in Harness; multiple versions share one character's room. The manor also has workstations, a tea lounge, and an underwater observatory. Characters work when busy, stroll or rest when idle, and open their Galgame when clicked.
+- **A pixel-art Deep Sea Workshop map**: Watch the model girls work or relax, then click one to chat.
 
 ![dsh-whale-galgame running in DSH Web](docs/screenshots/galgame-overview.jpg)
 
@@ -29,10 +29,7 @@ Between Harness tasks, discover an “extraordinary” coworker relationship wit
 
 ## What it does
 
-- Open “工坊地图” in the Galgame toolbar; the map opens inside the current Galgame. Click a character or roster entry to enter her dialogue; this pins her appearance while preserving your reply-model setting. An existing side story can be resumed with “继续小剧场”.
-- The map supports concurrent models and subagents, waiting indicators, zoom, scrolling, and paused strolling. It respects reduced-motion settings and does not call a model or save idle positions.
-- Each character has a themed dorm based on her default visual-novel background: the deep-sea palace, amber writing study, collaboration workshop, twin-prism studio, moonlit reading study, or electronics workshop. Furniture, curtains and ornaments stay in the complete room illustrations; the shared workroom, tea lounge, observatory and gallery use newly drawn complete backgrounds. The map contains no computers or monitors.
-- Outdoor gaps and borders are continuously tiled, with plants, flower stands, lamps, bookcases, benches and an armillary sphere placed clear of walking paths. The scene has no room or character nameplates; the “工坊里的她们” sidebar keeps selectable names and live status.
+- Open “工坊地图” from the Galgame toolbar; dorms adapt to the models you've connected. Characters work, stroll or rest according to task status, and clicking one opens her dialogue.
 - Four text speeds, dialogue history with recorded expressions, and H / right-click to hide the interface.
 - Web Audio sound effects and BGM, with separate toggles and volume control; both are off by default.
 - Replies informed by recent DSH task categories, the local date, and time since your last conversation.
