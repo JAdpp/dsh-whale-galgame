@@ -2,9 +2,13 @@
   <img src="docs/brand/logo-simple.png" width="160" height="160" alt="深海工坊：鲸尾与星光">
 </p>
 
-# dsh-whale-galgame · 跨会话任务事件感知的多角色 Galgame 引擎
+<h1 align="center">dsh-whale-galgame</h1>
 
-**简体中文** · [English](README.en.md) · [日本語](README.ja.md) · [한국어](README.ko.md)
+<h3 align="center">跨会话任务事件感知的多角色 Galgame 引擎</h3>
+
+<p align="center">
+  <strong>简体中文</strong> · <a href="README.en.md">English</a> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a>
+</p>
 
 ## 简介
 

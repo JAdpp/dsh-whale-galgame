@@ -2,9 +2,13 @@
   <img src="docs/brand/logo-simple.png" width="160" height="160" alt="심해 공방: 고래 꼬리와 별빛">
 </p>
 
-# dsh-whale-galgame · 세션을 넘나드는 작업 이벤트를 감지하는 다중 캐릭터 Galgame 엔진
+<h1 align="center">dsh-whale-galgame</h1>
 
-[简体中文](README.md) · [English](README.en.md) · [日本語](README.ja.md) · **한국어**
+<h3 align="center">세션을 넘나드는 작업 이벤트를 감지하는 다중 캐릭터 Galgame 엔진</h3>
+
+<p align="center">
+  <a href="README.md">简体中文</a> · <a href="README.en.md">English</a> · <a href="README.ja.md">日本語</a> · <strong>한국어</strong>
+</p>
 
 ## 소개
 

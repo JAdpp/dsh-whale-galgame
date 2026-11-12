@@ -2,9 +2,13 @@
   <img src="docs/brand/logo-simple.png" width="160" height="160" alt="深海工房：鯨の尾と星の光">
 </p>
 
-# dsh-whale-galgame · セッションをまたぐタスクイベントを感知するマルチキャラクター Galgame エンジン
+<h1 align="center">dsh-whale-galgame</h1>
 
-[简体中文](README.md) · [English](README.en.md) · **日本語** · [한국어](README.ko.md)
+<h3 align="center">セッションをまたぐタスクイベントを感知するマルチキャラクター Galgame エンジン</h3>
+
+<p align="center">
+  <a href="README.md">简体中文</a> · <a href="README.en.md">English</a> · <strong>日本語</strong> · <a href="README.ko.md">한국어</a>
+</p>
 
 ## 概要
 

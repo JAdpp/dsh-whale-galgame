@@ -2,9 +2,13 @@
   <img src="docs/brand/logo-simple.png" width="160" height="160" alt="Deep Sea Workshop: whale tail and starlight">
 </p>
 
-# dsh-whale-galgame · A multi-character Galgame engine aware of cross-session task events
+<h1 align="center">dsh-whale-galgame</h1>
 
-[简体中文](README.md) · **English** · [日本語](README.ja.md) · [한국어](README.ko.md)
+<h3 align="center">A multi-character Galgame engine aware of cross-session task events</h3>
+
+<p align="center">
+  <a href="README.md">简体中文</a> · <strong>English</strong> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a>
+</p>
 
 ## Overview
 
