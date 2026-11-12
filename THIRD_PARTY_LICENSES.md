@@ -34,6 +34,12 @@ This project directly adapts the upstream desktop-pet state animation, 16-direct
 
 The Gemini and Kimi standing sprites and six `bg-*.webp` role backgrounds are unofficial, AI-assisted artwork newly produced for this project, not third-party company art. They are distributed under CC BY-NC-SA 4.0 to the extent the maintainer holds the applicable rights. The six backgrounds map to DeepSeek, Claude, GPT, Gemini, Kimi, and Grok; the DeepSeek seaside-study scene is an optional built-in alternative, while the other five are their roles' defaults. See [NOTICE.md](NOTICE.md) for the exact file-by-file map.
 
+## Generated workshop and brand artwork
+
+The four current runtime atlases—shared-room backgrounds, six themed dorms, resident animation and character-specific workstation animation—and the current minimalist brand mark were produced with Codex's built-in image generator after the user approved those routes. The tool does not expose its exact model version. The themed dorms reference each character's default visual-novel background, preserving furniture and visual motifs; DeepSeek references the credited deep-sea palace rather than its optional seaside-study background. The newly drawn shared rooms preserve their interiors, and the map uses books, drawing materials, prisms and mechanical tools instead of computers or monitors.
+
+The earlier `manor-atlas-image26.png` and ornate logo draft were produced with GPT Image 2.6 Sunburst and are superseded; neither is current runtime artwork. The old manor image remains in the source tree, and historical generation records and hashes are retained for provenance. These images follow the project's CC BY-NC-SA 4.0 artwork policy, subject to the rights limitation in [LICENSE.md](LICENSE.md). The resident designs and referenced background material retain the attribution above. See [`assets/workshop/README.md`](assets/workshop/README.md) for the file map and generation record.
+
 ## Creator profiles
 
 - 上善, original whale-girl character: [Pixiv](https://www.pixiv.net/users/62155430) · [Bilibili](https://space.bilibili.com/4456176)

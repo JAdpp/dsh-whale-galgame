@@ -1,7 +1,7 @@
 {
   "name": "dsh-whale-galgame",
   "description": "A multi-character Galgame interface and optional desktop companion for DeepSeek Harness Web and Desktop.",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "type": "module",
   "main": "lib/index.js",
   "exports": {
@@ -25,14 +25,14 @@
   },
   "scripts": {
     "build": "tsdown",
-    "prepare": "node scripts/embed-art.mjs && tsdown",
+    "prepare": "node scripts/embed-art.mjs && node scripts/embed-workshop-art.mjs && tsdown",
     "sanitize:backgrounds": "node scripts/sanitize-backgrounds.mjs",
-    "embed:art": "node scripts/embed-art.mjs",
+    "embed:art": "node scripts/embed-art.mjs && node scripts/embed-workshop-art.mjs",
     "export:art": "node scripts/export-art.mjs",
     "prune:art": "node scripts/prune-art.mjs",
     "audit:release": "node scripts/release-audit.mjs",
     "check": "node --check lib/index.js && node --check lib/client.js",
-    "test": "node --experimental-strip-types --test test/activity-context.test.ts test/plugin-integration.test.ts test/global-state.test.ts test/api-responsiveness.test.ts test/client-interactions.test.ts test/choices-continuity.test.ts test/side-story.test.ts test/choices-after-level-up.test.ts test/display-atmosphere.test.ts",
+    "test": "node --experimental-strip-types --test test/activity-context.test.ts test/plugin-integration.test.ts test/global-state.test.ts test/api-responsiveness.test.ts test/client-interactions.test.ts test/choices-continuity.test.ts test/side-story.test.ts test/choices-after-level-up.test.ts test/display-atmosphere.test.ts test/workshop-presence.test.ts test/workshop-world.test.ts",
     "verify": "npm run embed:art && npm run test && npm run build && npm run check && npm run audit:release"
   },
   "repository": {
@@ -57,13 +57,20 @@
   "files": [
     "assets/default/README.md",
     "assets/default/licenses",
+    "assets/workshop/README.md",
+    "assets/workshop/manifest.json",
+    "assets/workshop/generation-prompts.json",
     "build",
     "docs",
     "lib/*.js",
     "scripts",
     "src/index.ts",
     "src/activity-context.ts",
+    "src/workshop-presence.ts",
     "src/client/index.ts",
+    "src/client/workshop-art.ts",
+    "src/client/workshop-map.ts",
+    "src/client/workshop-world.ts",
     "cordis.patch.yml",
     "LICENSE.md",
     "NOTICE.md",

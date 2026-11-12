@@ -132,6 +132,27 @@ for (const fileName of Object.values(expectedArtFiles)) {
     throw new Error(`${fileName} contains non-visual WebP metadata chunk ${metadata.join(', ')}.`)
   }
 }
+
+const workshopManifest = JSON.parse(readFileSync(resolve(root, 'assets/workshop/manifest.json'), 'utf8'))
+const workshopSource = readFileSync(resolve(root, 'src/client/workshop.generated.ts'), 'utf8')
+const workshopEntries = new Map([...workshopSource.matchAll(/^\s*'([^']+)'\s*:\s*'data:image\/png;base64,([^']+)'/gm)]
+  .map((match) => [match[1], Buffer.from(match[2], 'base64')]))
+const workshopKeys = ['workshop-map-atlas', 'workshop-room-atlas', 'workshop-resident-atlas', 'workshop-workstation-atlas']
+if (workshopEntries.size !== 4 || workshopManifest.assets.length !== 4) throw new Error('Expected exactly four workshop atlases')
+for (const key of workshopKeys) {
+  const asset = workshopManifest.assets.find((item) => item.key === key)
+  if (!asset || !/^[a-z0-9-]+\.png$/.test(asset.file)) throw new Error('Invalid workshop asset: ' + key)
+  const bytes = readFileSync(resolve(root, 'assets/workshop', asset.file))
+  if (!bytes.equals(workshopEntries.get(key))) throw new Error('Workshop embedded image mismatch: ' + key)
+  if (createHash('sha256').update(bytes).digest('hex') !== asset.sha256
+    || bytes.readUInt32BE(16) !== asset.width || bytes.readUInt32BE(20) !== asset.height) throw new Error('Workshop image integrity failed: ' + key)
+}
+const logo = workshopManifest.logo
+if (!logo || !/^docs\/brand\/[a-z0-9-]+\.png$/.test(logo.file)) throw new Error('Invalid project logo manifest')
+const logoBytes = readFileSync(resolve(root, logo.file))
+if (createHash('sha256').update(logoBytes).digest('hex') !== logo.sha256
+  || logoBytes.readUInt32BE(16) !== logo.width || logoBytes.readUInt32BE(20) !== logo.height) throw new Error('Logo image integrity failed')
+
 // --ignore-scripts keeps the prepare script's stdout out of the --json payload;
 // lib/ is already built by the time the audit runs.
 const packCommand = npmExecPath?.endsWith('.js')
@@ -157,11 +178,11 @@ const forbiddenPackPaths = packPaths.filter((path) => (
 if (forbiddenPackPaths.length) {
   throw new Error(`Forbidden files in package: ${forbiddenPackPaths.join(', ')}`)
 }
-const duplicatedRawArt = packPaths.filter((path) => /^assets\/default\/.*\.(?:png|webp)$/i.test(path))
+const duplicatedRawArt = packPaths.filter((path) => /^assets\/(?:default|workshop)\/.*\.(?:png|webp)$/i.test(path))
 if (duplicatedRawArt.length) {
   throw new Error(`Raw art is duplicated in the npm package: ${duplicatedRawArt.join(', ')}`)
 }
-if (packPaths.includes('src/client/art.generated.ts')) {
+if (packPaths.includes('src/client/art.generated.ts') || packPaths.includes('src/client/workshop.generated.ts')) {
   throw new Error('Generated art source is duplicated in the npm package.')
 }
 
@@ -170,7 +191,17 @@ for (const required of [
   'lib/client.js',
   'src/index.ts',
   'src/activity-context.ts',
+  'src/workshop-presence.ts',
   'src/client/index.ts',
+  'src/client/workshop-art.ts',
+  'src/client/workshop-map.ts',
+  'src/client/workshop-world.ts',
+  logo.file,
+  'docs/screenshots/workshop-map.png',
+  'docs/screenshots/workshop-one-resident.png',
+  'assets/workshop/README.md',
+  'assets/workshop/manifest.json',
+  'assets/workshop/generation-prompts.json',
   'LICENSE.md',
   'NOTICE.md',
   'THIRD_PARTY_LICENSES.md',
@@ -207,4 +238,4 @@ for (const relativePath of tracked) {
 }
 if (secretHits.length) throw new Error(`Potential secret or personal path in tracked files: ${secretHits.join(', ')}`)
 
-console.log(`Release audit passed: ${bundledKeys.length} art keys, ${packPaths.length} package files, ${packResult.size} packed bytes.`)
+console.log(`Release audit passed: ${bundledKeys.length} default art keys, ${workshopEntries.size} workshop atlases, ${packPaths.length} package files, ${packResult.size} packed bytes.`)

@@ -45,6 +45,10 @@ The preserved `dsh-deep-whale` license and attribution notice are available at:
 - [`assets/default/licenses/dsh-deep-whale-LICENSE.txt`](assets/default/licenses/dsh-deep-whale-LICENSE.txt)
 - [`assets/default/licenses/dsh-deep-whale-NOTICE.txt`](assets/default/licenses/dsh-deep-whale-NOTICE.txt)
 
+## Workshop and brand images — CC BY-NC-SA 4.0
+
+The project-produced public-interior, themed-dormitory, resident-animation and workstation-animation atlases under [`assets/workshop/`](assets/workshop/README.md), and the generated project logo documented under [`docs/brand/`](docs/brand/README.md), follow the same CC BY-NC-SA 4.0 artwork terms and rights limitations described above. The character atlases use the project's existing unofficial character designs; preserve their attribution in [NOTICE.md](NOTICE.md). Embedded image payloads retain those terms, while the surrounding map layout, animation, loading code and documentation remain under MIT.
+
 ## Desktop-pet code and atlas — MIT
 
 The desktop-pet feature is derived from [f0909172434 / dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet), which is distributed under the MIT License, Copyright (c) 2026 f0909172434. Its license is preserved at [`assets/default/licenses/dsh-deepseek-girl-pet-LICENSE.txt`](assets/default/licenses/dsh-deepseek-girl-pet-LICENSE.txt).

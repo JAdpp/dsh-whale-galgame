@@ -1,0 +1,278 @@
+{
+  "version": 2,
+  "generatedOn": "2026-11-12",
+  "assets": [
+    {
+      "key": "workshop-map-atlas",
+      "file": "public-rooms-atlas.png",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "57993235514e01bf176836adb6b756724a6364f023b48bbde8db9a81af7166e3",
+      "model": "Codex built-in image generation",
+      "modelVersionExposed": false,
+      "sourceId": "exec-3fe596af-6228-4b06-87d1-6210b2abbcee"
+    },
+    {
+      "key": "workshop-room-atlas",
+      "file": "themed-rooms-atlas.png",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "1bc4ece284924837f4fba6b9f64bfa061d200e96fa77a2c590d19098cd78ef42",
+      "model": "Codex built-in image generation",
+      "modelVersionExposed": false,
+      "sourceId": "exec-09907cdd-adf6-4028-b23e-d74379cca9e4"
+    },
+    {
+      "key": "workshop-resident-atlas",
+      "file": "residents-atlas-builtin.png",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "709be979f3d3ebcbdad3304fe34d95e69ea1edb0704c03acae8c6065f653989b",
+      "model": "Codex built-in image generation"
+    },
+    {
+      "key": "workshop-workstation-atlas",
+      "file": "workstations-rpg-atlas.png",
+      "width": 1374,
+      "height": 1145,
+      "sha256": "486125c1da4e61ba34cc1601de85c46a37ca156f4223c327bba9642b012eb8bd",
+      "model": "Codex built-in image generation",
+      "sourceId": "exec-8c4fe3c7-dbee-45f4-af18-b1c7cb3b48fb",
+      "reference": "residents-atlas-builtin.png"
+    }
+  ],
+  "logo": {
+    "file": "docs/brand/logo-simple.png",
+    "width": 1254,
+    "height": 1254,
+    "sha256": "bad2e5b2a63fd163a41303d4bdc10eb6a412c299304eb52e8a3c8e36a838abeb",
+    "model": "Codex built-in image generation",
+    "sourceId": "exec-5fdd00b9-3d6e-4880-9b4c-132f8827945b",
+    "style": "Minimalist whale tail and a single star",
+    "modelVersionExposed": false
+  },
+  "atlasLayout": {
+    "columns": 2,
+    "rows": 2,
+    "rooms": [
+      "office",
+      "lounge",
+      "observatory",
+      "gallery"
+    ],
+    "doorways": "Office north/south at authored right-side passage; lounge and observatory north-centre; all openings remain unobstructed."
+  },
+  "residentLayout": {
+    "columns": 6,
+    "rows": 4,
+    "characters": [
+      "deepseek",
+      "claude",
+      "chatgpt",
+      "gemini",
+      "kimi",
+      "grok"
+    ],
+    "poses": [
+      "idle",
+      "walk-left",
+      "walk-right",
+      "work"
+    ],
+    "footAnchors": [
+      [
+        {
+          "x": 146,
+          "y": 248
+        },
+        {
+          "x": 139.5,
+          "y": 248
+        },
+        {
+          "x": 129.5,
+          "y": 248
+        },
+        {
+          "x": 127.5,
+          "y": 248
+        },
+        {
+          "x": 126,
+          "y": 248
+        },
+        {
+          "x": 132.5,
+          "y": 248
+        }
+      ],
+      [
+        {
+          "x": 136,
+          "y": 246
+        },
+        {
+          "x": 133,
+          "y": 247
+        },
+        {
+          "x": 122.5,
+          "y": 246
+        },
+        {
+          "x": 119.5,
+          "y": 246
+        },
+        {
+          "x": 120,
+          "y": 247
+        },
+        {
+          "x": 130.5,
+          "y": 246
+        }
+      ],
+      [
+        {
+          "x": 153,
+          "y": 245
+        },
+        {
+          "x": 148,
+          "y": 244
+        },
+        {
+          "x": 137.5,
+          "y": 245
+        },
+        {
+          "x": 135,
+          "y": 245
+        },
+        {
+          "x": 131,
+          "y": 245
+        },
+        {
+          "x": 132,
+          "y": 244
+        }
+      ],
+      [
+        {
+          "x": 146.5,
+          "y": 246
+        },
+        {
+          "x": 140.5,
+          "y": 246
+        },
+        {
+          "x": 121.5,
+          "y": 246
+        },
+        {
+          "x": 128,
+          "y": 246
+        },
+        {
+          "x": 126.5,
+          "y": 246
+        },
+        {
+          "x": 135,
+          "y": 246
+        }
+      ]
+    ]
+  },
+  "weaveCreditsSpent": 22,
+  "note": "The user approved built-in generation for the current themed dormitories and public interiors, as well as residents and the minimalist logo. The exact built-in model version is not exposed. Earlier Image 2.6 logo and environment records are retained as superseded source history; Weave credits spent remain 22.",
+  "supersededImage26Logo": {
+    "width": 1024,
+    "height": 1024,
+    "sha256": "aafad03dc74a26b6587cbd0a1f4ea6f49eff5091e77fafb490dee021097815ab",
+    "model": "gpt-image-2.6",
+    "variant": "Sunburst",
+    "predictionId": "f3d1c16a-56fb-4faf-a49d-139a45fcb95a"
+  },
+  "workstationLayout": {
+    "columns": 6,
+    "rows": 5,
+    "characters": [
+      "deepseek",
+      "claude",
+      "chatgpt",
+      "gemini",
+      "kimi",
+      "grok"
+    ],
+    "poses": [
+      "empty",
+      "work-a",
+      "work-b",
+      "work-c",
+      "waiting"
+    ],
+    "activities": {
+      "deepseek": "潮汐推演",
+      "claude": "羽笔校稿",
+      "chatgpt": "圆规制图",
+      "gemini": "棱镜译码",
+      "kimi": "月卷归档",
+      "grok": "机械检修"
+    },
+    "compositeRendering": "Seated heroine and matching desk/chair are a single transparent animation frame; route foot points remain on the floor south of the desk."
+  },
+  "mapRendering": {
+    "tileSize": 48,
+    "camera": "Parallel RPG Maker overhead/front view, complete furnished interiors",
+    "materialSource": [
+      "themed-rooms-atlas.png",
+      "public-rooms-atlas.png"
+    ],
+    "composition": "Six themed dormitories reflect their corresponding built-in visual-novel backgrounds. Complete public interiors retain furniture and architectural details without cropped furniture patches; transparent seated workstation sprites occupy the authored office floor islands. Gallery floor samples use clean marble away from decorations."
+  },
+  "supersededImage26Environment": {
+    "key": "workshop-map-atlas",
+    "file": "manor-atlas-image26.png",
+    "width": 3072,
+    "height": 2048,
+    "sha256": "70dc003e25c0b10e5f5eb56be74ae2164120f48ea93ee2827130db15bb4b4106",
+    "model": "gpt-image-2.6",
+    "variant": "Sunburst",
+    "predictionId": "ba571a27-82d0-454a-8537-e41f687cd7f8",
+    "runtime": false,
+    "note": "Original generated environment preserved in the source repository; replaced by complete themed dormitory and public-interior atlases after user approval."
+  },
+  "roomLayout": {
+    "columns": 3,
+    "rows": 2,
+    "characters": [
+      "deepseek",
+      "claude",
+      "chatgpt",
+      "gemini",
+      "kimi",
+      "grok"
+    ],
+    "references": [
+      "assets/default/palace-night.webp",
+      "assets/default/bg-claude-writing-study.webp",
+      "assets/default/bg-gpt-collaboration-workshop.webp",
+      "assets/default/bg-gemini-twin-creative-studio.webp",
+      "assets/default/bg-kimi-moonlit-reading-study.webp",
+      "assets/default/bg-grok-electronics-studio.webp"
+    ],
+    "referenceInputMode": "First five references supplied as images; Grok reference transcribed from the inspected source into the generation prompt.",
+    "doorways": "South-centre, x50%; central walking lane and floor footpoint remain clear.",
+    "themes": {
+      "deepseek": "Blue-gold palace",
+      "claude": "Amber writing study",
+      "chatgpt": "Green-white collaboration room",
+      "gemini": "Blue-lilac twin-prism studio",
+      "kimi": "Chinese moonlit archive",
+      "grok": "Cyan mechanical workshop"
+    }
+  }
+}

@@ -9,6 +9,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { WHALE_ART } from './art.generated'
+import { WorkshopMap, WORKSHOP_CSS } from './workshop-map'
 
 const CSS = [
   // ── pet ────────────────────────────────────────────────────────────────
@@ -78,6 +79,10 @@ const CSS = [
   '.whg-picker-option-main{display:block;overflow:hidden;font-size:12px;font-weight:700;text-overflow:ellipsis;white-space:nowrap}',
   '.whg-picker-option-sub{display:block;overflow:hidden;margin-top:2px;color:#83a9bd;font:10px/1.35 Consolas,monospace;text-overflow:ellipsis;white-space:nowrap}',
   '.whg-picker-check{color:#f0d99d;font-size:12px}',
+  '.whg-personalize-menu{width:min(260px,calc(100vw - 28px))}',
+  '.whg-personalize-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 8px;padding-bottom:8px;border-bottom:1px solid rgba(143,216,239,.18)}',
+  '.whg-personalize-nav .whg-btn{padding:5px 8px;font-size:11px}',
+  '.whg-personalize-back{margin-top:8px;padding:4px 9px;font-size:11px}',
   '.whg-bg-picker{width:min(360px,calc(100vw - 28px));padding:12px}',
   '.whg-bg-preview{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;margin:2px 0 10px;border:1px solid rgba(143,216,239,.28);border-radius:10px;background:#020a14}',
   '.whg-bg-empty{display:grid;place-items:center;width:100%;aspect-ratio:16/9;margin:2px 0 10px;border:1px dashed rgba(143,216,239,.28);border-radius:10px;color:#7f9cae;font-size:11px;background:rgba(1,10,20,.25)}',
@@ -573,15 +578,32 @@ function setComposerHidden(hidden: boolean): void {
 }
 
 function syncTabLayout(visible: boolean): void {
-  const rootEl = document.getElementById('whg-tab-root')
-  if (!rootEl) return
-  if (visible && rootEl.offsetParent !== null) {
-    const r = rootEl.getBoundingClientRect()
-    const fill = Math.max(420, Math.min(2000, window.innerHeight - r.top - 8))
-    rootEl.style.minHeight = fill + 'px'
-  } else {
-    rootEl.style.minHeight = ''
-  }
+  document.querySelectorAll<HTMLElement>('#whg-tab-root').forEach((rootEl) => {
+    if (visible && rootEl.offsetParent !== null) {
+      const r = rootEl.getBoundingClientRect()
+      const fill = Math.max(320, Math.min(2000, window.innerHeight - r.top - 8))
+      rootEl.style.minHeight = fill + 'px'
+    } else {
+      rootEl.style.minHeight = ''
+    }
+  })
+}
+
+function useConversationLayout(active: boolean): void {
+  useEffect(() => {
+    if (!active) return undefined
+    const sync = () => {
+      const visible = Array.from(document.querySelectorAll<HTMLElement>('#whg-tab-root')).some((node) => node.offsetParent !== null)
+      if (visible) document.body.dataset.whaleGalgameActive = ''
+      else delete document.body.dataset.whaleGalgameActive
+      setComposerHidden(visible)
+      syncTabLayout(visible)
+    }
+    sync()
+    const timer = setInterval(sync, 800)
+    window.addEventListener('resize', sync)
+    return () => { clearInterval(timer); window.removeEventListener('resize', sync); queueMicrotask(sync) }
+  }, [active])
 }
 
 const TEXT_SPEEDS = [
@@ -1660,6 +1682,25 @@ function PluginSettingsCard(): React.ReactElement {
   )
 }
 
+const MAP_SOLO_CONVERSATIONS = new Set<string>()
+
+async function enterWorkshopCharacter(characterId: string, sessionId?: string): Promise<any> {
+  const scope = sessionId ? { sessionId } : {}
+  const result = await api('settings-set', { ...scope, characterMode: 'manual', characterId })
+  assertApiResult(result, '角色切换未被接受')
+  const nextView = viewFromResult(result) || await api('view', scope)
+  if (!nextView || nextView.current !== characterId) throw new Error('角色画面尚未准备好，请重试')
+  MAP_SOLO_CONVERSATIONS.add(viewCacheKey(sessionId))
+  rememberView(viewCacheKey(sessionId), nextView)
+  window.dispatchEvent(new CustomEvent('whg:settings-changed', {
+    detail: { settings: settingsFromResult(result), view: nextView, sourceSessionId: eventSourceSessionId(sessionId) },
+  }))
+  window.dispatchEvent(new CustomEvent('whg:map-character', {
+    detail: { view: nextView, sourceSessionId: eventSourceSessionId(sessionId) },
+  }))
+  return nextView
+}
+
 function App(props: { useSessions: any; variant?: string; sessionId?: string }): React.ReactElement {
   const callApi = (action: string, args?: any) => api(action, props.sessionId
     ? { ...(args && typeof args === 'object' ? args : {}), sessionId: props.sessionId }
@@ -1682,6 +1723,8 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     })
   }
   const [open, setOpen] = useState(false)
+  const [mapOpen, setMapOpen] = useState(false)
+  const [soloConversation, setSoloConversation] = useState(() => MAP_SOLO_CONVERSATIONS.has(cacheKey))
   const [busy, setBusy] = useState(false)
   const [text, setText] = useState('')
   const [skitText, setSkitText] = useState('')
@@ -1694,7 +1737,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
   const rootRef = useRef<HTMLDivElement | null>(null)
   const uiReturnFocus = useRef<HTMLElement | null>(null)
   const [audio] = useState(createProgrammaticAudio)
-  const stageEnabled = !!s && s.enabled !== false && (props.variant === 'tab' || open)
+  const stageEnabled = !!s && s.enabled !== false && !mapOpen && (props.variant === 'tab' || open)
   const stageVisible = useStageVisibility(rootRef, stageEnabled, cacheKey)
   const atmosphereCharacter = String(sideStoryScene()?.cast?.[0]?.id || (s && s.current) || 'deepseek')
   const rewardCgId = s && s.cg && s.cg.status === 'ready' && s.cg.seen !== true
@@ -1727,7 +1770,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
   const [rewardCgDetail, setRewardCgDetail] = useState<any>(null)
   const [rewardCgLoading, setRewardCgLoading] = useState(false)
   const [rewardCgError, setRewardCgError] = useState<string | null>(null)
-  const [pickerPanel, setPickerPanel] = useState<'character' | 'chat' | 'background' | 'sprite' | 'skit' | null>(null)
+  const [pickerPanel, setPickerPanel] = useState<'character' | 'chat' | 'personalize' | 'background' | 'sprite' | 'skit' | null>(null)
   const [skitTopic, setSkitTopic] = useState('')
   const [modelOptions, setModelOptions] = useState<any>(null)
   const [pluginSettings, setPluginSettings] = useState<any>(null)
@@ -1760,6 +1803,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
   const historyScrollRef = useRef<HTMLDivElement | null>(null)
   const pickerRef = useRef<HTMLDivElement | null>(null)
   const pickerReturnFocus = useRef<HTMLElement | null>(null)
+  const personalizeTriggerRef = useRef<HTMLButtonElement | null>(null)
   const bgFileRef = useRef<HTMLInputElement | null>(null)
   const spriteFileRef = useRef<HTMLInputElement | null>(null)
   const profileFirstFieldRef = useRef<HTMLInputElement | null>(null)
@@ -1872,32 +1916,25 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     return () => clearTimeout(t)
   }, [])
 
-  // while the galgame tab is actually visible: hide the workspace composer
-  // (restored the moment the tab hides)
+  // The embedded map keeps the Galgame view's ownership of the hidden composer.
+  useConversationLayout(props.variant === 'tab')
+
   useEffect(() => {
-    if (props.variant !== 'tab') return
-    const sync = () => {
-      const el = document.getElementById('whg-tab-root')
-      const visible = !!el && el.offsetParent !== null
-      if (visible) {
-        document.body.dataset.whaleGalgameActive = ''
-        setComposerHidden(true)
-        syncTabLayout(true)
-      } else {
-        delete document.body.dataset.whaleGalgameActive
-        setComposerHidden(false)
-        syncTabLayout(false)
-      }
+    const onCharacter = (event: Event) => {
+      const nextView = scopedEventView((event as CustomEvent).detail, props.sessionId)
+      if (!nextView) return
+      setS(nextView)
+      setSoloConversation(true)
+      setMapOpen(false)
+      setUiHidden(false)
     }
-    sync()
-    const id = setInterval(sync, 1200)
+    window.addEventListener('whg:map-character', onCharacter)
     return () => {
-      clearInterval(id)
-      delete document.body.dataset.whaleGalgameActive
-      setComposerHidden(false)
-      syncTabLayout(false)
+      window.removeEventListener('whg:map-character', onCharacter)
     }
-  }, [props.variant])
+  }, [props.sessionId])
+
+  useEffect(() => { setSoloConversation(MAP_SOLO_CONVERSATIONS.has(cacheKey)) }, [cacheKey])
 
   useEffect(() => {
     if (s && s.enabled === false) return undefined
@@ -2246,6 +2283,9 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
 
   function act(action: string, args?: any): void {
     if (busy || actionInFlight.current) return
+    if (action === 'side-story' && (!args?.op || args.op === 'start')) {
+      MAP_SOLO_CONVERSATIONS.delete(cacheKey); setSoloConversation(false)
+    }
     actionInFlight.current = true
     const requestSeq = ++actionSeq.current
     const requestScope = cacheKey
@@ -2345,7 +2385,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     })
   }
 
-  function openPicker(kind: 'character' | 'chat' | 'background' | 'sprite' | 'skit', trigger: HTMLElement): void {
+  function openPicker(kind: 'character' | 'chat' | 'personalize' | 'background' | 'sprite' | 'skit', trigger: HTMLElement): void {
     if (pickerPanel === kind) {
       closePicker(false)
       return
@@ -2358,6 +2398,16 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     setSpritePreview(null)
     setSpriteFileName('')
     if (kind === 'character' || kind === 'chat') loadPickerData()
+  }
+
+  function openPersonalization(kind: 'personalize' | 'background' | 'sprite' | 'profile'): void {
+    const trigger = personalizeTriggerRef.current
+    if (!trigger) return
+    if (kind === 'profile') openArchive('profile', trigger)
+    else {
+      if (archivePanel === 'profile') closeArchive()
+      openPicker(kind, trigger)
+    }
   }
 
   function updateRuntimeSettings(patch: any): void {
@@ -3032,6 +3082,41 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     )
   }
 
+  function personalizationMenu(): React.ReactElement | null {
+    if (pickerPanel !== 'personalize') return null
+    const entries = [
+      { kind: 'background' as const, label: '背景图', note: '选择内置场景，或上传自己的图片' },
+      { kind: 'sprite' as const, label: '角色立绘', note: '更换当前角色的形象' },
+      { kind: 'profile' as const, label: '角色设定', note: '修改昵称、称呼、性格与语气' },
+    ]
+    return React.createElement('div', {
+      'aria-label': '个性化', className: 'whg-picker right whg-personalize-menu',
+      id: 'whg-personalize-menu-' + appScope, ref: pickerRef, role: 'menu',
+    },
+      entries.map((entry) => React.createElement('button', {
+        className: 'whg-picker-option', disabled: pickerLoading, key: entry.kind,
+        onClick: () => openPersonalization(entry.kind), role: 'menuitem', type: 'button',
+      },
+        React.createElement('span', null,
+          React.createElement('span', { className: 'whg-picker-option-main' }, entry.label),
+          React.createElement('span', { className: 'whg-picker-option-sub' }, entry.note),
+        ),
+        React.createElement('span', { 'aria-hidden': true, className: 'whg-picker-check' }, '›'),
+      )),
+    )
+  }
+
+  function personalizationNav(): React.ReactElement {
+    return React.createElement('div', { className: 'whg-personalize-nav' },
+      React.createElement('button', {
+        className: 'whg-btn', disabled: pickerLoading, onClick: () => openPersonalization('personalize'), type: 'button',
+      }, '返回个性化'),
+      React.createElement('button', {
+        'aria-label': '关闭个性化面板', className: 'whg-btn', disabled: pickerLoading, onClick: () => closePicker(), type: 'button',
+      }, '关闭'),
+    )
+  }
+
   function backgroundPicker(): React.ReactElement | null {
     if (pickerPanel !== 'background') return null
     const backgroundMode = String((s && s.backgroundMode) || (s && (s.bg === 'custom' || s.bg === 'cg') ? s.bg : 'builtin'))
@@ -3093,6 +3178,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
       ref: pickerRef,
       role: 'dialog',
     },
+      personalizationNav(),
       React.createElement('div', { className: 'whg-picker-head' },
         React.createElement('span', null, 'BACKGROUND FILE'),
         React.createElement('span', null, backgroundPreview ? '预览' : hasSavedBackground ? '覆盖中' : '角色背景'),
@@ -3199,6 +3285,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
       ref: pickerRef,
       role: 'dialog',
     },
+      personalizationNav(),
       React.createElement('div', { className: 'whg-picker-head' },
         React.createElement('span', null, 'CHARACTER PORTRAIT'),
         React.createElement('span', null, spritePreview ? '预览' : hasSavedSprite ? '使用中' : '默认'),
@@ -3550,6 +3637,10 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
           React.createElement('div', { className: 'whg-archive-heading' },
             React.createElement('div', { className: 'whg-archive-kicker' }, kicker),
             React.createElement('h2', { className: 'whg-archive-title', id: 'whg-archive-title-' + appScope }, isProfile ? '角色设定' : isHistory ? '对话历史' : isSkits ? '小剧场' : 'CG图鉴'),
+            isProfile ? React.createElement('button', {
+              className: 'whg-btn whg-personalize-back', disabled: profileSaving,
+              onClick: () => openPersonalization('personalize'), type: 'button',
+            }, '返回个性化') : null,
             // Chat log and skits are two views of the same archive, so they are
             // tabs in here rather than two more buttons in an already tight bar.
             isHistory || isSkits
@@ -3635,38 +3726,27 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
       ),
       React.createElement('div', { className: 'whg-spacer' }),
       React.createElement('div', { className: 'whg-top-actions' },
+        React.createElement('button', {
+          className: 'whg-btn', type: 'button', disabled: busy || pickerLoading,
+          onClick: () => { closePicker(false); setArchivePanel(null); setDisplayOpen(false); setMapOpen(true) },
+          title: '查看模型娘宿舍、休息区与实时工作状态',
+        }, '工坊地图'),
         React.createElement('div', { className: 'whg-chip-wrap' },
           React.createElement('button', {
-            'aria-controls': 'whg-background-picker-' + appScope,
-            'aria-expanded': pickerPanel === 'background',
-            'aria-haspopup': 'dialog',
-            className: 'whg-btn',
-            onClick: (event: any) => openPicker('background', event.currentTarget),
-            type: 'button',
-          }, '背景图'),
+            'aria-controls': pickerPanel === 'background' ? 'whg-background-picker-' + appScope
+              : pickerPanel === 'sprite' ? 'whg-sprite-picker-' + appScope
+                : archivePanel === 'profile' ? 'whg-profile-editor-' + appScope : 'whg-personalize-menu-' + appScope,
+            'aria-expanded': ['personalize', 'background', 'sprite'].includes(pickerPanel || '') || archivePanel === 'profile',
+            'aria-haspopup': 'menu',
+            className: 'whg-btn', disabled: busy || pickerLoading,
+            onClick: (event: any) => openPicker('personalize', event.currentTarget),
+            ref: personalizeTriggerRef,
+            title: '调整背景图、角色立绘与角色设定', type: 'button',
+          }, '个性化'),
+          personalizationMenu(),
           backgroundPicker(),
-        ),
-        React.createElement('div', { className: 'whg-chip-wrap' },
-          React.createElement('button', {
-            'aria-controls': 'whg-sprite-picker-' + appScope,
-            'aria-expanded': pickerPanel === 'sprite',
-            'aria-haspopup': 'dialog',
-            className: 'whg-btn',
-            onClick: (event: any) => openPicker('sprite', event.currentTarget),
-            title: '为' + (s.name || '当前角色') + '上传本地角色立绘',
-            type: 'button',
-          }, '角色立绘'),
           spritePicker(),
         ),
-        React.createElement('button', {
-          'aria-controls': 'whg-profile-editor-' + appScope,
-          'aria-expanded': archivePanel === 'profile',
-          'aria-haspopup': 'dialog',
-          className: 'whg-btn',
-          onClick: (event: any) => openArchive('profile', event.currentTarget),
-          title: '修改' + (s.name || '当前角色') + '的昵称、称呼、问候、性格、语气与 CG 外观描述',
-          type: 'button',
-        }, '角色设定'),
         React.createElement('button', {
           'aria-expanded': archivePanel === 'history',
           className: 'whg-btn',
@@ -3693,15 +3773,18 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
               'aria-expanded': pickerPanel === 'skit',
               'aria-haspopup': 'dialog',
               className: 'whg-btn',
-              disabled: busy || active || side.available === false,
-              onClick: (event: any) => openPicker('skit', event.currentTarget),
-              title: active
+              disabled: busy || (active && !soloConversation) || (!active && side.available === false),
+              onClick: (event: any) => {
+                if (active && soloConversation) { MAP_SOLO_CONVERSATIONS.delete(cacheKey); setSoloConversation(false) }
+                else openPicker('skit', event.currentTarget)
+              },
+              title: active && soloConversation ? '继续上次尚未结束的小剧场' : active
                 ? '小剧场正在上演'
                 : cooling
                   ? '小剧场冷却中，约 ' + mins + ' 分钟后可再开一场'
                   : '让工坊里的同事们演一段小剧场，可以自己指定话题',
               type: 'button',
-            }, '小剧场')
+            }, active && soloConversation ? '继续小剧场' : '小剧场')
           })(),
           skitPicker(),
         ),
@@ -3746,6 +3829,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
   }
 
   function sideStoryScene(): any | null {
+    if (soloConversation) return null
     const side = s && s.sideStory
     return side && side.scene && Array.isArray(side.scene.beats) && side.scene.beats.length ? side.scene : null
   }
@@ -4154,6 +4238,14 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     ? React.createElement('div', { className: 'whg-restore-hint', 'aria-hidden': true }, '点击任意处恢复')
     : null
 
+  const mapView = () => React.createElement(WorkshopMap, {
+    request: callApi, sessionId: props.sessionId, onClose: () => setMapOpen(false),
+    onEnterCharacter: async (id: string) => {
+      const nextView = await enterWorkshopCharacter(id, props.sessionId)
+      setS(nextView); setMapOpen(false)
+    },
+  })
+
   if (isTab) {
     if (s === null) {
       return React.createElement('div', { id: 'whg-tab-root', className: 'whg-root-tab' },
@@ -4171,6 +4263,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
         ),
       )
     }
+    if (mapOpen) return React.createElement('div', { id: 'whg-tab-root', className: 'whg-root-tab' }, mapView())
     const bgSrc = backgroundSrc
     const bgEl = bgSrc
       ? React.createElement(CrossfadeImg, { className: 'whg-bg', src: bgSrc, alt: '', draggable: false })
@@ -4206,6 +4299,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     )
   }
   if (s.enabled === false) return React.createElement(React.Fragment, null)
+  if (mapOpen) return React.createElement('div', { className: 'whg-root' }, mapView())
   const bgSrc = backgroundSrc
   const bgEl = bgSrc
     ? React.createElement(CrossfadeImg, { className: 'whg-bg', src: bgSrc, alt: '', draggable: false })
@@ -4230,7 +4324,7 @@ export const inject = ['slots']
 export function apply(ctx: any): void {
   const style = document.createElement('style')
   style.dataset.plugin = 'dsh-whale-galgame'
-  style.textContent = CSS
+  style.textContent = CSS + '\n' + WORKSHOP_CSS
   document.head.appendChild(style)
 
   const slots = ctx.slots || ctx.get('slots')

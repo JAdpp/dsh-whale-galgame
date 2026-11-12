@@ -21,8 +21,8 @@ jobs:
       - name: Check committed art and bundles
         shell: pwsh
         run: |
-          git diff --exit-code -- assets/default src/client/art.generated.ts lib
-          $changes = git status --porcelain --untracked-files=all -- assets/default src/client/art.generated.ts lib
+          git diff --exit-code -- assets/default assets/workshop src/client/art.generated.ts src/client/workshop.generated.ts lib
+          $changes = git status --porcelain --untracked-files=all -- assets/default assets/workshop src/client/art.generated.ts src/client/workshop.generated.ts lib
           if ($changes) {
             $changes
             exit 1

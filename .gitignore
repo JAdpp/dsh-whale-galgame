@@ -14,6 +14,7 @@ Thumbs.db
 # stays out of git and out of the git-hosted install tarball.
 /lib/
 /src/client/art.generated.ts
+/src/client/workshop.generated.ts
 
 # Workspace-local Galgame data and user-provided visuals
 .whale-girl-save*.json

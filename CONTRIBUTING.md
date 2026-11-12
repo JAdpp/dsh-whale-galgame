@@ -9,5 +9,7 @@
 5. Update all four README files when an installation or user-facing workflow
    changes.
 
-Generated bundles in `lib/` are committed so GitHub installation works without
-a build step. Please rebuild them after changing `src/`.
+Generated bundles in `lib/`, `src/client/art.generated.ts`, and
+`src/client/workshop.generated.ts` stay out of Git. Keep the source images and
+manifests in sync; the `prepare` script embeds them and builds Git installations.
+Published npm packages include the prebuilt bundles without duplicate raw images.

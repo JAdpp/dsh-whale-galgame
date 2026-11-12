@@ -4,6 +4,8 @@
 
 This public repository includes the exact 22 default image files used by the installed plugin. It does not include a placeholder-art substitute.
 
+It also includes the four current workshop atlases—shared-room backgrounds, themed dorms, resident animation and workstation animation—described in [`assets/workshop/README.md`](assets/workshop/README.md), with dimensions, hashes and generation provenance in its manifest, and the generated brand mark documented in [`docs/brand/README.md`](docs/brand/README.md). These use the project's CC BY-NC-SA 4.0 artwork terms to the extent the maintainer holds the applicable rights. The character atlases follow the existing unofficial character designs and preserve the attribution below.
+
 It does **not** include a maintainer or user save, dialogue history, generated CG, uploaded background, uploaded character sprite, API key, or private source-art collection. Those remain local user data and are outside this distribution.
 
 ## Whale-girl attribution chain
@@ -54,6 +56,14 @@ The six role backgrounds were copied from the project's approved source-art set 
 
 The exported file list is reproducible from the embedded runtime data with `npm run export:art`. [`assets/default/README.md`](assets/default/README.md) records the corresponding runtime keys. The same image payloads are embedded as data URLs in `src/client/art.generated.ts` and `lib/client.js`; each payload retains the license listed here, while the surrounding program code remains under MIT.
 
+## Generated workshop artwork
+
+The current `public-rooms-atlas.png`, `themed-rooms-atlas.png`, `residents-atlas-builtin.png` and `workstations-rpg-atlas.png` were generated with Codex's built-in image generator; the tool does not expose its exact model version. The themed dorms reference the six characters' default visual-novel backgrounds listed above: DeepSeek's deep-sea palace and the Claude, GPT, Gemini, Kimi and Grok study/workshop scenes. Furniture, curtains, colours and distinctive ornaments are retained or translated into complete bedroom interiors. The palace reference retains the whale-girl attribution chain. DeepSeek's optional seaside study is not the default reference for its themed dorm.
+
+Shared workroom, tea-lounge, observatory and gallery backgrounds were newly drawn as complete interiors. The map preserves their furniture and architectural detail and contains no computers or monitors; screen-based details in reference scenes are translated into drawing materials, cards and prisms. The four runtime atlases and current minimalist logo use the project's CC BY-NC-SA 4.0 artwork terms to the extent the maintainer holds the applicable rights.
+
+The earlier GPT Image 2.6 Sunburst `manor-atlas-image26.png` is preserved in the source tree as a superseded asset, and the earlier ornate logo's provenance remains in the manifest. Neither is embedded as current runtime artwork. Prompts, exact files, dimensions and hashes are documented in [`assets/workshop/README.md`](assets/workshop/README.md) and its manifest; the program code and renderer remain MIT-licensed.
+
 ## Galgame interface
 
 The Galgame interface layout, frames, controls, dialogue presentation, and current React/CSS implementation were produced for this unofficial project with AI assistance and are covered by this repository's MIT license. The visual direction retains and adapts decorative ideas made available by the `dsh-deep-whale / maid-atelier` skin, while the public plugin has no separate hidden UI-image pack.
@@ -68,10 +78,11 @@ The upstream repository uses the MIT License, Copyright (c) 2026 f0909172434. It
 
 ## Documentation screenshots
 
-The screenshots under `docs/screenshots/` are captures of the plugin running in DSH Web, not hand-drawn or generated interface mockups. `galgame-overview.jpg` keeps the surrounding DSH Web sidebar and top navigation in frame; no replacement UI was drawn over the capture.
+The screenshots under `docs/screenshots/` are browser captures of the plugin, not hand-drawn or generated interface mockups. The original Galgame and settings screenshots were captured in DSH Web; `galgame-overview.jpg` keeps the surrounding DSH Web sidebar and top navigation in frame. The workshop screenshots render the actual plugin with a local mock Harness and fictional task states, as marked in the preview header.
 
 - `docs/screenshots/galgame-overview.jpg` shows the running Galgame view with the default whale-girl sprite and deep-sea palace background. The pictured artwork remains under CC BY-NC-SA 4.0.
 - `docs/screenshots/plugin-settings.png` shows the real DSH Web plugin-settings dialog. DSH Web and visible surrounding components remain subject to their own licenses.
+- `docs/screenshots/workshop-map.png` and `workshop-one-resident.png` demonstrate the rendered workshop with fictional connected-model and task states. They do not show a user's live tasks or save data.
 
 Inclusion in a screenshot does not relicense any pictured work.
 

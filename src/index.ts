@@ -10,6 +10,7 @@ import {
   type HarnessActivity,
 } from './activity-context.ts'
 import { AsyncLocalStorage } from 'node:async_hooks'
+import { createWorkshopCatalog, createWorkshopPresenceTracker, workshopProviderUsable } from './workshop-presence.ts'
 import { randomUUID } from 'node:crypto'
 import {
   link as nativeLink,
@@ -597,11 +598,24 @@ export function apply(
   let fs: any
   let sandboxPolicy: any
   let sessionsSvc: any
+  let agentsSvc: any
+  let settingsSvc: any
+  let credentialsSvc: any
   let workspaceRegistry: any
   let agentDefaultModel: any
   let sessionQuery: any
   let webSeam: any = null
   let lastSideStoryFailure = ''
+  const workshopPresence = createWorkshopPresenceTracker()
+  const workshopCatalog = createWorkshopCatalog({
+    listProviders: () => llm.listProviders(),
+    listModels: (provider) => llm.listModels(provider),
+    isProviderAvailable: (provider) => workshopProviderUsable(provider, {
+      listConfigurableProviders: typeof llm.listConfigurableProviders === 'function' ? () => llm.listConfigurableProviders() : undefined,
+      describeSettings: settingsSvc && typeof settingsSvc.describe === 'function' ? () => settingsSvc.describe({ redactSecrets: true }) : undefined,
+      describeCredential: credentialsSvc && typeof credentialsSvc.describe === 'function' ? (ref) => credentialsSvc.describe(ref) : undefined,
+    }),
+  })
   let dshHomePath: ((...segments: string[]) => string) | null = typeof ctx.dshHomePath === 'function'
     ? ctx.dshHomePath.bind(ctx)
     : null
@@ -616,6 +630,17 @@ export function apply(
     })
     ctx.inject(['sessionQuery'], (scope: any) => {
       sessionQuery = scope.sessionQuery
+    })
+    // Optional live Agent metadata keeps presence accurate during pre-step,
+    // cancellation and checkpointing. Older hosts use in-process turn events.
+    ctx.inject(['agents'], (scope: any) => {
+      agentsSvc = scope.agents
+    })
+    ctx.inject(['settings'], (scope: any) => {
+      settingsSvc = scope.settings
+    })
+    ctx.inject(['credentials'], (scope: any) => {
+      credentialsSvc = scope.credentials
     })
     // Optional on purpose. Declaring 'web' in the module-level `inject` would
     // make it a hard dependency, and a profile without the web seam would fail
@@ -1880,6 +1905,7 @@ export function apply(
   }
 
   ctx.on('session/event', (session: any, event: any) => {
+    workshopPresence.observe(session, event)
     const header = session && session.header
     if (splitStorageActive()) {
       if (!header || typeof header.cwd !== 'string' || !header.cwd) return
@@ -5476,7 +5502,36 @@ export function apply(
     }
   }
 
+  function workshopMapState(): any {
+    const state = splitStorageActive() ? globalState : currentStateBacking()
+    const enabled = typeof state?.preferences?.enabled === 'boolean' ? state.preferences.enabled : cfg.enabled !== false
+    const roster = ROSTER_IDS.map((id) => ({
+      id,
+      name: normalizeProfileOverrides(state?.characters?.[id]?.profileOverrides).displayName || ROSTER[id].name,
+    }))
+    let sessions: any[] = []
+    let agents: any[] = []
+    if (enabled) {
+      try {
+        const rows = sessionsSvc && typeof sessionsSvc.list === 'function' ? sessionsSvc.list() : []
+        if (Array.isArray(rows)) sessions = rows
+      } catch { /* a temporarily unavailable host store leaves residents idle */ }
+      try {
+        const rows = agentsSvc && typeof agentsSvc.list === 'function' ? agentsSvc.list() : []
+        if (Array.isArray(rows)) agents = rows
+      } catch { /* process-local turn observations remain available */ }
+    }
+    const characters = workshopPresence.snapshot(sessions, agents, roster)
+    return { enabled, characters, ...workshopCatalog.snapshot(characters), updatedAt: Date.now() }
+  }
+
   async function handleAction(action: string, args: any): Promise<any> {
+    // A global, read-only snapshot: never resolve a workspace, read persisted
+    // sessions, acquire the chat mutex, settle affection or call a model.
+    if (action === 'map-state') {
+      if (splitStorageActive()) await ensureGlobalReady()
+      return workshopMapState()
+    }
     if (!splitStorageActive()) {
       if (action !== 'chat') return dispatchAction(action, args)
       return runSerializedChatTask(null, () => dispatchAction(action, args))
