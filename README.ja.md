@@ -12,16 +12,16 @@
 
 ## 概要
 
-Harness で作業する合間に、モデル娘との「ひと味違う」同僚関係を見つけてみませんか～(∠・ω< )⌒★
+Harness で作業する合間に、AI娘との「ひと味違う」同僚関係を見つけてみませんか～(∠・ω< )⌒★
 
 `dsh-whale-galgame` は、DeepSeek Harness Web / Desktop 向けの独立したマルチキャラクター Galgame インターフェースプラグインです。日々のワークフローへ自然に溶け込み、無機質な AI とのやり取りを温かく長く続くつながりへ変えます。
 
-- **個性豊かな 6 人のモデル娘**：DeepSeek（鯨娘）、Claude、GPT、Gemini、Kimi、Grok に対応し、立ち絵、好感度、記憶、背景はそれぞれ独立しています。
+- **個性豊かな 6 人のAI娘**：DeepSeek（鯨娘）、Claude、GPT、Gemini、Kimi、Grok に対応し、立ち絵、好感度、記憶、背景はそれぞれ独立しています。
 - **外見と中身を分離**：鯨娘の立ち絵が好きでも、Claude や GPT とじっくり話したい？ キャラクター画像と内部の返信モデルを自由に組み合わせられます。
 - **「小劇場」モード**：一対一の質疑応答にとどまらず、複数キャラクターの日常、仕事の振り返り短編、専用のマイルストーンストーリーを楽しめます。
 - **一緒に育つ絆システム**：日々の交流と仕事で蓄積した token の両方が好感度を高め、専用の親密な口調と AI 生成の記念 CG を解放します。
 - **軽量でかわいいデスクトップペット**：画面の隅に常駐でき、クリック一つで Galgame 画面へ切り替えられます。
-- **深海工房のピクセルマップ**：働いたり休んだりするモデル娘を眺め、クリックして会話できます。
+- **深海工房のピクセルマップ**：働いたり休んだりするAI娘を眺め、クリックして会話できます。
 
 ![DSH Web で実際に動作している dsh-whale-galgame](docs/screenshots/galgame-overview.jpg)
 
@@ -29,7 +29,7 @@ Harness で作業する合間に、モデル娘との「ひと味違う」同僚
 
 ## 機能
 
-- Galgame 上部の「工坊地图」から、接続モデルに合わせて寮の部屋数が変わるマップを開けます。モデル娘は仕事中は机に向かい、空き時間は散歩や休憩をし、クリックすると会話できます。
+- Galgame 上部の「工坊地图」から、接続モデルに合わせて寮の部屋数が変わるマップを開けます。AI娘は仕事中は机に向かい、空き時間は散歩や休憩をし、クリックすると会話できます。
 - 4 段階の文字速度、当時の表情も見返せる会話履歴、H / 右クリックによる UI 非表示。
 - Web Audio による効果音と BGM。個別に切り替え・音量調整ができ、初期状態はどちらもオフ。
 - 最近の DSH 作業カテゴリ、ローカルの日付、前回の会話からの時間を踏まえた応答。
@@ -38,6 +38,36 @@ Harness で作業する合間に、モデル娘との「ひと味違う」同僚
 - DeepSeek Harness Web / Desktop 共通のプラグイン。文書は中・英・日・韓の 4 言語、UI は現在簡体字中国語。
 
 関係の進行、作業の認識、生成ルールは[仕組みの説明](docs/mechanics.md)（中国語）をご覧ください。
+
+## 同梱デフォルト画像
+
+<table>
+  <tr>
+    <td align="center"><img src="assets/default/maid-left.webp" width="180" alt="DeepSeek 鯨娘のデフォルト立ち絵"><br><strong>DeepSeek · 鯨娘</strong></td>
+    <td align="center"><img src="assets/default/claude-zipzippipe.webp" width="180" alt="Claude AI娘・克洛德のデフォルト立ち絵"><br><strong>Claude · 克洛德</strong></td>
+    <td align="center"><img src="assets/default/gpt-zipzippipe.webp" width="180" alt="GPT AI娘・小吉のデフォルト立ち絵"><br><strong>GPT · 小吉</strong></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="assets/default/gemini-dual-prism-translator-v4.webp" width="180" alt="Gemini AI娘・双子のデフォルト立ち絵"><br><strong>Gemini · 双子</strong></td>
+    <td align="center"><img src="assets/default/kimi-lunar-scroll-navigator-v5.webp" width="180" alt="Kimi AI娘・月见のデフォルト立ち絵"><br><strong>Kimi · 月见</strong></td>
+    <td align="center"><img src="assets/default/grok-zipzippipe.webp" width="180" alt="Grok AI娘・洛可のデフォルト立ち絵"><br><strong>Grok · 洛可</strong></td>
+  </tr>
+</table>
+
+新しい 6 点のキャラクター背景を下に示します。Claude、GPT、Gemini、Kimi、Grok は各シーンを既定背景として使います。DeepSeek 鯨娘の既定背景は `palace-night.webp` のままで、海辺の書斎は選択可能な内蔵代替背景です。
+
+<table>
+  <tr>
+    <td align="center"><img src="assets/default/bg-deepseek-seaside-study.webp" width="260" alt="DeepSeek 鯨娘の海辺の書斎・代替背景"><br><strong>DeepSeek · 選択可</strong></td>
+    <td align="center"><img src="assets/default/bg-claude-writing-study.webp" width="260" alt="Claude の書斎・既定背景"><br><strong>Claude</strong></td>
+    <td align="center"><img src="assets/default/bg-gpt-collaboration-workshop.webp" width="260" alt="GPT の共同作業スタジオ・既定背景"><br><strong>GPT</strong></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="assets/default/bg-gemini-twin-creative-studio.webp" width="260" alt="Gemini のツイン創作スタジオ・既定背景"><br><strong>Gemini</strong></td>
+    <td align="center"><img src="assets/default/bg-kimi-moonlit-reading-study.webp" width="260" alt="Kimi の月明かりの閲覧室・既定背景"><br><strong>Kimi</strong></td>
+    <td align="center"><img src="assets/default/bg-grok-electronics-studio.webp" width="260" alt="Grok の電子工作室・既定背景"><br><strong>Grok</strong></td>
+  </tr>
+</table>
 
 ## インストール
 

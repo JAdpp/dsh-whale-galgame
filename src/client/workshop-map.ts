@@ -343,7 +343,7 @@ export function WorkshopMap(props: {
     : !people.length ? loadingCatalog ? '正在获取接入模型' : catalogError || syncError ? '暂时没有连上模型目录' : '为她留一间房吧'
       : '正在布置深海工坊'
   const emptyMessage = imageError ? imageError
-    : !people.length ? loadingCatalog ? '接入哪些模型，庄园里就会住进哪些模型娘。'
+    : !people.length ? loadingCatalog ? '接入哪些模型，庄园里就会住进哪些AI娘。'
       : catalogError || syncError ? '模型目录读取失败，正在重试。连接恢复后，房间和角色会自动出现。'
         : '在 Harness 中配置并启用模型后，回来看看。她的宿舍和工位会一起准备好。'
       : '阳光、海风，还有等你一起度过的日常。'
