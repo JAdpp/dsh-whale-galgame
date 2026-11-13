@@ -17,22 +17,32 @@ test('rooms follow connected families, coalescing model versions and aliases', (
   const empty = createWorkshopLayout([])
   assert.equal(empty.rooms.filter((room) => room.kind === 'dorm').length, 0)
   assert.deepEqual(createResidents({}, 0, empty), [])
-  assert.ok(empty.height < one.height)
+  assert.equal(empty.height, one.height)
 })
 
-test('one or two dorms are centred and the fourth connected family creates a second row', () => {
-  for (const count of [1, 2]) {
+test('the manor is one landscape building: a centred dorm row above a single gallery', () => {
+  for (const count of [0, 1, 2, 3, 4, 5, 6]) {
     const layout = createWorkshopLayout(RESIDENT_IDS.slice(0, count))
     const dorms = layout.rooms.filter((room) => room.kind === 'dorm')
-    assert.equal(dorms[0].x, layout.width - dorms.at(-1)!.x - dorms.at(-1)!.width)
-  }
-  const three = createWorkshopLayout(RESIDENT_IDS.slice(0, 3))
-  const four = createWorkshopLayout(RESIDENT_IDS.slice(0, 4))
-  assert.ok(four.height > three.height)
-  assert.equal(new Set(four.rooms.filter((room) => room.kind === 'dorm').map((room) => room.y)).size, 2)
-  for (const room of four.rooms) {
-    assert.ok(room.x >= 64 && room.x + room.width <= four.width - 64)
-    assert.ok(room.y >= 0 && room.y + room.height <= four.height)
+    assert.ok(layout.width > layout.height, 'the map fits a landscape window')
+    assert.equal(layout.halls.length, 1)
+    const gallery = layout.halls[0]
+    if (dorms.length) {
+      assert.equal(new Set(dorms.map((room) => room.y)).size, 1, 'all dorms share one row')
+      assert.equal(dorms[0].x, layout.width - dorms.at(-1)!.x - dorms.at(-1)!.width, 'the dorm row is centred')
+    }
+    for (const room of layout.rooms) {
+      assert.ok(room.x >= 96 && room.x + room.width <= layout.width - 96, 'sea surrounds the building')
+      assert.ok(room.y >= 96 && room.y + room.height <= layout.height - 96)
+      assert.ok(room.x >= gallery.x && room.x + room.width <= gallery.x + gallery.width, `${room.id} sits along the gallery`)
+      // Dorms open down onto the gallery; every other room opens up onto it.
+      for (const door of room.doors) {
+        assert.equal(door.y, room.kind === 'dorm' ? gallery.y : gallery.y + gallery.height, `${room.id} opens onto the gallery`)
+      }
+    }
+    for (const a of layout.rooms) for (const b of layout.rooms) if (a !== b) {
+      assert.ok(a.x + a.width <= b.x || b.x + b.width <= a.x || a.y + a.height <= b.y || b.y + b.height <= a.y, `${a.id} and ${b.id} do not overlap`)
+    }
   }
 })
 
@@ -59,7 +69,7 @@ function assertClearRoute(layout: WorkshopLayout, start: string, destination: st
   }
 }
 
-test('every available dorm and shared area reaches each assigned desk through doorways, including both dorm rows', () => {
+test('every available dorm and shared area reaches each assigned desk through doorways', () => {
   for (const ids of [['deepseek'], ['claude', 'kimi'], [...RESIDENT_IDS]]) {
     const layout = createWorkshopLayout(ids)
     const starts = [...layout.ids.map((id) => 'dorm-' + id), ...layout.commonDestinations]
@@ -75,13 +85,15 @@ function crossesTable(a: Point, b: Point, table: Bounds): boolean {
     && Math.max(a.x, b.x) > table.x && Math.min(a.x, b.x) < table.x + table.width
 }
 
-test('the same 48px grid governs every floor, room and furniture module', () => {
+test('rooms and the gallery are sized on the 48px grid', () => {
   assert.equal(TILE_SIZE, 48)
   for (const count of [0, 1, 2, 3, 4, 5, 6]) {
     const layout = createWorkshopLayout(RESIDENT_IDS.slice(0, count))
     assert.equal(layout.tileSize, 48)
-    for (const rect of [...layout.rooms, ...layout.halls, ...layout.props]) {
-      for (const value of [rect.x, rect.y, rect.width, rect.height]) assert.equal(value % 48, 0)
+    for (const rect of [...layout.rooms, ...layout.halls]) {
+      for (const value of [rect.y, rect.width, rect.height]) assert.equal(value % 48, 0)
+      // Centring an even number of dorms may land the row on a half tile.
+      assert.equal(rect.x % 24, 0)
     }
   }
 })
