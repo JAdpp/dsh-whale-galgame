@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 5,
   "generatedOn": "2026-11-13",
   "assets": [
     {
@@ -70,6 +70,38 @@
       "modelVersionExposed": false,
       "sourceId": "exec-05972b28-3e94-40f8-a148-cadb44d8b477",
       "reference": "themed-rooms-atlas.png"
+    },
+    {
+      "key": "workshop-office-atlas",
+      "file": "office-hires.png",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "514a9a968787583b49eaf24b5124ee6bf39d1372eaa45cb6f4a5190b4891a864",
+      "model": "Codex built-in image generation",
+      "modelVersionExposed": false,
+      "sourceId": "exec-fa10d3f9-2e19-4074-9a7c-7237034d5e8a",
+      "reference": "public-rooms-atlas.png",
+      "notes": "office-hires-notes.md",
+      "runtime": {
+        "file": "office-hires.webp",
+        "sha256": "6e92064de712eb5f4a927bdbfa331cb1c30e1211e1ff56232031cf8c0c7c1843"
+      }
+    },
+    {
+      "key": "workshop-walk-atlas",
+      "file": "walk-directions.png",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "143c5a044e605f0eeced21a1bb2559f1d0a7bd1a619f334b08a2b4df32163d27",
+      "model": "Codex built-in image generation",
+      "modelVersionExposed": false,
+      "reference": "residents-atlas-builtin.png",
+      "notes": "walk-directions-notes.md",
+      "runtime": {
+        "file": "walk-directions.webp",
+        "sha256": "c069d9698bab53c442b846d879cebc3374fb0f01fd82903903006f882140ed90"
+      },
+      "sourceId": "exec-76d2e60c-7e3b-4d05-a135-3c7fb4b60cf7"
     }
   ],
   "logo": {
@@ -359,5 +391,122 @@
     ],
     "alphaBoundsThreshold": 24,
     "rendering": "Complete furniture silhouettes, anchored at bottom centre. Decorations avoid rooms, door approaches, navigation segments and other furniture."
+  },
+  "walkLayout": {
+    "columns": 6,
+    "rows": 4,
+    "poses": [
+      "walk right A",
+      "walk right B",
+      "walk away A",
+      "walk away B"
+    ],
+    "mirroredForLeft": true,
+    "footAnchors": [
+      [
+        {
+          "x": 144.5,
+          "y": 247
+        },
+        {
+          "x": 141,
+          "y": 247
+        },
+        {
+          "x": 107.5,
+          "y": 247
+        },
+        {
+          "x": 133,
+          "y": 247
+        },
+        {
+          "x": 133,
+          "y": 247
+        },
+        {
+          "x": 148,
+          "y": 247
+        }
+      ],
+      [
+        {
+          "x": 144.5,
+          "y": 245
+        },
+        {
+          "x": 141,
+          "y": 245
+        },
+        {
+          "x": 107.5,
+          "y": 245
+        },
+        {
+          "x": 133,
+          "y": 245
+        },
+        {
+          "x": 133,
+          "y": 245
+        },
+        {
+          "x": 148,
+          "y": 245
+        }
+      ],
+      [
+        {
+          "x": 141.5,
+          "y": 248
+        },
+        {
+          "x": 134,
+          "y": 248
+        },
+        {
+          "x": 124.5,
+          "y": 247
+        },
+        {
+          "x": 128,
+          "y": 248
+        },
+        {
+          "x": 134,
+          "y": 248
+        },
+        {
+          "x": 127.5,
+          "y": 248
+        }
+      ],
+      [
+        {
+          "x": 141.5,
+          "y": 247
+        },
+        {
+          "x": 134,
+          "y": 247
+        },
+        {
+          "x": 124.5,
+          "y": 247
+        },
+        {
+          "x": 128,
+          "y": 247
+        },
+        {
+          "x": 134,
+          "y": 247
+        },
+        {
+          "x": 127.5,
+          "y": 247
+        }
+      ]
+    ]
   }
 }

@@ -15,14 +15,19 @@ export const OFFICE_ART = {
     { x0: 424, y0: 407, x1: 545, y1: 530 },
   ],
 } as const
+/** Side of a desk frame: three tiles keeps a seated resident the size of a walking one. */
+export const STATION_SIZE = TILE_SIZE * 3
 export const RESIDENT_IDS = ['deepseek', 'claude', 'chatgpt', 'gemini', 'kimi', 'grok'] as const
 export type ResidentId = typeof RESIDENT_IDS[number]
 export type PresenceStatus = 'idle' | 'running' | 'waiting'
 export type Presence = { id: string; name: string; status: PresenceStatus; activeSessions: number }
 export type Point = { x: number; y: number }
 export type Bounds = Point & { width: number; height: number }
+export type Facing = 'down' | 'up' | 'left' | 'right'
 export type Resident = Presence & Point & {
   node: string; route: string[]; destination: string; waitUntil: number; visits: number
+  /** Direction of the current step; residents face the viewer when they stop. */
+  facing: Facing
 }
 export type RoomKind = 'dorm' | 'office' | 'lounge' | 'observatory'
 export type WorkshopRoom = Bounds & {
@@ -42,7 +47,8 @@ export type WorkshopLayout = {
 
 const ROOM_SIZE = TILE_SIZE * 6
 const OFFICE_SIZE = TILE_SIZE * 20
-const COMMON_WIDTH = TILE_SIZE * 9, COMMON_HEIGHT = TILE_SIZE * 7
+// The lounge and observatory paintings are square.
+const COMMON_WIDTH = TILE_SIZE * 9, COMMON_HEIGHT = TILE_SIZE * 9
 // Sea and outer wall around the building.
 const MARGIN = TILE_SIZE * 2
 const GALLERY_HEIGHT = TILE_SIZE * 3
@@ -108,12 +114,12 @@ export function createWorkshopLayout(availableIds: readonly string[] = RESIDENT_
   add('work-entry', officeDoor.x, lowerY + TILE_SIZE * 1.5)
   link('work-door', 'work-entry')
   const officeScale = office.width / OFFICE_ART.cellSize
-  const stationSize = TILE_SIZE * 4
+  const stationSize = STATION_SIZE
   const workRows = Math.max(1, Math.ceil(ids.length / 3))
   for (let row = 0; row < workRows; row++) {
     const rowRug = OFFICE_ART.rugs[row * 3]
     // Round the shared frame origin once so empty and seated desks stay aligned.
-    const stationY = Math.round(office.y + rowRug.y1 * officeScale - 20 - stationSize)
+    const stationY = Math.round(office.y + rowRug.y1 * officeScale - 30 - stationSize)
     const aisleY = stationY + stationSize + TILE_SIZE * .5
     const aisle = add('work-aisle-' + row, officeDoor.x, aisleY)
     link(row === 0 ? 'work-entry' : 'work-aisle-' + (row - 1), aisle)
@@ -122,7 +128,7 @@ export function createWorkshopLayout(availableIds: readonly string[] = RESIDENT_
       const x = Math.round(office.x + (rug.x0 + rug.x1) / 2 * officeScale - stationSize / 2)
       const walkPoint = { x: x + stationSize / 2, y: aisleY }
       stations.push({ id, x, y: stationY, width: stationSize, height: stationSize, walkPoint,
-        tableBounds: { x: x + TILE_SIZE * .5, y: stationY + TILE_SIZE * 1.5, width: TILE_SIZE * 3, height: TILE_SIZE * 2 } })
+        tableBounds: { x: x + stationSize / 8, y: stationY + stationSize * .375, width: stationSize * .75, height: stationSize / 2 } })
       add('work-' + id, walkPoint.x, walkPoint.y)
       link(aisle, 'work-' + id)
     })
@@ -133,10 +139,11 @@ export function createWorkshopLayout(availableIds: readonly string[] = RESIDENT_
     add(kind + '-door', doorX, lowerY)
     link(stop(doorX), kind + '-door')
     names.forEach((name, index) => {
-      const y = lowerY + TILE_SIZE * (index === 0 ? 4.5 : 5.5)
+      // Standing spots on clear parquet: beside the tea table or telescope, then lower in the room.
+      const y = lowerY + TILE_SIZE * (index === 0 ? 5.5 : 7.5)
       const aisle = add(name + '-aisle', doorX, y)
       link(index === 0 ? kind + '-door' : names[0] + '-aisle', aisle)
-      add(name, x + TILE_SIZE * (index === 0 ? 2.5 : 6.5), y)
+      add(name, x + TILE_SIZE * (index === 0 ? 3.25 : 6), y)
       link(aisle, name)
     })
   }
@@ -180,7 +187,7 @@ export function createResidents(names: Record<string, string>, now: number, layo
   return layout.ids.map((id, index) => ({
     id, name: names[id] || FAMILY_NAMES[id], status: 'idle', activeSessions: 0,
     ...layout.nodes['dorm-' + id], node: 'dorm-' + id, destination: 'dorm-' + id,
-    route: [], waitUntil: now + 6000 + index * 2200, visits: 0,
+    route: [], waitUntil: now + 6000 + index * 2200, visits: 0, facing: 'down',
   }))
 }
 
@@ -213,10 +220,11 @@ export function stepResidents(residents: Resident[], elapsedSeconds: number, now
       if (!target) { resident.route = []; return }
       const dx = target.x - resident.x, dy = target.y - resident.y
       const remaining = Math.abs(dx) + Math.abs(dy)
+      if (remaining > 0) resident.facing = Math.abs(dx) >= Math.abs(dy) ? dx > 0 ? 'right' : 'left' : dy > 0 ? 'down' : 'up'
       if (remaining <= distance) {
         resident.x = target.x; resident.y = target.y
         resident.node = resident.route.shift()!
-        if (!resident.route.length) resident.waitUntil = now + 14000 + (index * 7 % 11) * 1000
+        if (!resident.route.length) { resident.facing = 'down'; resident.waitUntil = now + 14000 + (index * 7 % 11) * 1000 }
       } else {
         resident.x += Math.sign(dx) * Math.min(Math.abs(dx), distance)
         resident.y += Math.sign(dy) * Math.min(Math.abs(dy), distance)
@@ -252,5 +260,6 @@ export function settleResidents(residents: Resident[], layout: WorkshopLayout = 
     Object.assign(resident, target)
     resident.node = resident.destination
     resident.route = []
+    resident.facing = 'down'
   }
 }

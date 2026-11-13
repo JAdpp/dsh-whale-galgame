@@ -1,13 +1,18 @@
 /** Paints the manor as one building in the deep sea: shell, gallery, rooms, furniture, desks. */
-import { createWorkshopLayout, TILE_SIZE, type Bounds, type WorkshopLayout } from './workshop-world'
+import { createWorkshopLayout, STATION_SIZE, TILE_SIZE, type Bounds, type WorkshopLayout } from './workshop-world'
 
 export const CHARACTERS = ['deepseek', 'claude', 'chatgpt', 'gemini', 'kimi', 'grok'] as const
 export const DEFAULT_NAMES: Record<string, string> = {
   deepseek: 'DeepSeek', claude: 'Claude', chatgpt: 'GPT', gpt: 'GPT', gemini: 'Gemini', kimi: 'Kimi', grok: 'Grok',
 }
 export type WorkshopArtAssets = {
-  /** 2 × 2 sheet: workshop, lounge, observatory, gallery. */
+  /** 2 × 2 sheet: workshop (fallback), lounge, observatory, gallery. */
   publicAtlas?: CanvasImageSource | null
+  /** The workshop redrawn on its own at twice the sheet's resolution. */
+  officeImage?: CanvasImageSource | null
+  /** 6 × 4 sheet: two side-walk frames facing right, two back-walk frames. */
+  walkAtlas?: CanvasImageSource | null
+  walkAnchors?: Array<Array<{ x: number; y: number }>>
   /** 3 × 2 sheet of themed dorms in CHARACTERS order. */
   roomAtlas?: CanvasImageSource | null
   residentAtlas?: CanvasImageSource | null; decorAtlas?: CanvasImageSource | null
@@ -56,6 +61,33 @@ function sea(ctx: CanvasRenderingContext2D, layout: WorkshopLayout): void {
     const glint = next() > .82
     ctx.fillStyle = glint ? SEA_GLINT : SEA_SPECK
     ctx.fillRect(x, y, glint ? 2 : 4, 2)
+  }
+  // Slanted light shafts from the surface, stepped in 4px rows to stay on the pixel grid.
+  ctx.fillStyle = 'rgba(120,190,225,.045)'
+  for (const [start, width] of [[.08, 70], [.2, 34], [.74, 90], [.9, 40]] as const) {
+    for (let y = 0; y < layout.height; y += 4) ctx.fillRect(Math.round((layout.width * start - y * .22) / 2) * 2, y, width, 4)
+  }
+  // Kelp rises from the sea floor, thickest toward the two bottom corners.
+  for (let index = 0; index < 46; index++) {
+    const side = index % 2 ? 1 : -1, spread = next() ** 1.7 * layout.width * .34
+    const x = Math.round((side < 0 ? 24 + spread : layout.width - 24 - spread) / 4) * 4
+    const height = 60 + Math.floor(next() * 220), phase = next() * 6
+    ctx.fillStyle = next() > .5 ? '#0f3f4a' : '#13515a'
+    for (let step = 0; step < height; step += 8) {
+      const sway = Math.round(Math.sin(step / 26 + phase) * 6 / 2) * 2
+      ctx.fillRect(x + sway, layout.height - step - 8, step > height - 24 ? 4 : 6, 8)
+    }
+  }
+  // A few rising bubble trails.
+  ctx.fillStyle = '#2a6b86'
+  for (let index = 0; index < 10; index++) {
+    const x = Math.round(next() * layout.width / 2) * 2, bottom = layout.height * (.55 + next() * .4)
+    for (let bubble = 0; bubble < 5; bubble++) {
+      const size = bubble % 2 ? 4 : 6, y = Math.round(bottom - bubble * (26 + next() * 18))
+      const drift = Math.round(Math.sin(bubble * 1.7 + index) * 6)
+      ctx.fillRect(x + drift, y, size, 2); ctx.fillRect(x + drift, y + size - 2, size, 2)
+      ctx.fillRect(x + drift - 2, y + 2, 2, size - 4); ctx.fillRect(x + drift + size, y + 2, 2, size - 4)
+    }
   }
 }
 
@@ -292,6 +324,8 @@ export function drawWorkshop(ctx: CanvasRenderingContext2D, layout: WorkshopLayo
     if (room.kind === 'dorm') {
       const index = CHARACTERS.indexOf(room.characterId as typeof CHARACTERS[number])
       if (assets.roomAtlas && index >= 0) cell(ctx, assets.roomAtlas, index, 3, 2, room)
+    } else if (room.kind === 'office' && assets.officeImage) {
+      cell(ctx, assets.officeImage, 0, 1, 1, room)
     } else if (assets.publicAtlas) {
       cell(ctx, assets.publicAtlas, room.kind === 'office' ? 0 : room.kind === 'lounge' ? 1 : 2, 2, 2, room)
     }
@@ -303,12 +337,21 @@ export function drawWorkshop(ctx: CanvasRenderingContext2D, layout: WorkshopLayo
 
 /** x/y is the ground footpoint. At a desk it is the approach square south of the table. */
 export function drawResident(ctx: CanvasRenderingContext2D, id: string, x: number, y: number, frame: number,
-  status: 'idle' | 'running' | 'waiting', moving: boolean, assets: WorkshopArtAssets = {}, atDesk = false): void {
+  status: 'idle' | 'running' | 'waiting', moving: boolean, assets: WorkshopArtAssets = {}, atDesk = false,
+  facing: 'down' | 'up' | 'left' | 'right' = 'down'): void {
   ctx.save(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'
   if (atDesk && status !== 'idle' && assets.workstationAtlas) {
     const row = status === 'waiting' ? 4 : 1 + Math.floor(frame / 12) % 3
-    workFrame(ctx, assets, id, { x: x - TILE_SIZE * 2, y: y - TILE_SIZE * 4.5,
-      width: TILE_SIZE * 4, height: TILE_SIZE * 4 }, row)
+    workFrame(ctx, assets, id, { x: x - STATION_SIZE / 2, y: y - STATION_SIZE - TILE_SIZE * .5,
+      width: STATION_SIZE, height: STATION_SIZE }, row)
+  } else if (moving && facing !== 'down' && assets.walkAtlas) {
+    const column = CHARACTERS.indexOf((id === 'gpt' ? 'chatgpt' : id) as typeof CHARACTERS[number])
+    const row = (facing === 'up' ? 2 : 0) + Math.floor(frame / 8) % 2
+    const anchor = assets.walkAnchors?.[row]?.[column] || { x: 128, y: 247 }
+    // The sheet only faces right; walking left mirrors it around the foot point.
+    if (facing === 'left') { ctx.translate(x * 2, 0); ctx.scale(-1, 1) }
+    if (column >= 0) cell(ctx, assets.walkAtlas, row * 6 + column, 6, 4,
+      { x: x - anchor.x / 256 * 96, y: y - anchor.y / 256 * 96, width: 96, height: 96 })
   } else if (assets.residentAtlas) {
     const column = CHARACTERS.indexOf((id === 'gpt' ? 'chatgpt' : id) as typeof CHARACTERS[number])
     const row = moving ? 1 + Math.floor(frame / 8) % 2 : status === 'idle' ? 0 : 3
