@@ -213,3 +213,34 @@ test('returning from a hidden tab cannot teleport residents across the map', () 
   stepResidents(residents, 60, 60_000, false, layout)
   assert.ok(Math.abs(residents[0].x - before.x) + Math.abs(residents[0].y - before.y) <= 18)
 })
+
+test('residents face the way they walk and turn to the viewer when they stop', () => {
+  const layout = createWorkshopLayout([...RESIDENT_IDS])
+  const residents = createResidents({}, 0, layout)
+  const whale = residents[0]
+  assert.equal(whale.facing, 'down')
+  const seen = new Set<string>()
+  syncResidents(residents, [{ id: 'deepseek', name: 'DeepSeek', status: 'running', activeSessions: 1 }], 0, layout)
+  for (let time = 0; time < 40_000 && whale.node !== 'work-deepseek'; time += 100) {
+    const before = { x: whale.x, y: whale.y }
+    stepResidents(residents, .1, time, false, layout)
+    if (whale.route.length) {
+      seen.add(whale.facing)
+      // The facing always matches the axis and sign of the step just taken.
+      if (whale.x !== before.x) assert.equal(whale.facing, whale.x > before.x ? 'right' : 'left')
+      else if (whale.y !== before.y) assert.equal(whale.facing, whale.y > before.y ? 'down' : 'up')
+    }
+  }
+  assert.equal(whale.node, 'work-deepseek')
+  assert.equal(whale.facing, 'down', 'she faces the viewer at her desk')
+  // Dorm to gallery is down, along the gallery is sideways, and back up the office aisle to her desk row.
+  assert.ok(seen.has('down') && seen.has('right'))
+  syncResidents(residents, [{ id: 'deepseek', name: 'DeepSeek', status: 'idle', activeSessions: 0 }], 50_000, layout)
+  for (let time = 50_000; time < 90_000 && whale.node !== 'dorm-deepseek'; time += 100) {
+    stepResidents(residents, .1, time, false, layout)
+    if (whale.route.length) seen.add(whale.facing)
+  }
+  assert.ok(seen.has('up') && seen.has('left'), 'the way home walks up and left')
+  settleResidents(residents, layout)
+  assert.equal(whale.facing, 'down')
+})

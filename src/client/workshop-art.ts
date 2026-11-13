@@ -6,8 +6,13 @@ export const DEFAULT_NAMES: Record<string, string> = {
   deepseek: 'DeepSeek', claude: 'Claude', chatgpt: 'GPT', gpt: 'GPT', gemini: 'Gemini', kimi: 'Kimi', grok: 'Grok',
 }
 export type WorkshopArtAssets = {
-  /** 2 × 2 sheet: workshop, lounge, observatory, gallery. */
+  /** 2 × 2 sheet: workshop (fallback), lounge, observatory, gallery. */
   publicAtlas?: CanvasImageSource | null
+  /** The workshop redrawn on its own at twice the sheet's resolution. */
+  officeImage?: CanvasImageSource | null
+  /** 6 × 4 sheet: two side-walk frames facing right, two back-walk frames. */
+  walkAtlas?: CanvasImageSource | null
+  walkAnchors?: Array<Array<{ x: number; y: number }>>
   /** 3 × 2 sheet of themed dorms in CHARACTERS order. */
   roomAtlas?: CanvasImageSource | null
   residentAtlas?: CanvasImageSource | null; decorAtlas?: CanvasImageSource | null
@@ -319,6 +324,8 @@ export function drawWorkshop(ctx: CanvasRenderingContext2D, layout: WorkshopLayo
     if (room.kind === 'dorm') {
       const index = CHARACTERS.indexOf(room.characterId as typeof CHARACTERS[number])
       if (assets.roomAtlas && index >= 0) cell(ctx, assets.roomAtlas, index, 3, 2, room)
+    } else if (room.kind === 'office' && assets.officeImage) {
+      cell(ctx, assets.officeImage, 0, 1, 1, room)
     } else if (assets.publicAtlas) {
       cell(ctx, assets.publicAtlas, room.kind === 'office' ? 0 : room.kind === 'lounge' ? 1 : 2, 2, 2, room)
     }
@@ -330,12 +337,21 @@ export function drawWorkshop(ctx: CanvasRenderingContext2D, layout: WorkshopLayo
 
 /** x/y is the ground footpoint. At a desk it is the approach square south of the table. */
 export function drawResident(ctx: CanvasRenderingContext2D, id: string, x: number, y: number, frame: number,
-  status: 'idle' | 'running' | 'waiting', moving: boolean, assets: WorkshopArtAssets = {}, atDesk = false): void {
+  status: 'idle' | 'running' | 'waiting', moving: boolean, assets: WorkshopArtAssets = {}, atDesk = false,
+  facing: 'down' | 'up' | 'left' | 'right' = 'down'): void {
   ctx.save(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'
   if (atDesk && status !== 'idle' && assets.workstationAtlas) {
     const row = status === 'waiting' ? 4 : 1 + Math.floor(frame / 12) % 3
     workFrame(ctx, assets, id, { x: x - STATION_SIZE / 2, y: y - STATION_SIZE - TILE_SIZE * .5,
       width: STATION_SIZE, height: STATION_SIZE }, row)
+  } else if (moving && facing !== 'down' && assets.walkAtlas) {
+    const column = CHARACTERS.indexOf((id === 'gpt' ? 'chatgpt' : id) as typeof CHARACTERS[number])
+    const row = (facing === 'up' ? 2 : 0) + Math.floor(frame / 8) % 2
+    const anchor = assets.walkAnchors?.[row]?.[column] || { x: 128, y: 247 }
+    // The sheet only faces right; walking left mirrors it around the foot point.
+    if (facing === 'left') { ctx.translate(x * 2, 0); ctx.scale(-1, 1) }
+    if (column >= 0) cell(ctx, assets.walkAtlas, row * 6 + column, 6, 4,
+      { x: x - anchor.x / 256 * 96, y: y - anchor.y / 256 * 96, width: 96, height: 96 })
   } else if (assets.residentAtlas) {
     const column = CHARACTERS.indexOf((id === 'gpt' ? 'chatgpt' : id) as typeof CHARACTERS[number])
     const row = moving ? 1 + Math.floor(frame / 8) % 2 : status === 'idle' ? 0 : 3

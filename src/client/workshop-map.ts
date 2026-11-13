@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { DEFAULT_NAMES, drawWorkshop, drawResident } from './workshop-art'
-import { WORKSHOP_ART, WORKSHOP_SPRITE_ANCHORS, WORKSHOP_WORK_ACTIVITIES, WORKSHOP_DECOR_BOUNDS } from './workshop.generated'
+import { WORKSHOP_ART, WORKSHOP_SPRITE_ANCHORS, WORKSHOP_WALK_ANCHORS, WORKSHOP_WORK_ACTIVITIES, WORKSHOP_DECOR_BOUNDS } from './workshop.generated'
 import { STATION_SIZE, createWorkshopLayout, createResidents, syncResidents, stepResidents, settleResidents, residentActivity, type Resident, type Presence } from './workshop-world'
 
 export const WORKSHOP_CSS = `
@@ -30,7 +30,7 @@ export const WORKSHOP_CSS = `
 @media(prefers-reduced-motion:reduce){.whg-map-person{transition:none!important}.whg-map-bubble,.whg-map-bubble-dot,.whg-map-loading .whg-map-empty-symbol{animation:none!important}}
 `
 
-type WorkshopImages = { publicAtlas: HTMLImageElement; roomAtlas: HTMLImageElement; residentAtlas: HTMLImageElement; workstationAtlas: HTMLImageElement; decorAtlas: HTMLImageElement; decorBounds: Array<{ x: number; y: number; width: number; height: number }>; residentAnchors: Array<Array<{ x: number; y: number }>> }
+type WorkshopImages = { publicAtlas: HTMLImageElement; officeImage: HTMLImageElement; walkAtlas: HTMLImageElement; walkAnchors: Array<Array<{ x: number; y: number }>>; roomAtlas: HTMLImageElement; residentAtlas: HTMLImageElement; workstationAtlas: HTMLImageElement; decorAtlas: HTMLImageElement; decorBounds: Array<{ x: number; y: number; width: number; height: number }>; residentAnchors: Array<Array<{ x: number; y: number }>> }
 let workshopImages: Promise<WorkshopImages> | null = null
 
 function loadWorkshopImages(): Promise<WorkshopImages> {
@@ -44,8 +44,8 @@ function loadWorkshopImages(): Promise<WorkshopImages> {
     image.src = source
   })
   workshopImages = Promise.all([load('workshop-map-atlas'), load('workshop-resident-atlas'), load('workshop-workstation-atlas'),
-    load('workshop-room-atlas'), load('workshop-decor-atlas')])
-    .then(([publicAtlas, residentAtlas, workstationAtlas, roomAtlas, decorAtlas]) => ({ publicAtlas, residentAtlas, workstationAtlas, roomAtlas, decorAtlas, decorBounds: WORKSHOP_DECOR_BOUNDS, residentAnchors: WORKSHOP_SPRITE_ANCHORS }))
+    load('workshop-room-atlas'), load('workshop-decor-atlas'), load('workshop-office-atlas'), load('workshop-walk-atlas')])
+    .then(([publicAtlas, residentAtlas, workstationAtlas, roomAtlas, decorAtlas, officeImage, walkAtlas]) => ({ publicAtlas, officeImage, walkAtlas, walkAnchors: WORKSHOP_WALK_ANCHORS, residentAtlas, workstationAtlas, roomAtlas, decorAtlas, decorBounds: WORKSHOP_DECOR_BOUNDS, residentAnchors: WORKSHOP_SPRITE_ANCHORS }))
     .catch((error) => { workshopImages = null; throw error })
   return workshopImages
 }
@@ -72,8 +72,8 @@ function PixelAvatar(props: { resident: Resident; frame: number; images: Worksho
     ctx.clearRect(0, 0, width, height)
     ctx.imageSmoothingEnabled = true
     ctx.imageSmoothingQuality = 'high'
-    drawResident(ctx, resident.id, atDesk ? STATION_SIZE / 2 + 16 : 48, atDesk ? STATION_SIZE + 24 : 100, frame, resident.status, !props.small && resident.route.length > 0, props.images, atDesk)
-  }, [resident.id, resident.status, resident.route.length > 0, frame, props.small, props.images, atDesk])
+    drawResident(ctx, resident.id, atDesk ? STATION_SIZE / 2 + 16 : 48, atDesk ? STATION_SIZE + 24 : 100, frame, resident.status, !props.small && resident.route.length > 0, props.images, atDesk, resident.facing)
+  }, [resident.id, resident.status, resident.route.length > 0, resident.facing, frame, props.small, props.images, atDesk])
   return React.createElement('canvas', { ref, 'aria-hidden': true })
 }
 

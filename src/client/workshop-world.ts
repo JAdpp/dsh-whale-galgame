@@ -23,8 +23,11 @@ export type PresenceStatus = 'idle' | 'running' | 'waiting'
 export type Presence = { id: string; name: string; status: PresenceStatus; activeSessions: number }
 export type Point = { x: number; y: number }
 export type Bounds = Point & { width: number; height: number }
+export type Facing = 'down' | 'up' | 'left' | 'right'
 export type Resident = Presence & Point & {
   node: string; route: string[]; destination: string; waitUntil: number; visits: number
+  /** Direction of the current step; residents face the viewer when they stop. */
+  facing: Facing
 }
 export type RoomKind = 'dorm' | 'office' | 'lounge' | 'observatory'
 export type WorkshopRoom = Bounds & {
@@ -184,7 +187,7 @@ export function createResidents(names: Record<string, string>, now: number, layo
   return layout.ids.map((id, index) => ({
     id, name: names[id] || FAMILY_NAMES[id], status: 'idle', activeSessions: 0,
     ...layout.nodes['dorm-' + id], node: 'dorm-' + id, destination: 'dorm-' + id,
-    route: [], waitUntil: now + 6000 + index * 2200, visits: 0,
+    route: [], waitUntil: now + 6000 + index * 2200, visits: 0, facing: 'down',
   }))
 }
 
@@ -217,10 +220,11 @@ export function stepResidents(residents: Resident[], elapsedSeconds: number, now
       if (!target) { resident.route = []; return }
       const dx = target.x - resident.x, dy = target.y - resident.y
       const remaining = Math.abs(dx) + Math.abs(dy)
+      if (remaining > 0) resident.facing = Math.abs(dx) >= Math.abs(dy) ? dx > 0 ? 'right' : 'left' : dy > 0 ? 'down' : 'up'
       if (remaining <= distance) {
         resident.x = target.x; resident.y = target.y
         resident.node = resident.route.shift()!
-        if (!resident.route.length) resident.waitUntil = now + 14000 + (index * 7 % 11) * 1000
+        if (!resident.route.length) { resident.facing = 'down'; resident.waitUntil = now + 14000 + (index * 7 % 11) * 1000 }
       } else {
         resident.x += Math.sign(dx) * Math.min(Math.abs(dx), distance)
         resident.y += Math.sign(dy) * Math.min(Math.abs(dy), distance)
@@ -256,5 +260,6 @@ export function settleResidents(residents: Resident[], layout: WorkshopLayout = 
     Object.assign(resident, target)
     resident.node = resident.destination
     resident.route = []
+    resident.facing = 'down'
   }
 }
