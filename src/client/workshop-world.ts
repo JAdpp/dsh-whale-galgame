@@ -24,8 +24,50 @@ export type Presence = { id: string; name: string; status: PresenceStatus; activ
 export type Point = { x: number; y: number }
 export type Bounds = Point & { width: number; height: number }
 export type Facing = 'down' | 'up' | 'left' | 'right'
+export type ResidentSheet = 'resident' | 'frontBack' | 'side' | 'sideMid' | 'leisure' | 'workstation'
+export type ResidentFrameOptions = {
+  id: string; frame: number; since?: number; status: PresenceStatus; moving: boolean
+  atDesk?: boolean; settled?: boolean; small?: boolean; reducedMotion?: boolean; facing?: Facing
+  available: Partial<Record<ResidentSheet, boolean>>
+}
+export type ResidentFrame = { sheet: ResidentSheet; row: number; column: number; mirror: boolean }
+// The map's existing counter advances once per 30 ms: four 390 ms frames,
+// then hold the final pose for 3 s. No timers or randomness.
+export const LEISURE_TIMING = { frame: 13, hold: 100, stagger: 20 } as const
+const SIDE_WALK: ReadonlyArray<readonly [ResidentSheet, number]> = [
+  ['side', 0], ['sideMid', 0], ['sideMid', 3], ['sideMid', 1],
+  ['side', 1], ['sideMid', 1], ['sideMid', 2], ['sideMid', 0],
+]
+
+/** Selects a source cell without canvas or image objects; legacy resident rows are never selected. */
+export function selectResidentFrame(options: ResidentFrameOptions): ResidentFrame {
+  const { id, frame, status, moving, available, facing = 'down' } = options
+  const column = RESIDENT_IDS.indexOf((id === 'gpt' ? 'chatgpt' : id) as ResidentId)
+  const idle: ResidentFrame = { sheet: 'resident', row: 0, column, mirror: false }
+  if (options.small) return idle
+  if (moving) {
+    if (!available.frontBack || !available.side || !available.sideMid || !available.resident) return idle
+    if (facing === 'left' || facing === 'right') {
+      const [sheet, row] = SIDE_WALK[Math.floor(frame / 5) % 8]
+      return { sheet, row, column, mirror: facing === 'left' }
+    }
+    const step = Math.floor(frame / 6) % 4, foot = step === 0 ? 0 : step === 2 ? 1 : -1
+    if (foot < 0) return facing === 'up' ? { sheet: 'side', row: 3, column, mirror: false } : idle
+    return { sheet: 'frontBack', row: (facing === 'up' ? 2 : 0) + foot, column, mirror: false }
+  }
+  if (options.atDesk && status !== 'idle' && available.workstation) {
+    return { sheet: 'workstation', row: status === 'waiting' ? 4 : 1 + Math.floor(frame / 12) % 3, column, mirror: false }
+  }
+  if (status === 'idle' && options.settled && available.leisure && column >= 0) {
+    const duration = 4 * LEISURE_TIMING.frame + LEISURE_TIMING.hold
+    const phase = (((options.since ?? frame) % duration) + duration) % duration
+    return { sheet: 'leisure', row: options.reducedMotion ? 3 : Math.min(3, Math.floor(phase / LEISURE_TIMING.frame)), column, mirror: false }
+  }
+  return idle
+}
 export type Resident = Presence & Point & {
   node: string; route: string[]; destination: string; waitUntil: number; visits: number
+  settledAt: number
   /** Direction of the current step; residents face the viewer when they stop. */
   facing: Facing
 }
@@ -188,6 +230,7 @@ export function createResidents(names: Record<string, string>, now: number, layo
     id, name: names[id] || FAMILY_NAMES[id], status: 'idle', activeSessions: 0,
     ...layout.nodes['dorm-' + id], node: 'dorm-' + id, destination: 'dorm-' + id,
     route: [], waitUntil: now + 6000 + index * 2200, visits: 0, facing: 'down',
+    settledAt: now + index * LEISURE_TIMING.stagger * 30,
   }))
 }
 
@@ -224,7 +267,7 @@ export function stepResidents(residents: Resident[], elapsedSeconds: number, now
       if (remaining <= distance) {
         resident.x = target.x; resident.y = target.y
         resident.node = resident.route.shift()!
-        if (!resident.route.length) { resident.facing = 'down'; resident.waitUntil = now + 14000 + (index * 7 % 11) * 1000 }
+        if (!resident.route.length) { resident.facing = 'down'; resident.settledAt = now; resident.waitUntil = now + 14000 + (index * 7 % 11) * 1000 }
       } else {
         resident.x += Math.sign(dx) * Math.min(Math.abs(dx), distance)
         resident.y += Math.sign(dy) * Math.min(Math.abs(dy), distance)
@@ -252,11 +295,12 @@ export function residentActivity(resident: Resident): string {
   return '在水族区看鱼'
 }
 
-export function settleResidents(residents: Resident[], layout: WorkshopLayout = DEFAULT_LAYOUT): void {
+export function settleResidents(residents: Resident[], layout: WorkshopLayout = DEFAULT_LAYOUT, now?: number): void {
   // Reduced motion keeps status/location meaningful without playing walking loops.
   for (const resident of residents) {
     const target = layout.nodes[resident.destination]
     if (!target) continue
+    if (resident.route.length && now !== undefined) resident.settledAt = now
     Object.assign(resident, target)
     resident.node = resident.destination
     resident.route = []

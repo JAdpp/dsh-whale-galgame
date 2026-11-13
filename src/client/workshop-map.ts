@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { DEFAULT_NAMES, drawWorkshop, drawResident } from './workshop-art'
-import { WORKSHOP_ART, WORKSHOP_SPRITE_ANCHORS, WORKSHOP_WALK, WORKSHOP_WORK_ACTIVITIES, WORKSHOP_DECOR_BOUNDS } from './workshop.generated'
+import { WORKSHOP_ART, WORKSHOP_SPRITE_ANCHORS, WORKSHOP_WALK, WORKSHOP_LEISURE, WORKSHOP_WORK_ACTIVITIES, WORKSHOP_DECOR_BOUNDS } from './workshop.generated'
 import { STATION_SIZE, createWorkshopLayout, createResidents, syncResidents, stepResidents, settleResidents, residentActivity, type Resident, type Presence } from './workshop-world'
 
 export const WORKSHOP_CSS = `
@@ -30,7 +30,7 @@ export const WORKSHOP_CSS = `
 @media(prefers-reduced-motion:reduce){.whg-map-person{transition:none!important}.whg-map-bubble,.whg-map-bubble-dot,.whg-map-loading .whg-map-empty-symbol{animation:none!important}}
 `
 
-type WorkshopImages = { publicAtlas: HTMLImageElement; officeImage: HTMLImageElement; walkAtlas: HTMLImageElement; walkSideAtlas: HTMLImageElement; walkMidAtlas: HTMLImageElement; walk: typeof WORKSHOP_WALK; roomAtlas: HTMLImageElement; residentAtlas: HTMLImageElement; workstationAtlas: HTMLImageElement; decorAtlas: HTMLImageElement; decorBounds: Array<{ x: number; y: number; width: number; height: number }>; residentAnchors: Array<Array<{ x: number; y: number }>> }
+type WorkshopImages = { publicAtlas: HTMLImageElement; officeImage: HTMLImageElement; walkAtlas: HTMLImageElement | null; walkSideAtlas: HTMLImageElement | null; walkMidAtlas: HTMLImageElement | null; leisureAtlas: HTMLImageElement | null; leisure: typeof WORKSHOP_LEISURE; walk: typeof WORKSHOP_WALK; roomAtlas: HTMLImageElement; residentAtlas: HTMLImageElement; workstationAtlas: HTMLImageElement; decorAtlas: HTMLImageElement; decorBounds: Array<{ x: number; y: number; width: number; height: number }>; residentAnchors: Array<Array<{ x: number; y: number }>> }
 let workshopImages: Promise<WorkshopImages> | null = null
 
 function loadWorkshopImages(): Promise<WorkshopImages> {
@@ -43,14 +43,16 @@ function loadWorkshopImages(): Promise<WorkshopImages> {
     image.onerror = () => reject(new Error('工坊素材加载失败'))
     image.src = source
   })
+  // Optional motion sheets can fail independently; residents still stand on the map.
+  const motion = (key: string) => load(key).catch(() => null)
   workshopImages = Promise.all([load('workshop-map-atlas'), load('workshop-resident-atlas'), load('workshop-workstation-atlas'),
-    load('workshop-room-atlas'), load('workshop-decor-atlas'), load('workshop-office-atlas'), load('workshop-walk-atlas'), load('workshop-walk-side-atlas'), load('workshop-walk-mid-atlas')])
-    .then(([publicAtlas, residentAtlas, workstationAtlas, roomAtlas, decorAtlas, officeImage, walkAtlas, walkSideAtlas, walkMidAtlas]) => ({ publicAtlas, officeImage, walkAtlas, walkSideAtlas, walkMidAtlas, walk: WORKSHOP_WALK, residentAtlas, workstationAtlas, roomAtlas, decorAtlas, decorBounds: WORKSHOP_DECOR_BOUNDS, residentAnchors: WORKSHOP_SPRITE_ANCHORS }))
+    load('workshop-room-atlas'), load('workshop-decor-atlas'), load('workshop-office-atlas'), motion('workshop-walk-atlas'), motion('workshop-walk-side-atlas'), motion('workshop-walk-mid-atlas'), motion('workshop-leisure-atlas')])
+    .then(([publicAtlas, residentAtlas, workstationAtlas, roomAtlas, decorAtlas, officeImage, walkAtlas, walkSideAtlas, walkMidAtlas, leisureAtlas]) => ({ publicAtlas, officeImage, walkAtlas, walkSideAtlas, walkMidAtlas, leisureAtlas, leisure: WORKSHOP_LEISURE, walk: WORKSHOP_WALK, residentAtlas, workstationAtlas, roomAtlas, decorAtlas, decorBounds: WORKSHOP_DECOR_BOUNDS, residentAnchors: WORKSHOP_SPRITE_ANCHORS }))
     .catch((error) => { workshopImages = null; throw error })
   return workshopImages
 }
 
-function PixelAvatar(props: { resident: Resident; frame: number; images: WorkshopImages; small?: boolean }): React.ReactElement {
+function PixelAvatar(props: { resident: Resident; frame: number; images: WorkshopImages; small?: boolean; reducedMotion?: boolean }): React.ReactElement {
   const ref = useRef<HTMLCanvasElement | null>(null)
   const { resident, frame } = props
   const atDesk = !props.small && resident.status !== 'idle' && resident.route.length === 0 && resident.node === 'work-' + resident.id
@@ -72,8 +74,13 @@ function PixelAvatar(props: { resident: Resident; frame: number; images: Worksho
     ctx.clearRect(0, 0, width, height)
     ctx.imageSmoothingEnabled = true
     ctx.imageSmoothingQuality = 'high'
-    drawResident(ctx, resident.id, atDesk ? STATION_SIZE / 2 + 16 : 48, atDesk ? STATION_SIZE + 24 : 100, frame, resident.status, !props.small && resident.route.length > 0, props.images, atDesk, resident.facing)
-  }, [resident.id, resident.status, resident.route.length > 0, resident.facing, frame, props.small, props.images, atDesk])
+    drawResident(ctx, resident.id, atDesk ? STATION_SIZE / 2 + 16 : 48, atDesk ? STATION_SIZE + 24 : 100, frame, resident.status, !props.small && resident.route.length > 0, props.images, atDesk, resident.facing, {
+      small: props.small, reducedMotion: props.reducedMotion,
+      since: frame - Math.floor(resident.settledAt / 30),
+      settled: resident.route.length === 0 && resident.node === resident.destination
+        && (resident.node === 'dorm-' + resident.id || resident.node.startsWith('lounge-') || resident.node.startsWith('observatory-')),
+    })
+  }, [resident.id, resident.status, resident.route.length > 0, resident.facing, resident.settledAt, frame, props.small, props.reducedMotion, props.images, atDesk, resident.node, resident.destination])
   return React.createElement('canvas', { ref, 'aria-hidden': true })
 }
 
@@ -282,7 +289,7 @@ export function WorkshopMap(props: {
           }
         }
         syncResidents(world.current, result.characters as Presence[], now, layoutRef.current)
-        if (!hasSnapshot.current || reducedMotion || paused) settleResidents(world.current, layoutRef.current)
+        if (!hasSnapshot.current || reducedMotion || paused) settleResidents(world.current, layoutRef.current, now)
         hasSnapshot.current = true
         setPeople(world.current.map((resident) => ({ ...resident })))
         setUpdatedAt(Number(result.updatedAt) || Date.now())
@@ -389,7 +396,7 @@ export function WorkshopMap(props: {
                 disabled: !!entering, onClick: () => void enter(resident),
                 'aria-label': '与' + resident.name + '对话，' + statusText(resident),
               },
-                React.createElement(PixelAvatar, { resident, frame, images: images! }),
+                React.createElement(PixelAvatar, { resident, frame, images: images!, reducedMotion }),
                 waiting || resident.status === 'running' && atDesk ? React.createElement('span', { className: 'whg-map-bubble-anchor', 'aria-hidden': true },
                   React.createElement('span', { className: 'whg-map-bubble-scale' },
                     waiting ? React.createElement('span', { className: 'whg-map-bubble whg-map-bubble-waiting' },

@@ -70,7 +70,7 @@
 
 ### 深海工坊地图
 
-从 Galgame 顶栏打开“工坊地图”，宿舍随已接入模型自动增减。AI娘工作时前往工位，空闲时散步或休息；点击小人或侧栏名单即可聊天。支持缩放、滚动与暂停散步。[详细机制](docs/mechanics.md#深海工坊地图的实时状态)。
+从 Galgame 顶栏打开“工坊地图”，宿舍随已接入模型自动增减。AI娘工作时前往工位，空闲时四处散步，停下来就做各自的消遣——吃白饭、看书、观星；点击小人或侧栏名单即可聊天。支持缩放、滚动与暂停散步。[详细机制](docs/mechanics.md#深海工坊地图的实时状态)。
 
 ![深海工坊像素地图，演示状态](docs/screenshots/workshop-map.jpg)
 
@@ -233,7 +233,7 @@ npm run verify
 - **ZipZipPipe**绘制 Claude、GPT、Grok 默认立绘（[原作动态](https://www.bilibili.com/opus/1233069202138464289)）；本项目去除白底、按人物裁切并转为 WebP。
 - **f0909172434 / [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet)** 提供桌宠实现、16 方向指针跟随与 1.1 秒复位逻辑及图集参考；当前桌宠图集由本项目使用 Codex 内置图像生成器参考重绘，来源与许可见 [NOTICE](NOTICE.md)。
 - Gemini、Kimi 立绘、六张角色背景和 Galgame UI 为本项目制作的非官方 AI 辅助素材。
-- 当前庄园主题宿舍、公共区、高清工作区、人物、行走关键帧、专属工位与室外装饰九张图使用 Codex 内置绘图制作；工具未提供具体模型版本。此前的简约 Logo 也由它制作，现已由字标取代（见[品牌说明](docs/brand/README.md)）。图片与参考背景、许可和历史素材记录见[庄园美术说明](assets/workshop/README.md)。
+- 当前庄园主题宿舍、公共区、高清工作区、人物、三张行走关键帧、休闲动作、专属工位与室外装饰十张图使用 Codex 内置绘图制作；工具未提供具体模型版本。此前的简约 Logo 也由它制作，现已由字标取代（见[品牌说明](docs/brand/README.md)）。图片与参考背景、许可和历史素材记录见[庄园美术说明](assets/workshop/README.md)。
 
 完整文件清单、来源与哈希见[默认美术说明](assets/default/README.md)，逐文件许可见 [NOTICE](NOTICE.md)、[第三方许可索引](THIRD_PARTY_LICENSES.md)及[上游许可原文](assets/default/licenses/)。所有角色均为非官方同人形象，名称与商标归各权利人，本项目与相关厂商无隶属、合作或背书关系。
 

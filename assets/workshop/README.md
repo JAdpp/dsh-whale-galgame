@@ -7,17 +7,18 @@
 | `public-rooms-atlas.png` | Codex 内置绘图；工具未暴露具体模型版本 | 1254 × 1254，2 列 × 2 行，每格 627 × 627；依次为协作工坊、茶水休息室、海底观景室与回廊。 |
 | `themed-rooms-atlas.png` | Codex 内置绘图，以六个默认视觉小说背景为室内参考 | 1536 × 1024，3 列 × 2 行，每格 512 × 512；依次为 DeepSeek、Claude、GPT、Gemini、Kimi、Grok 的主题宿舍。 |
 | `office-hires.png` | Codex 内置绘图，以公共区图集的工作区一格为版式参考重绘；记录见 [`office-hires-notes.md`](office-hires-notes.md) | 1254 × 1254，单张协作工坊，分辨率是原图格的两倍；六块地毯与门的相对位置保持不变。 |
-| `walk-cycle-front-back.png` | Codex 内置绘图，以角色图集为身份参考；记录见 [`walk-cycle-notes.md`](walk-cycle-notes.md) | 1536 × 1024 透明 PNG，6 列 × 4 行落地帧：正面左脚在前、正面右脚在前、背面左脚在前、背面右脚在前。 |
+| `walk-cycle-front-back.png` | Codex 内置绘图，以角色图集为身份参考；记录见 [`walk-cycle-notes.md`](walk-cycle-notes.md) 与 [`leisure-actions-notes.md`](leisure-actions-notes.md) | 1536 × 1024 透明 PNG，6 列 × 4 行落地帧：正面左脚在前、正面右脚在前、背面左脚在前、背面右脚在前；正面两行已修正多出的手。 |
 | `walk-cycle-side.png` | 同上 | 1536 × 1024 透明 PNG，6 列 × 4 行，均朝右：近侧腿在前、远侧腿在前、侧身并腿过渡、背面并腿过渡；向左行走由镜像得到。 |
 | `walk-cycle-side-mid.png` | Codex 内置绘图，以侧身行走图为位置与比例参考；记录见 [`walk-cycle-side-mid-notes.md`](walk-cycle-side-mid-notes.md) | 1536 × 1024 透明 PNG，6 列 × 4 行，均朝右：近侧腿在前的半步、远侧腿在前的半步、近侧腿抬起的并腿、远侧腿抬起的并腿。 |
-| `residents-atlas-builtin.png` | Codex 内置绘图；工具未暴露具体模型版本 | 1536 × 1024 透明 PNG，6 列 × 4 行；列对应六位AI娘，行对应待机、两帧行走、读写工作。 |
+| `leisure-actions.png` | Codex 内置绘图；工具未暴露模型版本，记录见 [`leisure-actions-notes.md`](leisure-actions-notes.md) | 1536 × 1024 透明 PNG，6 列 × 4 行，每格 256 × 256；列依次为 DeepSeek、Claude、GPT、Gemini、Kimi、Grok，每列四行组成该角色的四帧休闲循环。 |
+| `residents-atlas-builtin.png` | Codex 内置绘图；工具未暴露具体模型版本 | 1536 × 1024 透明 PNG，6 列 × 4 行；只用第 1 行待机。第 2～4 行（两帧旧行走、读写）是已停用的旧帧，第 4 行洛可（Grok）有三只手的已知画错；母版保持不变。 |
 | `workstations-rpg-atlas.png` | Codex 内置绘图，以角色图集为身份参考 | 1374 × 1145 透明 PNG，6 列 × 5 行；空工位、三帧专属工作循环、等待确认。 |
 | `decor-atlas-builtin.png` | Codex 内置绘图；工具未暴露具体模型版本 | 1536 × 1024 透明 PNG，3 列 × 2 行；依次为盆栽、花台、落地灯、书柜、长凳和天球仪。 |
 | [`logo-simple.png`](../../docs/brand/logo-simple.png) | 经用户确认改用 Codex 内置绘图 | 1254 × 1254 透明 PNG，已被取代的简约鲸尾与星光图标，保留历史记录。 |
 
-当前运行的公共区、高清工作区、主题宿舍、角色、三张行走关键帧、专属工位和室外装饰共九张图，均由 Codex 内置绘图制作；工具未暴露具体模型版本，不将其标为 Image 2.6 产物。生成提示保存在 [`generation-prompts.json`](generation-prompts.json)，实际来源、生成记录、尺寸与 SHA-256 保存在 [`manifest.json`](manifest.json)。
+当前运行的公共区、高清工作区、主题宿舍、角色、三张行走关键帧、休闲动作、专属工位和室外装饰共十张图，均由 Codex 内置绘图制作；工具未暴露具体模型版本，不将其标为 Image 2.6 产物。生成提示保存在 [`generation-prompts.json`](generation-prompts.json) 及对应生成记录中，实际来源、生成记录、尺寸与 SHA-256 保存在 [`manifest.json`](manifest.json)。
 
-PNG 保留为母版，客户端 bundle 内嵌同名 WebP 派生文件：房间图集使用有损质量 92，角色、工位与装饰图集使用近无损压缩，尺寸保持不变。需要重新生成时，先运行 `npm i --no-save sharp`，再运行 `node scripts/convert-workshop-art.mjs`，随后更新清单中的哈希；`runtime` 记录 WebP 文件与哈希，原有 `file`、尺寸与 `sha256` 仍描述 PNG 母版。
+PNG 保留为母版，客户端 bundle 内嵌同名 WebP 派生文件：房间图集使用有损质量 92，角色、行走、休闲动作、工位与装饰图集使用近无损压缩，尺寸保持不变。需要重新生成时，先运行 `npm i --no-save sharp`，再运行 `node scripts/convert-workshop-art.mjs`，脚本自动计算 PNG 与 WebP 哈希；行走和休闲动作图先清除轮廓外 alpha 小于 24 的淡雾，并计算脚底锚点和相对待机行的绘制比例。休闲图每列四帧共用脚部横坐标与脚底高度的中位数锚点，比例另乘头身修正系数 0.92，使脸的大小与行走帧一致。`runtime` 记录 WebP 文件与哈希，原有 `file`、尺寸与 `sha256` 仍描述 PNG 母版。
 
 原始 `manor-atlas-image26.png`（3072 × 2048）和最初的繁复 Logo 来自 GPT Image 2.6 Sunburst，均已被替换，不再作为当前运行素材内嵌。原庄园图保留在 Git 源码中，旧图的提示、生成记录与哈希保留在清单中，供追溯与重建历史版本；它们不代表当前地图或 Logo 的生成来源。
 
@@ -46,8 +47,10 @@ PNG 保留为母版，客户端 bundle 内嵌同名 WebP 派生文件：房间�
 
 办公循环分别为：大肥鱼调整潮汐仪并推演水纹，Claude 羽笔校稿和翻页，GPT 使用圆规与计划卡制图，Gemini 调整双棱镜，Kimi 整理月卷与书签，Grok 用工具检修小机械。三帧改变对应手部、工具与页面状态，桌椅在各帧中保持同一位置；等待确认使用单独静止帧。空工位和入座帧共用同一组图格位置。
 
+空闲且停止在宿舍或公共区时，按第 1→2→3→4 行播放一遍休闲动作，每帧 13 个计数（约 0.39 秒），再停在第 4 行收尾姿势 100 个计数（约 3 秒），以 152 个计数为周期循环；她停下后从第一帧起播，休息期间不穿插待机；刚打开地图时六人依次起手，相邻两人相隔约 0.6 秒。大肥鱼用钢盆吃大白饭，克洛德看书，小吉双手捧起微型银河观测，双子用魔法生成水晶，月见用望远镜观星，洛可挥斧头。忙碌但未到工位且没有走动时只站立；侧栏小头像始终站立。行走图或休闲图缺失时回退到待机，绝不使用人物图集第 2～4 行。暂停散步时帧计数停止、姿势定格；减少动态效果时静止显示休闲第 4 行，缺图回退待机。静止待机与小头像沿用人物图集第 1 行锚点，正面行走过渡站姿使用行走待机锚点。名单状态文字保持原样。
+
 宿舍按 Harness 中已接入且配置可用的模型系列动态拼接：只接入 DeepSeek 就只显示她的一间宿舍，同系列的多个版本共用同一角色。未接入的角色不占房间；所有宿舍排成一排并居中，接入的模型越多这一排越长。公共区域使用四格新背景图集，当前地图没有温室入口；旧六格原图里的温室属于历史素材。
 
-`npm run embed:art` 校验九张 PNG 母版的尺寸与哈希，以及 WebP 派生文件的哈希、相同尺寸和无非视觉元数据，再校验动作网格与脚点，并生成 `src/client/workshop.generated.ts`，随后由构建过程内嵌 WebP 到客户端。npm 发布包不重复携带 PNG 或 WebP 图集，也不内嵌已替换的 Image 2.6 原图；Git 源码保留新旧原图与当前 WebP 派生文件以支持重建。打开地图、闲逛和切换动作不会调用图像模型或产生生成费用。
+`npm run embed:art` 校验十张 PNG 母版的尺寸与哈希，以及 WebP 派生文件的哈希、相同尺寸和无非视觉元数据，再校验动作网格、脚点与比例，并生成 `src/client/workshop.generated.ts`，随后由构建过程内嵌 WebP 到客户端。npm 发布包不重复携带 PNG 或 WebP 图集，也不内嵌已替换的 Image 2.6 原图；Git 源码保留新旧原图与当前 WebP 派生文件以支持重建。打开地图、闲逛和切换动作不会调用图像模型或产生生成费用。
 
 这些 AI 辅助图片遵循项目的 [CC BY-NC-SA 4.0 美术许可边界](../../LICENSE.md)，仅在维护者持有相应权利的范围内提供。角色沿用项目现有非官方同人设定，原角色来源与署名见 [NOTICE](../../NOTICE.md)。周围的布局、动画、加载器和其他程序代码继续采用 MIT。

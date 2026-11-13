@@ -1,5 +1,5 @@
 /** Paints the manor as one building in the deep sea: shell, gallery, rooms, furniture, desks. */
-import { createWorkshopLayout, STATION_SIZE, TILE_SIZE, type Bounds, type WorkshopLayout } from './workshop-world'
+import { createWorkshopLayout, selectResidentFrame, STATION_SIZE, TILE_SIZE, type Bounds, type WorkshopLayout, type ResidentFrameOptions } from './workshop-world'
 
 export const CHARACTERS = ['deepseek', 'claude', 'chatgpt', 'gemini', 'kimi', 'grok'] as const
 export const DEFAULT_NAMES: Record<string, string> = {
@@ -16,6 +16,9 @@ export type WorkshopArtAssets = {
   walkSideAtlas?: CanvasImageSource | null
   /** 6 × 4 sheet facing right: half stride near leg, half stride far leg, passing with near leg lifted, passing with far leg lifted. */
   walkMidAtlas?: CanvasImageSource | null
+  /** 6 × 4 sheet: four successive leisure frames per character column. */
+  leisureAtlas?: CanvasImageSource | null
+  leisure?: { scale: number; anchors: Array<Array<{ x: number; y: number }>> }
   /** Foot anchors per cell and the draw scale that matches each sheet to the idle sprites. */
   walk?: Record<'frontBack' | 'side' | 'sideMid', { scale: number; anchors: Array<Array<{ x: number; y: number }>> }> & { idle: Array<{ x: number; y: number }> }
   /** 3 × 2 sheet of themed dorms in CHARACTERS order. */
@@ -340,48 +343,31 @@ export function drawWorkshop(ctx: CanvasRenderingContext2D, layout: WorkshopLayo
   ctx.restore()
 }
 
-/** [from the in-between sheet?, row] for each of the eight side-walk steps. */
-const SIDE_WALK: ReadonlyArray<readonly [boolean, number]> = [
-  [false, 0], [true, 0], [true, 3], [true, 1], [false, 1], [true, 1], [true, 2], [true, 0],
-]
-
 /** x/y is the ground footpoint. At a desk it is the approach square south of the table. */
 export function drawResident(ctx: CanvasRenderingContext2D, id: string, x: number, y: number, frame: number,
   status: 'idle' | 'running' | 'waiting', moving: boolean, assets: WorkshopArtAssets = {}, atDesk = false,
-  facing: 'down' | 'up' | 'left' | 'right' = 'down'): void {
+  facing: 'down' | 'up' | 'left' | 'right' = 'down',
+  options: Pick<ResidentFrameOptions, 'small' | 'settled' | 'reducedMotion' | 'since'> = {}): void {
+  const pose = selectResidentFrame({ ...options, id, frame, status, moving, atDesk, facing, available: {
+    resident: !!assets.residentAtlas, workstation: !!assets.workstationAtlas,
+    frontBack: !!assets.walkAtlas && !!assets.walk, side: !!assets.walkSideAtlas && !!assets.walk,
+    sideMid: !!assets.walkMidAtlas && !!assets.walk, leisure: !!assets.leisureAtlas && !!assets.leisure,
+  } })
   ctx.save(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'
-  if (atDesk && status !== 'idle' && assets.workstationAtlas) {
-    const row = status === 'waiting' ? 4 : 1 + Math.floor(frame / 12) % 3
+  if (pose.sheet === 'workstation') {
     workFrame(ctx, assets, id, { x: x - STATION_SIZE / 2, y: y - STATION_SIZE - TILE_SIZE * .5,
-      width: STATION_SIZE, height: STATION_SIZE }, row)
-  } else if (moving && assets.walkAtlas && assets.walkSideAtlas && assets.walkMidAtlas && assets.walk && assets.residentAtlas) {
-    const column = CHARACTERS.indexOf((id === 'gpt' ? 'chatgpt' : id) as typeof CHARACTERS[number])
-    let sheet: CanvasImageSource = assets.walkAtlas, layout = assets.walk.frontBack, row = 0
-    if (facing === 'left' || facing === 'right') {
-      // Eight steps so the stride opens and closes gradually:
-      // wide, half, pass (far leg lifted), half, wide (other leg), half, pass (near leg lifted), half.
-      const [mid, sideRow] = SIDE_WALK[Math.floor(frame / 5) % 8]
-      sheet = mid ? assets.walkMidAtlas : assets.walkSideAtlas; layout = mid ? assets.walk.sideMid : assets.walk.side; row = sideRow
-    } else {
-      // Four steps: one foot lands, the legs pass, the other foot lands, the legs pass.
-      const step = Math.floor(frame / 6) % 4, foot = step === 0 ? 0 : step === 2 ? 1 : -1
-      row = (facing === 'up' ? 2 : 0) + Math.max(foot, 0)
-      if (foot < 0 && facing === 'up') { sheet = assets.walkSideAtlas; layout = assets.walk.side; row = 3 }
-      // Walking toward the viewer passes through the idle pose.
-      else if (foot < 0) { sheet = assets.residentAtlas; layout = { scale: 1, anchors: [assets.walk.idle] }; row = 0 }
-    }
-    const anchor = layout.anchors[row]?.[column] || { x: 128, y: 247 }, size = 96 * layout.scale
-    // The side sheets only face right; walking left mirrors them around the foot point.
-    if (facing === 'left') { ctx.translate(x * 2, 0); ctx.scale(-1, 1) }
-    if (column >= 0) cell(ctx, sheet, row * 6 + column, 6, 4,
-      { x: x - anchor.x / 256 * size, y: y - anchor.y / 256 * size, width: size, height: size })
-  } else if (assets.residentAtlas) {
-    const column = CHARACTERS.indexOf((id === 'gpt' ? 'chatgpt' : id) as typeof CHARACTERS[number])
-    const row = moving ? 1 + Math.floor(frame / 8) % 2 : status === 'idle' ? 0 : 3
-    const anchor = assets.residentAnchors?.[row]?.[column] || { x: 128, y: 248 }
+      width: STATION_SIZE, height: STATION_SIZE }, pose.row)
+  } else {
+    const sheets = { resident: assets.residentAtlas, frontBack: assets.walkAtlas, side: assets.walkSideAtlas,
+      sideMid: assets.walkMidAtlas, leisure: assets.leisureAtlas }
+    const image = sheets[pose.sheet]
+    const layout = pose.sheet === 'resident' ? { scale: 1, anchors: [(moving && !options.small ? assets.walk?.idle : assets.residentAnchors?.[0]) || []] }
+      : pose.sheet === 'leisure' ? assets.leisure : assets.walk?.[pose.sheet]
+    const anchor = layout?.anchors[pose.row]?.[pose.column] || { x: 128, y: 248 }, size = 96 * (layout?.scale || 1)
+    if (pose.mirror) { ctx.translate(x * 2, 0); ctx.scale(-1, 1) }
     // Full cells preserve each character's horns, wings, tools and tail.
-    if (column >= 0) cell(ctx, assets.residentAtlas, row * 6 + column, 6, 4,
-      { x: x - anchor.x / 256 * 96, y: y - anchor.y / 256 * 96, width: 96, height: 96 })
+    if (image && pose.column >= 0) cell(ctx, image, pose.row * 6 + pose.column, 6, 4,
+      { x: x - anchor.x / 256 * size, y: y - anchor.y / 256 * size, width: size, height: size })
   }
   ctx.restore()
 }

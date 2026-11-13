@@ -1,5 +1,5 @@
 // Derives the embedded WebP atlases from the PNG masters in assets/workshop and
-// records their hashes (and the walking foot anchors) in manifest.json.
+// records PNG/WebP hashes, foot anchors and draw scales in manifest.json.
 // sharp is not a project dependency: run `npm i --no-save sharp` first.
 import { createHash } from 'node:crypto'
 import { readFileSync, writeFileSync } from 'node:fs'
@@ -23,11 +23,12 @@ const targets = {
   'walk-cycle-front-back': sprite,
   'walk-cycle-side': sprite,
   'walk-cycle-side-mid': sprite,
+  'leisure-actions': sprite,
   'workstations-rpg-atlas': sprite,
   'decor-atlas-builtin': sprite,
 }
 
-// The generated walking sheet keeps a faint haze (alpha below ~8) outside the figures.
+// Generated walking/leisure sheets keep faint low-alpha haze outside the figures.
 // Clear it so the sprites have clean edges; the PNG master stays untouched.
 async function withoutHaze(file) {
   const { data, info } = await sharp(file).ensureAlpha().raw().toBuffer({ resolveWithObject: true })
@@ -66,6 +67,34 @@ function footAnchors({ data, info }, columns, rows, pairs) {
   return anchors
 }
 
+// Leisure cells are aligned within each column. Use feet near the head's x to
+// exclude props and tail tips, then share the median footpoint across all frames.
+function leisureFootAnchors(cleaned) {
+  const { data, info } = cleaned, cell = info.width / 6
+  const heads = footAnchors(cleaned, 6, 4, [])
+  const median = values => {
+    values.sort((a, b) => a - b)
+    return (values[1] + values[2]) / 2
+  }
+  const columns = Array.from({ length: 6 }, (_, column) => {
+    const feet = heads.map((row, index) => {
+      const head = row[column], xs = []
+      for (let y = head.y - 5; y < head.y; y++) for (let x = 0; x < cell; x++) {
+        if (Math.abs(x - head.x) <= 45
+          && data[((index * cell + y) * info.width + column * cell + x) * 4 + 3] > 128) xs.push(x)
+      }
+      if (!xs.length) throw new Error(`No leisure feet found in row ${index}, column ${column}`)
+      return xs.reduce((sum, x) => sum + x, 0) / xs.length
+    })
+    return { x: Math.round(median(feet) * 2) / 2, y: median(heads.map(row => row[column].y)) }
+  })
+  return Array.from({ length: 4 }, () => columns.map(point => ({ ...point })))
+}
+
+// Leisure figures have a larger head-to-body ratio; height matching alone makes
+// them grow when stopping. This correction matches face size to walking frames.
+const LEISURE_HEAD_MATCH = 0.92
+
 // Median height of the solid figures in the given rows, to match scale between sheets.
 function figureHeight({ data, info }, columns, rowList) {
   const cell = info.width / columns, heights = []
@@ -91,7 +120,13 @@ const walking = {
 for (const [name, options] of Object.entries(targets)) {
   const file = resolve(directory, name + '.png')
   let image = sharp(readFileSync(file))
-  if (walking[name]) {
+  if (name === 'leisure-actions') {
+    const cleaned = await withoutHaze(file)
+    manifest.leisureLayout = { ...manifest.leisureLayout,
+      scale: Math.round(standing / figureHeight(cleaned, 6, [0, 1, 2, 3]) * LEISURE_HEAD_MATCH * 100) / 100,
+      footAnchors: leisureFootAnchors(cleaned) }
+    image = sharp(cleaned.data, { raw: cleaned.info })
+  } else if (walking[name]) {
     const sheet = walking[name], cleaned = await withoutHaze(file)
     manifest.walkLayout[sheet.key] = { ...manifest.walkLayout[sheet.key],
       scale: Math.round(standing / figureHeight(cleaned, 6, sheet.standingRows) * 100) / 100,
@@ -103,6 +138,7 @@ for (const [name, options] of Object.entries(targets)) {
   const sha256 = createHash('sha256').update(bytes).digest('hex')
   const asset = manifest.assets.find((item) => item.file === name + '.png')
   if (!asset) throw new Error('manifest.json has no asset for ' + name + '.png')
+  asset.sha256 = createHash('sha256').update(readFileSync(file)).digest('hex')
   asset.runtime = { file: name + '.webp', sha256 }
   console.log(name + '.webp', bytes.length, sha256)
 }
