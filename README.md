@@ -68,6 +68,19 @@
   </tr>
 </table>
 
+### 深海工坊地图
+
+从 Galgame 顶栏打开“工坊地图”，宿舍随已接入模型自动增减。AI娘工作时前往工位，空闲时散步或休息；点击小人或侧栏名单即可聊天。支持缩放、滚动与暂停散步。[详细机制](docs/mechanics.md#深海工坊地图的实时状态)。
+
+![深海工坊像素地图，演示状态](docs/screenshots/workshop-map.jpg)
+
+<details>
+<summary>仅接入 DeepSeek 时的布局</summary>
+
+![仅有 DeepSeek 宿舍的自适应地图，虚构状态演示](docs/screenshots/workshop-one-resident.jpg)
+
+</details>
+
 ## 安装
 
 需要先安装 DeepSeek Harness，并有可用的 `dsh` 命令。
@@ -129,19 +142,6 @@ allowBuilds:
 顶栏“角色来源”选择出场角色，“实际对话”选择回复模型；角色可跟随工作区或手动固定，回复可使用默认的 `deepseek-v4-flash`、跟随工作区或选择 DSH 模型目录中的模型。
 
 顶栏“对话历史”用于回看普通对话，“小剧场”记录保存已完成的短剧，“CG图鉴”集中查看生成的图片，并可将 CG 设为背景。
-
-### 深海工坊地图
-
-从 Galgame 顶栏打开“工坊地图”，宿舍随已接入模型自动增减。AI娘工作时前往工位，空闲时散步或休息；点击小人或侧栏名单即可聊天。支持缩放、滚动与暂停散步。[详细机制](docs/mechanics.md#深海工坊地图的实时状态)。
-
-![深海工坊像素地图，演示状态](docs/screenshots/workshop-map.jpg)
-
-<details>
-<summary>仅接入 DeepSeek 时的布局</summary>
-
-![仅有 DeepSeek 宿舍的自适应地图，虚构状态演示](docs/screenshots/workshop-one-resident.jpg)
-
-</details>
 
 ### 快捷键
 
