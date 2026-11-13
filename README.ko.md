@@ -12,16 +12,16 @@
 
 ## 소개
 
-Harness에서 작업하는 틈틈이 모델 소녀들과의 “평범하지 않은” 동료 관계를 발견해 보세요～(∠・ω< )⌒★
+Harness에서 작업하는 틈틈이 AI 소녀들과의 “평범하지 않은” 동료 관계를 발견해 보세요～(∠・ω< )⌒★
 
 `dsh-whale-galgame`은 DeepSeek Harness Web과 Desktop을 위해 만든 독립형 다중 캐릭터 Galgame 인터페이스 플러그인입니다. 일상 작업 흐름에 자연스럽게 녹아들어 차가운 AI 상호작용을 따뜻하고 오래 이어지는 동반 관계로 바꿉니다.
 
-- **각기 다른 개성을 지닌 여섯 모델 소녀**: DeepSeek(고래 소녀), Claude, GPT, Gemini, Kimi, Grok을 지원하며 캐릭터 이미지, 호감도, 기억, 배경은 서로 독립되어 있습니다.
+- **각기 다른 개성을 지닌 여섯 AI 소녀**: DeepSeek(고래 소녀), Claude, GPT, Gemini, Kimi, Grok을 지원하며 캐릭터 이미지, 호감도, 기억, 배경은 서로 독립되어 있습니다.
 - **외형과 내부 모델의 분리**: 고래 소녀의 캐릭터 이미지는 좋지만 Claude나 GPT와 깊이 대화하고 싶나요? 캐릭터 외형과 실제 답변 모델을 자유롭게 조합할 수 있습니다.
 - **‘소극장’ 모드**: 일대일 문답을 넘어 여러 캐릭터의 연계 일상, 작업 회고 단막극, 전용 마일스톤 스토리를 즐길 수 있습니다.
 - **함께 성장하는 유대 시스템**: 일상 상호작용과 작업 token 누적이 모두 호감도를 올려 전용 친밀 말투와 AI 생성 기념 CG를 해제합니다.
 - **가볍고 귀여운 데스크톱 펫**: 화면 한쪽에 상주시킬 수 있으며 클릭 한 번으로 Galgame 화면에 들어갑니다.
-- **심해 공방 픽셀 지도**: 모델 소녀들의 일과 휴식을 지켜보고, 클릭해서 대화할 수 있습니다.
+- **심해 공방 픽셀 지도**: AI 소녀들의 일과 휴식을 지켜보고, 클릭해서 대화할 수 있습니다.
 
 ![DSH Web에서 실제로 실행 중인 dsh-whale-galgame](docs/screenshots/galgame-overview.jpg)
 
@@ -29,7 +29,7 @@ Harness에서 작업하는 틈틈이 모델 소녀들과의 “평범하지 않�
 
 ## 기능
 
-- Galgame 상단의 “工坊地图”를 열면 연결한 모델에 맞춰 기숙사 방이 자동으로 늘거나 줄어듭니다. 모델 소녀들은 작업 상태에 따라 일하거나 산책·휴식하며, 클릭하면 대화를 시작할 수 있습니다.
+- Galgame 상단의 “工坊地图”를 열면 연결한 모델에 맞춰 기숙사 방이 자동으로 늘거나 줄어듭니다. AI 소녀들은 작업 상태에 따라 일하거나 산책·휴식하며, 클릭하면 대화를 시작할 수 있습니다.
 - 4단계 글자 속도, 당시 표정도 확인할 수 있는 대화 기록, H / 오른쪽 클릭으로 화면 UI 숨기기.
 - Web Audio로 합성하는 효과음과 BGM. 각각 켜고 끄거나 음량을 조절할 수 있으며 기본값은 꺼짐.
 - 최근 DSH 작업 분류, 로컬 날짜, 마지막 대화 이후의 시간을 반영하는 응답.
@@ -38,6 +38,36 @@ Harness에서 작업하는 틈틈이 모델 소녀들과의 “평범하지 않�
 - DeepSeek Harness Web과 Desktop에서 같은 플러그인 사용. 중·영·일·한 문서를 제공하며 UI는 현재 중국어 간체.
 
 관계 진행, 작업 인식, 생성 규칙은 [메커니즘 설명](docs/mechanics.md)(중국어)을 참고하세요.
+
+## 포함된 기본 이미지
+
+<table>
+  <tr>
+    <td align="center"><img src="assets/default/maid-left.webp" width="180" alt="DeepSeek 고래 소녀 기본 이미지"><br><strong>DeepSeek · 고래 소녀</strong></td>
+    <td align="center"><img src="assets/default/claude-zipzippipe.webp" width="180" alt="Claude AI 소녀 克洛德 기본 이미지"><br><strong>Claude · 克洛德</strong></td>
+    <td align="center"><img src="assets/default/gpt-zipzippipe.webp" width="180" alt="GPT AI 소녀 小吉 기본 이미지"><br><strong>GPT · 小吉</strong></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="assets/default/gemini-dual-prism-translator-v4.webp" width="180" alt="Gemini AI 소녀 双子 기본 이미지"><br><strong>Gemini · 双子</strong></td>
+    <td align="center"><img src="assets/default/kimi-lunar-scroll-navigator-v5.webp" width="180" alt="Kimi AI 소녀 月见 기본 이미지"><br><strong>Kimi · 月见</strong></td>
+    <td align="center"><img src="assets/default/grok-zipzippipe.webp" width="180" alt="Grok AI 소녀 洛可 기본 이미지"><br><strong>Grok · 洛可</strong></td>
+  </tr>
+</table>
+
+새로 추가한 6개 캐릭터 배경은 아래와 같습니다. Claude, GPT, Gemini, Kimi, Grok은 각자의 장면을 기본 배경으로 사용합니다. DeepSeek 고래 소녀의 기본 배경은 `palace-night.webp`로 유지되며, 해변 서재는 선택할 수 있는 내장 대체 배경입니다.
+
+<table>
+  <tr>
+    <td align="center"><img src="assets/default/bg-deepseek-seaside-study.webp" width="260" alt="DeepSeek 고래 소녀 해변 서재 대체 배경"><br><strong>DeepSeek · 선택 대안</strong></td>
+    <td align="center"><img src="assets/default/bg-claude-writing-study.webp" width="260" alt="Claude 글쓰기 서재 기본 배경"><br><strong>Claude</strong></td>
+    <td align="center"><img src="assets/default/bg-gpt-collaboration-workshop.webp" width="260" alt="GPT 협업 공방 기본 배경"><br><strong>GPT</strong></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="assets/default/bg-gemini-twin-creative-studio.webp" width="260" alt="Gemini 쌍둥이 창작 스튜디오 기본 배경"><br><strong>Gemini</strong></td>
+    <td align="center"><img src="assets/default/bg-kimi-moonlit-reading-study.webp" width="260" alt="Kimi 달빛 독서실 기본 배경"><br><strong>Kimi</strong></td>
+    <td align="center"><img src="assets/default/bg-grok-electronics-studio.webp" width="260" alt="Grok 전자 공작실 기본 배경"><br><strong>Grok</strong></td>
+  </tr>
+</table>
 
 ## 설치
 

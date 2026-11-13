@@ -1627,7 +1627,7 @@ function PluginSettingsCard(): React.ReactElement {
         React.createElement('label', { className: 'whg-settings-row' },
           React.createElement('span', { className: 'whg-settings-copy' },
             React.createElement('strong', null, '角色来源'),
-            React.createElement('small', null, '默认跟随工作区模型，也可固定为某位模型娘。'),
+            React.createElement('small', null, '默认跟随工作区模型，也可固定为某位AI娘。'),
           ),
           React.createElement('select', {
             className: 'whg-settings-select',
@@ -3729,7 +3729,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
         React.createElement('button', {
           className: 'whg-btn', type: 'button', disabled: busy || pickerLoading,
           onClick: () => { closePicker(false); setArchivePanel(null); setDisplayOpen(false); setMapOpen(true) },
-          title: '查看模型娘宿舍、休息区与实时工作状态',
+          title: '查看AI娘宿舍、休息区与实时工作状态',
         }, '工坊地图'),
         React.createElement('div', { className: 'whg-chip-wrap' },
           React.createElement('button', {
