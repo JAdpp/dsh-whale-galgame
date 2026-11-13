@@ -1,5 +1,5 @@
 {
-  "version": 5,
+  "version": 7,
   "generatedOn": "2026-11-13",
   "assets": [
     {
@@ -89,19 +89,48 @@
     },
     {
       "key": "workshop-walk-atlas",
-      "file": "walk-directions.png",
+      "file": "walk-cycle-front-back.png",
       "width": 1536,
       "height": 1024,
-      "sha256": "143c5a044e605f0eeced21a1bb2559f1d0a7bd1a619f334b08a2b4df32163d27",
+      "sha256": "80ee61a9ffa518755d713710fd8e4d43a5e0977048a33921fb0e108be773807c",
       "model": "Codex built-in image generation",
       "modelVersionExposed": false,
       "reference": "residents-atlas-builtin.png",
-      "notes": "walk-directions-notes.md",
+      "notes": "walk-cycle-notes.md",
       "runtime": {
-        "file": "walk-directions.webp",
-        "sha256": "c069d9698bab53c442b846d879cebc3374fb0f01fd82903903006f882140ed90"
-      },
-      "sourceId": "exec-76d2e60c-7e3b-4d05-a135-3c7fb4b60cf7"
+        "file": "walk-cycle-front-back.webp",
+        "sha256": "d16f37fce99adb91858c8360a19df7c34d950059044fe60991dea76426d19dba"
+      }
+    },
+    {
+      "key": "workshop-walk-side-atlas",
+      "file": "walk-cycle-side.png",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "01ea3d11f0b25f234aab2025ade733428cc3e9eb23d6f3f9c3b59f62933fef28",
+      "model": "Codex built-in image generation",
+      "modelVersionExposed": false,
+      "reference": "residents-atlas-builtin.png",
+      "notes": "walk-cycle-notes.md",
+      "runtime": {
+        "file": "walk-cycle-side.webp",
+        "sha256": "d72ad72221ea8385b7475bfedcc93e271ea5d6b59ab80b257974f802f38606d0"
+      }
+    },
+    {
+      "key": "workshop-walk-mid-atlas",
+      "file": "walk-cycle-side-mid.png",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "8b5435613758c7448a44ecbdf4200e556391b673eeaa8b6d6112c3ddb7f4f40f",
+      "model": "Codex built-in image generation",
+      "modelVersionExposed": false,
+      "reference": "walk-cycle-side.png",
+      "notes": "walk-cycle-side-mid-notes.md",
+      "runtime": {
+        "file": "walk-cycle-side-mid.webp",
+        "sha256": "379edfcd850bf73c377c028a14d28a493998b58a0531c7adcc65ca2ed5929400"
+      }
     }
   ],
   "logo": {
@@ -395,118 +424,377 @@
   "walkLayout": {
     "columns": 6,
     "rows": 4,
-    "poses": [
-      "walk right A",
-      "walk right B",
-      "walk away A",
-      "walk away B"
-    ],
     "mirroredForLeft": true,
-    "footAnchors": [
-      [
-        {
-          "x": 144.5,
-          "y": 247
-        },
-        {
-          "x": 141,
-          "y": 247
-        },
-        {
-          "x": 107.5,
-          "y": 247
-        },
-        {
-          "x": 133,
-          "y": 247
-        },
-        {
-          "x": 133,
-          "y": 247
-        },
-        {
-          "x": 148,
-          "y": 247
-        }
+    "frontBack": {
+      "poses": [
+        "front, left foot forward",
+        "front, right foot forward",
+        "back, left foot forward",
+        "back, right foot forward"
       ],
-      [
-        {
-          "x": 144.5,
-          "y": 245
-        },
-        {
-          "x": 141,
-          "y": 245
-        },
-        {
-          "x": 107.5,
-          "y": 245
-        },
-        {
-          "x": 133,
-          "y": 245
-        },
-        {
-          "x": 133,
-          "y": 245
-        },
-        {
-          "x": 148,
-          "y": 245
-        }
-      ],
-      [
-        {
-          "x": 141.5,
-          "y": 248
-        },
-        {
-          "x": 134,
-          "y": 248
-        },
-        {
-          "x": 124.5,
-          "y": 247
-        },
-        {
-          "x": 128,
-          "y": 248
-        },
-        {
-          "x": 134,
-          "y": 248
-        },
-        {
-          "x": 127.5,
-          "y": 248
-        }
-      ],
-      [
-        {
-          "x": 141.5,
-          "y": 247
-        },
-        {
-          "x": 134,
-          "y": 247
-        },
-        {
-          "x": 124.5,
-          "y": 247
-        },
-        {
-          "x": 128,
-          "y": 247
-        },
-        {
-          "x": 134,
-          "y": 247
-        },
-        {
-          "x": 127.5,
-          "y": 247
-        }
+      "scale": 1.02,
+      "footAnchors": [
+        [
+          {
+            "x": 137,
+            "y": 250
+          },
+          {
+            "x": 130,
+            "y": 249
+          },
+          {
+            "x": 124,
+            "y": 252
+          },
+          {
+            "x": 125,
+            "y": 250
+          },
+          {
+            "x": 124.5,
+            "y": 250
+          },
+          {
+            "x": 120.5,
+            "y": 250
+          }
+        ],
+        [
+          {
+            "x": 137,
+            "y": 248
+          },
+          {
+            "x": 130,
+            "y": 247
+          },
+          {
+            "x": 124,
+            "y": 250
+          },
+          {
+            "x": 125,
+            "y": 250
+          },
+          {
+            "x": 124.5,
+            "y": 249
+          },
+          {
+            "x": 120.5,
+            "y": 249
+          }
+        ],
+        [
+          {
+            "x": 136,
+            "y": 250
+          },
+          {
+            "x": 129,
+            "y": 249
+          },
+          {
+            "x": 123,
+            "y": 251
+          },
+          {
+            "x": 125,
+            "y": 250
+          },
+          {
+            "x": 125,
+            "y": 250
+          },
+          {
+            "x": 120,
+            "y": 249
+          }
+        ],
+        [
+          {
+            "x": 136,
+            "y": 248
+          },
+          {
+            "x": 129,
+            "y": 248
+          },
+          {
+            "x": 123,
+            "y": 248
+          },
+          {
+            "x": 125,
+            "y": 249
+          },
+          {
+            "x": 125,
+            "y": 248
+          },
+          {
+            "x": 120,
+            "y": 248
+          }
+        ]
       ]
-    ]
+    },
+    "side": {
+      "poses": [
+        "side, near leg forward",
+        "side, far leg forward",
+        "side, passing",
+        "back, passing"
+      ],
+      "scale": 1.2,
+      "footAnchors": [
+        [
+          {
+            "x": 145.5,
+            "y": 236
+          },
+          {
+            "x": 137,
+            "y": 234
+          },
+          {
+            "x": 129,
+            "y": 236
+          },
+          {
+            "x": 129.5,
+            "y": 235
+          },
+          {
+            "x": 115.5,
+            "y": 235
+          },
+          {
+            "x": 115,
+            "y": 235
+          }
+        ],
+        [
+          {
+            "x": 145.5,
+            "y": 230
+          },
+          {
+            "x": 137,
+            "y": 230
+          },
+          {
+            "x": 129,
+            "y": 230
+          },
+          {
+            "x": 129.5,
+            "y": 231
+          },
+          {
+            "x": 115.5,
+            "y": 230
+          },
+          {
+            "x": 115,
+            "y": 230
+          }
+        ],
+        [
+          {
+            "x": 146,
+            "y": 232
+          },
+          {
+            "x": 136,
+            "y": 232
+          },
+          {
+            "x": 130,
+            "y": 232
+          },
+          {
+            "x": 127,
+            "y": 232
+          },
+          {
+            "x": 117,
+            "y": 232
+          },
+          {
+            "x": 118,
+            "y": 232
+          }
+        ],
+        [
+          {
+            "x": 143,
+            "y": 229
+          },
+          {
+            "x": 131,
+            "y": 229
+          },
+          {
+            "x": 127,
+            "y": 229
+          },
+          {
+            "x": 127,
+            "y": 229
+          },
+          {
+            "x": 112,
+            "y": 229
+          },
+          {
+            "x": 120,
+            "y": 229
+          }
+        ]
+      ]
+    },
+    "idleAnchors": [
+      {
+        "x": 143,
+        "y": 249
+      },
+      {
+        "x": 138,
+        "y": 249
+      },
+      {
+        "x": 129,
+        "y": 249
+      },
+      {
+        "x": 127,
+        "y": 249
+      },
+      {
+        "x": 126,
+        "y": 249
+      },
+      {
+        "x": 122,
+        "y": 249
+      }
+    ],
+    "sideMid": {
+      "poses": [
+        "side, half stride, near leg forward",
+        "side, half stride, far leg forward",
+        "side, passing, near leg lifted",
+        "side, passing, far leg lifted"
+      ],
+      "scale": 1.16,
+      "footAnchors": [
+        [
+          {
+            "x": 143,
+            "y": 238
+          },
+          {
+            "x": 134,
+            "y": 239
+          },
+          {
+            "x": 125.5,
+            "y": 239
+          },
+          {
+            "x": 128.5,
+            "y": 239
+          },
+          {
+            "x": 115,
+            "y": 239
+          },
+          {
+            "x": 112,
+            "y": 238
+          }
+        ],
+        [
+          {
+            "x": 143,
+            "y": 234
+          },
+          {
+            "x": 134,
+            "y": 234
+          },
+          {
+            "x": 125.5,
+            "y": 234
+          },
+          {
+            "x": 128.5,
+            "y": 234
+          },
+          {
+            "x": 115,
+            "y": 234
+          },
+          {
+            "x": 112,
+            "y": 234
+          }
+        ],
+        [
+          {
+            "x": 143,
+            "y": 232
+          },
+          {
+            "x": 134,
+            "y": 232
+          },
+          {
+            "x": 125.5,
+            "y": 232
+          },
+          {
+            "x": 127.5,
+            "y": 232
+          },
+          {
+            "x": 115,
+            "y": 232
+          },
+          {
+            "x": 113.5,
+            "y": 231
+          }
+        ],
+        [
+          {
+            "x": 143,
+            "y": 232
+          },
+          {
+            "x": 134,
+            "y": 230
+          },
+          {
+            "x": 125.5,
+            "y": 231
+          },
+          {
+            "x": 127.5,
+            "y": 231
+          },
+          {
+            "x": 115,
+            "y": 230
+          },
+          {
+            "x": 113.5,
+            "y": 231
+          }
+        ]
+      ]
+    }
   }
 }
