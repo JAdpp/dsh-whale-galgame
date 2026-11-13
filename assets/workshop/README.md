@@ -9,7 +9,7 @@
 | `office-hires.png` | Codex 内置绘图，以公共区图集的工作区一格为版式参考重绘；记录见 [`office-hires-notes.md`](office-hires-notes.md) | 1254 × 1254，单张协作工坊，分辨率是原图格的两倍；六块地毯与门的相对位置保持不变。 |
 | `walk-cycle-front-back.png` | Codex 内置绘图，以角色图集为身份参考；记录见 [`walk-cycle-notes.md`](walk-cycle-notes.md) | 1536 × 1024 透明 PNG，6 列 × 4 行落地帧：正面左脚在前、正面右脚在前、背面左脚在前、背面右脚在前。 |
 | `walk-cycle-side.png` | 同上 | 1536 × 1024 透明 PNG，6 列 × 4 行，均朝右：近侧腿在前、远侧腿在前、侧身并腿过渡、背面并腿过渡；向左行走由镜像得到。 |
-| `residents-atlas-builtin.png` | Codex 内置绘图；工具未暴露具体模型版本 | 1536 × 1024 透明 PNG，6 列 × 4 行；列对应六位模型娘，行对应待机、两帧行走、读写工作。 |
+| `residents-atlas-builtin.png` | Codex 内置绘图；工具未暴露具体模型版本 | 1536 × 1024 透明 PNG，6 列 × 4 行；列对应六位AI娘，行对应待机、两帧行走、读写工作。 |
 | `workstations-rpg-atlas.png` | Codex 内置绘图，以角色图集为身份参考 | 1374 × 1145 透明 PNG，6 列 × 5 行；空工位、三帧专属工作循环、等待确认。 |
 | `decor-atlas-builtin.png` | Codex 内置绘图；工具未暴露具体模型版本 | 1536 × 1024 透明 PNG，3 列 × 2 行；依次为盆栽、花台、落地灯、书柜、长凳和天球仪。 |
 | [`logo-simple.png`](../../docs/brand/logo-simple.png) | 经用户确认改用 Codex 内置绘图 | 1254 × 1254 透明 PNG，当前 README 简约鲸尾与星光图标。 |

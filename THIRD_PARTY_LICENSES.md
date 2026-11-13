@@ -22,7 +22,7 @@ This project directly adapts the upstream desktop-pet state animation, 16-direct
 
 `assets/default/pet-spritesheet.webp` is a byte-identical copy of the upstream `assets/spritesheet.webp` (SHA-256 `234f24a97c18195a00c6093da0090773e675993c169e92e7e13a24c37b323fa2`) and remains under the same MIT terms.
 
-## ZipZipPipe model-girl sprites
+## ZipZipPipe AI-girl sprites
 
 - Creator: ZipZipPipe ([Pixiv](https://www.pixiv.net/users/18604994) · [Bilibili](https://space.bilibili.com/4168597))
 - Original post: [Bilibili](https://www.bilibili.com/opus/1233069202138464289)

@@ -12,16 +12,16 @@
 
 ## Overview
 
-Between Harness tasks, discover an “extraordinary” coworker relationship with the model girls～(∠・ω< )⌒★
+Between Harness tasks, discover an “extraordinary” coworker relationship with the AI girls～(∠・ω< )⌒★
 
 `dsh-whale-galgame` is a standalone multi-character Galgame interface plugin built for DeepSeek Harness Web and Desktop. By blending naturally into your daily workflow, it turns impersonal AI interactions into warm, lasting companionship:
 
-- **Six model girls with distinct personalities**: DeepSeek (the whale girl), Claude, GPT, Gemini, Kimi, and Grok, each with independent sprites, affection, memories, and backgrounds.
+- **Six AI girls with distinct personalities**: DeepSeek (the whale girl), Claude, GPT, Gemini, Kimi, and Grok, each with independent sprites, affection, memories, and backgrounds.
 - **Appearance and model are decoupled**: Like the whale-girl sprite but want an in-depth conversation with Claude or GPT? Mix and match the character image and underlying reply model freely.
 - **Side Story mode**: Go beyond one-to-one Q&A with multi-character daily scenes, work-recap skits, and dedicated milestone stories.
 - **A bond system that grows with you**: Daily interaction and accumulated work tokens both raise affection, unlocking more intimate dialogue styles and AI-generated commemorative CGs.
 - **A lightweight, lovable desktop pet**: Keep it in a corner of the screen and click once to jump into the Galgame view.
-- **A pixel-art Deep Sea Workshop map**: Watch the model girls work or relax, then click one to chat.
+- **A pixel-art Deep Sea Workshop map**: Watch the AI girls work or relax, then click one to chat.
 
 ![dsh-whale-galgame running in DSH Web](docs/screenshots/galgame-overview.jpg)
 
@@ -38,6 +38,36 @@ Between Harness tasks, discover an “extraordinary” coworker relationship wit
 - One plugin for DeepSeek Harness Web and Desktop; Chinese, English, Japanese, and Korean documentation, with a Simplified Chinese interface.
 
 See [mechanics](docs/mechanics.md) for relationship progression, task awareness, and generation rules (in Chinese).
+
+## Bundled default art
+
+<table>
+  <tr>
+    <td align="center"><img src="assets/default/maid-left.webp" width="180" alt="Default DeepSeek whale-girl sprite"><br><strong>DeepSeek · Whale Girl</strong></td>
+    <td align="center"><img src="assets/default/claude-zipzippipe.webp" width="180" alt="Default Claude-inspired character sprite, nickname 克洛德"><br><strong>Claude · 克洛德</strong></td>
+    <td align="center"><img src="assets/default/gpt-zipzippipe.webp" width="180" alt="Default GPT-inspired character sprite, nickname 小吉"><br><strong>GPT · 小吉</strong></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="assets/default/gemini-dual-prism-translator-v4.webp" width="180" alt="Default Gemini-inspired character sprite, nickname 双子"><br><strong>Gemini · 双子</strong></td>
+    <td align="center"><img src="assets/default/kimi-lunar-scroll-navigator-v5.webp" width="180" alt="Default Kimi-inspired character sprite, nickname 月见"><br><strong>Kimi · 月见</strong></td>
+    <td align="center"><img src="assets/default/grok-zipzippipe.webp" width="180" alt="Default Grok-inspired character sprite, nickname 洛可"><br><strong>Grok · 洛可</strong></td>
+  </tr>
+</table>
+
+The six new role backgrounds are shown below. Claude, GPT, Gemini, Kimi, and Grok use their matching scene by default. DeepSeek keeps `palace-night.webp` as the whale-girl default; the seaside study shown here is a selectable built-in alternative.
+
+<table>
+  <tr>
+    <td align="center"><img src="assets/default/bg-deepseek-seaside-study.webp" width="260" alt="Optional DeepSeek whale-girl seaside-study background"><br><strong>DeepSeek · optional</strong></td>
+    <td align="center"><img src="assets/default/bg-claude-writing-study.webp" width="260" alt="Claude writing-study default background"><br><strong>Claude</strong></td>
+    <td align="center"><img src="assets/default/bg-gpt-collaboration-workshop.webp" width="260" alt="GPT collaboration-workshop default background"><br><strong>GPT</strong></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="assets/default/bg-gemini-twin-creative-studio.webp" width="260" alt="Gemini twin creative-studio default background"><br><strong>Gemini</strong></td>
+    <td align="center"><img src="assets/default/bg-kimi-moonlit-reading-study.webp" width="260" alt="Kimi moonlit reading-study default background"><br><strong>Kimi</strong></td>
+    <td align="center"><img src="assets/default/bg-grok-electronics-studio.webp" width="260" alt="Grok electronics-studio default background"><br><strong>Grok</strong></td>
+  </tr>
+</table>
 
 ## Install
 

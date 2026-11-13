@@ -12,16 +12,16 @@
 
 ## 简介
 
-在Harness执行工作的间隙，探寻你与模型娘间“非比寻常”的同事关系～(∠・ω< )⌒★
+在Harness执行工作的间隙，探寻你与AI娘间“非比寻常”的同事关系～(∠・ω< )⌒★
 
 `dsh-whale-galgame` 是专为DeepSeek Harness Web与Desktop打造的独立多角色Galgame界面插件。通过无缝融入日常工作流，它让冰凉的AI交互化作温暖长情的陪伴：
 
-- **6 位性格各异的模型娘**：支持DeepSeek（大肥鱼/鲸鱼娘）、Claude、GPT、Gemini、Kimi与Grok，立绘、好感度、记忆与背景相互独立。
+- **6 位性格各异的AI娘**：支持DeepSeek（大肥鱼/鲸鱼娘）、Claude、GPT、Gemini、Kimi与Grok，立绘、好感度、记忆与背景相互独立。
 - **外观与内核解耦**：喜欢大肥鱼的机甲，又想用Claude或GPT进行深度对话（NTR?）角色形象与底层回复模型可随心搭配。
-- **「小剧场」模式**：告别单一问答，解锁多模型娘联动日常、工作复盘短剧与专属里程碑剧情。
+- **「小剧场」模式**：告别单一问答，解锁多AI娘联动日常、工作复盘短剧与专属里程碑剧情。
 - **伴你成长的羁绊系统**：日常互动与工作Token积累均可提升好感，解锁专属亲昵语气与AI生成的纪念CG。
 - **轻量可爱的桌面宠物**：支持常驻屏幕一角，点击即可一键切入Galgame界面。
-- **深海工坊像素地图**：看看模型娘工作、散步和休息，点击即可聊天。
+- **深海工坊像素地图**：看看AI娘工作、散步和休息，点击即可聊天。
 
 ![dsh-whale-galgame在DSH Web中的实际运行界面](docs/screenshots/galgame-overview.jpg)
 
@@ -35,6 +35,36 @@
 - 同一插件支持DeepSeek Harness Web与Desktop。
 
 关系进度、任务感知和生成规则见[机制说明](docs/mechanics.md)。
+
+## 内置默认美术
+
+<table>
+  <tr>
+    <td align="center"><img src="assets/default/maid-left.webp" width="180" alt="DeepSeek 鲸鱼娘默认立绘"><br><strong>DeepSeek · 鲸鱼娘</strong></td>
+    <td align="center"><img src="assets/default/claude-zipzippipe.webp" width="180" alt="Claude AI娘克洛德默认立绘"><br><strong>Claude · 克洛德</strong></td>
+    <td align="center"><img src="assets/default/gpt-zipzippipe.webp" width="180" alt="GPT AI娘小吉默认立绘"><br><strong>GPT · 小吉</strong></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="assets/default/gemini-dual-prism-translator-v4.webp" width="180" alt="Gemini AI娘双子默认立绘"><br><strong>Gemini · 双子</strong></td>
+    <td align="center"><img src="assets/default/kimi-lunar-scroll-navigator-v5.webp" width="180" alt="Kimi AI娘月见默认立绘"><br><strong>Kimi · 月见</strong></td>
+    <td align="center"><img src="assets/default/grok-zipzippipe.webp" width="180" alt="Grok AI娘洛可默认立绘"><br><strong>Grok · 洛可</strong></td>
+  </tr>
+</table>
+
+六个角色的新背景如下。Claude、GPT、Gemini、Kimi 和 Grok 默认使用各自背景；DeepSeek 鲸鱼娘仍以 `palace-night.webp` 深海宫殿为默认，下图海边书房是内置可选替代。
+
+<table>
+  <tr>
+    <td align="center"><img src="assets/default/bg-deepseek-seaside-study.webp" width="260" alt="DeepSeek 鲸鱼娘海边书房可选背景"><br><strong>DeepSeek · 可选替代</strong></td>
+    <td align="center"><img src="assets/default/bg-claude-writing-study.webp" width="260" alt="Claude 写作书房默认背景"><br><strong>Claude</strong></td>
+    <td align="center"><img src="assets/default/bg-gpt-collaboration-workshop.webp" width="260" alt="GPT 协作工坊默认背景"><br><strong>GPT</strong></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="assets/default/bg-gemini-twin-creative-studio.webp" width="260" alt="Gemini 双子创意工作室默认背景"><br><strong>Gemini</strong></td>
+    <td align="center"><img src="assets/default/bg-kimi-moonlit-reading-study.webp" width="260" alt="Kimi 月下阅读室默认背景"><br><strong>Kimi</strong></td>
+    <td align="center"><img src="assets/default/bg-grok-electronics-studio.webp" width="260" alt="Grok 电子工作室默认背景"><br><strong>Grok</strong></td>
+  </tr>
+</table>
 
 ## 安装
 
@@ -100,7 +130,7 @@ allowBuilds:
 
 ### 深海工坊地图
 
-从 Galgame 顶栏打开“工坊地图”，宿舍随已接入模型自动增减。模型娘工作时前往工位，空闲时散步或休息；点击小人或侧栏名单即可聊天。支持缩放、滚动与暂停散步。[详细机制](docs/mechanics.md#深海工坊地图的实时状态)。
+从 Galgame 顶栏打开“工坊地图”，宿舍随已接入模型自动增减。AI娘工作时前往工位，空闲时散步或休息；点击小人或侧栏名单即可聊天。支持缩放、滚动与暂停散步。[详细机制](docs/mechanics.md#深海工坊地图的实时状态)。
 
 ![深海工坊像素地图，演示状态](docs/screenshots/workshop-map.jpg)
 
