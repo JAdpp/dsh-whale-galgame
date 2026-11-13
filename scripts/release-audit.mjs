@@ -137,8 +137,8 @@ const workshopManifest = JSON.parse(readFileSync(resolve(root, 'assets/workshop/
 const workshopSource = readFileSync(resolve(root, 'src/client/workshop.generated.ts'), 'utf8')
 const workshopEntries = new Map([...workshopSource.matchAll(/^\s*'([^']+)'\s*:\s*'data:image\/webp;base64,([^']+)'/gm)]
   .map((match) => [match[1], Buffer.from(match[2], 'base64')]))
-const workshopKeys = ['workshop-map-atlas', 'workshop-office-atlas', 'workshop-room-atlas', 'workshop-resident-atlas', 'workshop-walk-atlas', 'workshop-workstation-atlas', 'workshop-decor-atlas']
-if (workshopEntries.size !== 7 || workshopManifest.assets.length !== 7) throw new Error('Expected exactly seven workshop images')
+const workshopKeys = ['workshop-map-atlas', 'workshop-office-atlas', 'workshop-room-atlas', 'workshop-resident-atlas', 'workshop-walk-atlas', 'workshop-walk-side-atlas', 'workshop-workstation-atlas', 'workshop-decor-atlas']
+if (workshopEntries.size !== 8 || workshopManifest.assets.length !== 8) throw new Error('Expected exactly eight workshop images')
 for (const key of workshopKeys) {
   const asset = workshopManifest.assets.find((item) => item.key === key)
   if (!asset || !/^[a-z0-9-]+\.png$/.test(asset.file)) throw new Error('Invalid workshop asset: ' + key)

@@ -10,9 +10,12 @@ export type WorkshopArtAssets = {
   publicAtlas?: CanvasImageSource | null
   /** The workshop redrawn on its own at twice the sheet's resolution. */
   officeImage?: CanvasImageSource | null
-  /** 6 × 4 sheet: two side-walk frames facing right, two back-walk frames. */
+  /** 6 × 4 sheet of contact poses: front left foot, front right foot, back left foot, back right foot. */
   walkAtlas?: CanvasImageSource | null
-  walkAnchors?: Array<Array<{ x: number; y: number }>>
+  /** 6 × 4 sheet facing right: near leg forward, far leg forward, side passing, back passing. */
+  walkSideAtlas?: CanvasImageSource | null
+  /** Foot anchors per cell and the draw scale that matches each sheet to the idle sprites. */
+  walk?: Record<'frontBack' | 'side', { scale: number; anchors: Array<Array<{ x: number; y: number }>> }> & { idle: Array<{ x: number; y: number }> }
   /** 3 × 2 sheet of themed dorms in CHARACTERS order. */
   roomAtlas?: CanvasImageSource | null
   residentAtlas?: CanvasImageSource | null; decorAtlas?: CanvasImageSource | null
@@ -344,14 +347,26 @@ export function drawResident(ctx: CanvasRenderingContext2D, id: string, x: numbe
     const row = status === 'waiting' ? 4 : 1 + Math.floor(frame / 12) % 3
     workFrame(ctx, assets, id, { x: x - STATION_SIZE / 2, y: y - STATION_SIZE - TILE_SIZE * .5,
       width: STATION_SIZE, height: STATION_SIZE }, row)
-  } else if (moving && facing !== 'down' && assets.walkAtlas) {
+  } else if (moving && assets.walkAtlas && assets.walkSideAtlas && assets.walk && assets.residentAtlas) {
     const column = CHARACTERS.indexOf((id === 'gpt' ? 'chatgpt' : id) as typeof CHARACTERS[number])
-    const row = (facing === 'up' ? 2 : 0) + Math.floor(frame / 8) % 2
-    const anchor = assets.walkAnchors?.[row]?.[column] || { x: 128, y: 247 }
-    // The sheet only faces right; walking left mirrors it around the foot point.
+    // Four steps: one foot lands, the legs pass, the other foot lands, the legs pass.
+    const step = Math.floor(frame / 6) % 4, foot = step === 0 ? 0 : step === 2 ? 1 : -1
+    const sideways = facing === 'left' || facing === 'right'
+    let sheet: CanvasImageSource = assets.walkAtlas, rows = 4, row = (facing === 'up' ? 2 : 0) + Math.max(foot, 0)
+    let scale = assets.walk.frontBack.scale, anchors = assets.walk.frontBack.anchors
+    if (sideways || (foot < 0 && facing === 'up')) {
+      // The side sheet also holds the passing poses for walking sideways and away.
+      sheet = assets.walkSideAtlas; scale = assets.walk.side.scale; anchors = assets.walk.side.anchors
+      row = foot < 0 ? (sideways ? 2 : 3) : foot
+    } else if (foot < 0) {
+      // Walking toward the viewer passes through the idle pose.
+      sheet = assets.residentAtlas; row = 0; scale = 1; anchors = [assets.walk.idle]
+    }
+    const anchor = anchors[row]?.[column] || { x: 128, y: 247 }, size = 96 * scale
+    // The side sheet only faces right; walking left mirrors it around the foot point.
     if (facing === 'left') { ctx.translate(x * 2, 0); ctx.scale(-1, 1) }
-    if (column >= 0) cell(ctx, assets.walkAtlas, row * 6 + column, 6, 4,
-      { x: x - anchor.x / 256 * 96, y: y - anchor.y / 256 * 96, width: 96, height: 96 })
+    if (column >= 0) cell(ctx, sheet, row * 6 + column, 6, rows,
+      { x: x - anchor.x / 256 * size, y: y - anchor.y / 256 * size, width: size, height: size })
   } else if (assets.residentAtlas) {
     const column = CHARACTERS.indexOf((id === 'gpt' ? 'chatgpt' : id) as typeof CHARACTERS[number])
     const row = moving ? 1 + Math.floor(frame / 8) % 2 : status === 'idle' ? 0 : 3
