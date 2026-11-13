@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   createWorkshopLayout, createResidents, syncResidents, stepResidents, settleResidents,
-  walkingRoute, RESIDENT_IDS, TILE_SIZE, OFFICE_ART, type WorkshopLayout, type Point, type Bounds,
+  walkingRoute, RESIDENT_IDS, TILE_SIZE, STATION_SIZE, OFFICE_ART, type WorkshopLayout, type Point, type Bounds,
 } from '../src/client/workshop-world.ts'
 
 test('rooms follow connected families, coalescing model versions and aliases', () => {
@@ -105,11 +105,11 @@ test('the workshop has six non-overlapping full-size stations with walkpoints so
   assert.equal(office.width, 960)
   assert.equal(office.height, 960)
   for (const station of layout.stations) {
-    assert.equal(station.width, 192)
-    assert.equal(station.height, 192)
+    assert.equal(station.width, 144)
+    assert.equal(station.height, 144)
     assert.ok(station.x >= office.x + 48 && station.x + station.width <= office.x + office.width - 48)
     assert.ok(station.y >= office.y + 48 && station.y + station.height <= office.y + office.height - 48)
-    assert.ok(station.walkPoint.y >= station.tableBounds.y + station.tableBounds.height + 48)
+    assert.ok(station.walkPoint.y >= station.tableBounds.y + station.tableBounds.height + 36)
     assert.deepEqual(layout.nodes['work-' + station.id], station.walkPoint)
     assert.ok(station.walkPoint.y < office.y + office.height - 48)
     for (const other of layout.stations) if (other !== station) {
@@ -134,8 +134,8 @@ test('the office stays square and each station follows its painted rug for every
       const rugCentre = office.x + (rug.x0 + rug.x1) / 2 * scale
       const rugBottom = office.y + rug.y1 * scale
       assert.ok(Math.abs(station.x + station.width / 2 - rugCentre) <= 1, `${station.id} centres on its rug`)
-      assert.ok(Math.abs(rugBottom - station.y - station.height - 20) <= 1, `${station.id} sits 20px above the rug bottom`)
-      assert.deepEqual({ x: station.walkPoint.x - TILE_SIZE * 2, y: station.walkPoint.y - TILE_SIZE * 4.5 },
+      assert.ok(Math.abs(rugBottom - station.y - station.height - 30) <= 1, `${station.id} sits 30px above the rug bottom`)
+      assert.deepEqual({ x: station.walkPoint.x - STATION_SIZE / 2, y: station.walkPoint.y - STATION_SIZE - TILE_SIZE * .5 },
         { x: station.x, y: station.y }, 'the seated frame uses the same origin as the empty desk')
       assert.ok(Number.isInteger(station.x) && Number.isInteger(station.y), 'desk frames align to world pixels')
     })

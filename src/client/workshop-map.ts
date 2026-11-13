@@ -1,7 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { DEFAULT_NAMES, drawWorkshop, drawResident } from './workshop-art'
 import { WORKSHOP_ART, WORKSHOP_SPRITE_ANCHORS, WORKSHOP_WORK_ACTIVITIES, WORKSHOP_DECOR_BOUNDS } from './workshop.generated'
-import { createWorkshopLayout, createResidents, syncResidents, stepResidents, settleResidents, residentActivity, type Resident, type Presence } from './workshop-world'
+import { STATION_SIZE, createWorkshopLayout, createResidents, syncResidents, stepResidents, settleResidents, residentActivity, type Resident, type Presence } from './workshop-world'
 
 export const WORKSHOP_CSS = `
 .whg-map{--whg-map-panel:linear-gradient(180deg,rgba(7,30,45,.96),rgba(3,17,31,.98));--whg-map-brass:#d7b66c;--whg-map-line:rgba(215,182,108,.48);--whg-map-accent:#8fd8ef;--whg-map-text:#e8f1f5;--whg-map-muted:#a9c0cc;--whg-map-running:#6fd3a4;--whg-map-waiting:#f2b95c;--whg-map-idle:#8fa6b3;position:relative;display:flex;flex-direction:column;flex:1;width:100%;height:100%;min-width:0;min-height:0;overflow:hidden;box-sizing:border-box;background:#061a28;color:var(--whg-map-text);font:13px/1.5 system-ui,"Microsoft YaHei",sans-serif;user-select:none}
@@ -13,8 +13,8 @@ export const WORKSHOP_CSS = `
 .whg-map-floor{position:relative;margin:auto;isolation:isolate;flex:none}.whg-map-scene{display:block;width:100%;height:100%;image-rendering:auto}
 .whg-map-person{position:absolute;width:72px;height:96px;transform:translate(-50%,-88px) scale(var(--whg-map-scale,1));transform-origin:50% 88px;padding:0;border:0;border-radius:8px;background:transparent;color:var(--whg-map-text);overflow:visible;touch-action:manipulation}.whg-map:not([data-paused=true]) .whg-map-person[data-settled=true]{transition:left .1s linear,top .1s linear}.whg-map-person:hover,.whg-map-person:focus-visible{z-index:2147483647!important}.whg-map-person:focus-visible{outline-offset:-4px}.whg-map-person[data-highlight=true]{outline:2px solid var(--whg-map-brass);outline-offset:3px;box-shadow:0 0 16px rgba(215,182,108,.5)}
 .whg-map-person canvas{position:absolute;display:block;width:96px;height:112px;left:50%;top:-12px;transform:translateX(-50%);margin:0;image-rendering:auto;filter:drop-shadow(0 3px 2px rgba(0,8,24,.6))}.whg-map-person:hover canvas,.whg-map-person:focus-visible canvas,.whg-map-person[data-highlight=true] canvas{filter:drop-shadow(0 0 5px var(--whg-map-brass))}
-.whg-map-person[data-at-desk=true]{width:192px;height:216px;transform:translate(-50%,-216px) scale(var(--whg-map-scale,1));transform-origin:50% 216px}.whg-map-person[data-at-desk=true] canvas{width:224px;height:240px;top:0}
-.whg-map-bubble-anchor,.whg-map-name-anchor{position:absolute;left:50%;width:0;height:0;pointer-events:none}.whg-map-bubble-anchor{bottom:calc(100% + 4px)}.whg-map-person[data-at-desk=true] .whg-map-bubble-anchor{bottom:calc(100% - 40px)}.whg-map-bubble-scale{position:absolute;bottom:0;display:block;width:max-content;transform:translateX(-50%) scale(calc(1 / var(--whg-map-scale,1)));transform-origin:50% 100%}
+.whg-map-person[data-at-desk=true]{width:144px;height:168px;transform:translate(-50%,-168px) scale(var(--whg-map-scale,1));transform-origin:50% 168px}.whg-map-person[data-at-desk=true] canvas{width:176px;height:192px;top:0}
+.whg-map-bubble-anchor,.whg-map-name-anchor{position:absolute;left:50%;width:0;height:0;pointer-events:none}.whg-map-bubble-anchor{bottom:calc(100% + 4px)}.whg-map-person[data-at-desk=true] .whg-map-bubble-anchor{bottom:calc(100% - 30px)}.whg-map-bubble-scale{position:absolute;bottom:0;display:block;width:max-content;transform:translateX(-50%) scale(calc(1 / var(--whg-map-scale,1)));transform-origin:50% 100%}
 .whg-map-bubble{display:flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--whg-map-running);border-radius:999px;padding:6px 9px;background:#071e2d;color:var(--whg-map-running);font-size:12px;font-weight:600;line-height:1.4;white-space:nowrap;box-shadow:0 3px 12px rgba(0,8,24,.55)}.whg-map-bubble-waiting{padding:5px 10px;border-color:var(--whg-map-waiting);background:var(--whg-map-waiting);color:#061a28;animation:whg-map-waiting-pulse 2.4s ease-in-out infinite}.whg-map-bubble-alert{font-size:15px;font-weight:800}.whg-map-bubble-dot{width:4px;height:4px;border-radius:50%;background:currentColor;animation:whg-map-working-dot 1.2s ease-in-out infinite}.whg-map-bubble-dot:nth-child(2){animation-delay:.16s}.whg-map-bubble-dot:nth-child(3){animation-delay:.32s}
 .whg-map-name-anchor{top:calc(100% + 8px);visibility:hidden}.whg-map-person[data-at-desk=true] .whg-map-name-anchor{top:calc(100% + 32px)}.whg-map-person:hover .whg-map-name-anchor,.whg-map-person:focus-visible .whg-map-name-anchor{visibility:visible}.whg-map-name{display:block;width:max-content;padding:4px 9px;border:1px solid var(--whg-map-brass);border-radius:999px;background:#071e2d;color:var(--whg-map-text);font-size:12px;line-height:1.5;white-space:nowrap;transform:translateX(-50%) scale(calc(1 / var(--whg-map-scale,1)));transform-origin:50% 0;box-shadow:0 3px 12px rgba(0,8,24,.55)}
 .whg-map-roster{display:flex;flex-direction:column;min-height:0;min-width:0;overflow:auto;border-left:1px solid var(--whg-map-line);background:var(--whg-map-panel);padding:18px 12px;scrollbar-color:var(--whg-map-brass) #061a28}.whg-map-roster h2{margin:0 7px 5px;color:var(--whg-map-brass);font-size:15px;font-weight:600;letter-spacing:1px}.whg-map-roster-note{margin:0 7px 14px;color:var(--whg-map-muted);font-size:12.5px;line-height:1.7}.whg-map-resident{display:flex;align-items:center;gap:9px;width:100%;flex:none;min-height:78px;padding:8px 6px;border:1px solid transparent;border-left:3px solid transparent;border-bottom-color:var(--whg-map-line);background:transparent;color:var(--whg-map-text);text-align:left;border-radius:7px}.whg-map-resident[data-status=waiting]{border-left-color:var(--whg-map-waiting);background:rgba(242,185,92,.08)}.whg-map-resident:hover:not(:disabled),.whg-map-resident:focus-visible{border-top-color:var(--whg-map-line);border-right-color:var(--whg-map-line);background:rgba(215,182,108,.14)}.whg-map-resident canvas{width:44px;height:52px;flex:none;image-rendering:auto}.whg-map-resident-meta{flex:1;min-width:0}.whg-map-resident-name{display:block;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.whg-map-resident-status{display:block;margin-top:4px;font-size:12.5px;color:var(--whg-map-muted);line-height:1.5;overflow-wrap:anywhere}.whg-map-resident-arrow{color:var(--whg-map-brass);font-size:14px}
@@ -54,13 +54,13 @@ function PixelAvatar(props: { resident: Resident; frame: number; images: Worksho
   const ref = useRef<HTMLCanvasElement | null>(null)
   const { resident, frame } = props
   const atDesk = !props.small && resident.status !== 'idle' && resident.route.length === 0 && resident.node === 'work-' + resident.id
-  const width = atDesk ? 224 : 96, height = atDesk ? 240 : 112
+  const width = atDesk ? STATION_SIZE + 32 : 96, height = atDesk ? STATION_SIZE + 48 : 112
   useEffect(() => {
     const canvas = ref.current
     if (!canvas) return
     const atlas = atDesk ? props.images.workstationAtlas : props.images.residentAtlas
     const cellWidth = (atlas.naturalWidth || atlas.width) / 6
-    const scale = cellWidth / (atDesk ? 192 : 96)
+    const scale = cellWidth / (atDesk ? STATION_SIZE : 96)
     const backingWidth = Math.round(width * scale), backingHeight = Math.round(height * scale)
     // Keep one source pixel per backing pixel; CSS handles the display scaling.
     // Resizing clears the canvas state, so only resize when the atlas/mode needs it.
@@ -72,7 +72,7 @@ function PixelAvatar(props: { resident: Resident; frame: number; images: Worksho
     ctx.clearRect(0, 0, width, height)
     ctx.imageSmoothingEnabled = true
     ctx.imageSmoothingQuality = 'high'
-    drawResident(ctx, resident.id, atDesk ? 112 : 48, atDesk ? 216 : 100, frame, resident.status, !props.small && resident.route.length > 0, props.images, atDesk)
+    drawResident(ctx, resident.id, atDesk ? STATION_SIZE / 2 + 16 : 48, atDesk ? STATION_SIZE + 24 : 100, frame, resident.status, !props.small && resident.route.length > 0, props.images, atDesk)
   }, [resident.id, resident.status, resident.route.length > 0, frame, props.small, props.images, atDesk])
   return React.createElement('canvas', { ref, 'aria-hidden': true })
 }

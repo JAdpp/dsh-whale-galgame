@@ -1,5 +1,5 @@
 /** Paints the manor as one building in the deep sea: shell, gallery, rooms, furniture, desks. */
-import { createWorkshopLayout, TILE_SIZE, type Bounds, type WorkshopLayout } from './workshop-world'
+import { createWorkshopLayout, STATION_SIZE, TILE_SIZE, type Bounds, type WorkshopLayout } from './workshop-world'
 
 export const CHARACTERS = ['deepseek', 'claude', 'chatgpt', 'gemini', 'kimi', 'grok'] as const
 export const DEFAULT_NAMES: Record<string, string> = {
@@ -56,6 +56,33 @@ function sea(ctx: CanvasRenderingContext2D, layout: WorkshopLayout): void {
     const glint = next() > .82
     ctx.fillStyle = glint ? SEA_GLINT : SEA_SPECK
     ctx.fillRect(x, y, glint ? 2 : 4, 2)
+  }
+  // Slanted light shafts from the surface, stepped in 4px rows to stay on the pixel grid.
+  ctx.fillStyle = 'rgba(120,190,225,.045)'
+  for (const [start, width] of [[.08, 70], [.2, 34], [.74, 90], [.9, 40]] as const) {
+    for (let y = 0; y < layout.height; y += 4) ctx.fillRect(Math.round((layout.width * start - y * .22) / 2) * 2, y, width, 4)
+  }
+  // Kelp rises from the sea floor, thickest toward the two bottom corners.
+  for (let index = 0; index < 46; index++) {
+    const side = index % 2 ? 1 : -1, spread = next() ** 1.7 * layout.width * .34
+    const x = Math.round((side < 0 ? 24 + spread : layout.width - 24 - spread) / 4) * 4
+    const height = 60 + Math.floor(next() * 220), phase = next() * 6
+    ctx.fillStyle = next() > .5 ? '#0f3f4a' : '#13515a'
+    for (let step = 0; step < height; step += 8) {
+      const sway = Math.round(Math.sin(step / 26 + phase) * 6 / 2) * 2
+      ctx.fillRect(x + sway, layout.height - step - 8, step > height - 24 ? 4 : 6, 8)
+    }
+  }
+  // A few rising bubble trails.
+  ctx.fillStyle = '#2a6b86'
+  for (let index = 0; index < 10; index++) {
+    const x = Math.round(next() * layout.width / 2) * 2, bottom = layout.height * (.55 + next() * .4)
+    for (let bubble = 0; bubble < 5; bubble++) {
+      const size = bubble % 2 ? 4 : 6, y = Math.round(bottom - bubble * (26 + next() * 18))
+      const drift = Math.round(Math.sin(bubble * 1.7 + index) * 6)
+      ctx.fillRect(x + drift, y, size, 2); ctx.fillRect(x + drift, y + size - 2, size, 2)
+      ctx.fillRect(x + drift - 2, y + 2, 2, size - 4); ctx.fillRect(x + drift + size, y + 2, 2, size - 4)
+    }
   }
 }
 
@@ -307,8 +334,8 @@ export function drawResident(ctx: CanvasRenderingContext2D, id: string, x: numbe
   ctx.save(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'
   if (atDesk && status !== 'idle' && assets.workstationAtlas) {
     const row = status === 'waiting' ? 4 : 1 + Math.floor(frame / 12) % 3
-    workFrame(ctx, assets, id, { x: x - TILE_SIZE * 2, y: y - TILE_SIZE * 4.5,
-      width: TILE_SIZE * 4, height: TILE_SIZE * 4 }, row)
+    workFrame(ctx, assets, id, { x: x - STATION_SIZE / 2, y: y - STATION_SIZE - TILE_SIZE * .5,
+      width: STATION_SIZE, height: STATION_SIZE }, row)
   } else if (assets.residentAtlas) {
     const column = CHARACTERS.indexOf((id === 'gpt' ? 'chatgpt' : id) as typeof CHARACTERS[number])
     const row = moving ? 1 + Math.floor(frame / 8) % 2 : status === 'idle' ? 0 : 3
