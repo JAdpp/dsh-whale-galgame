@@ -153,40 +153,21 @@ function overlaps(a: Bounds, b: Bounds, padding = 0): boolean {
     && a.y < b.y + b.height + padding && a.y + a.height > b.y - padding
 }
 
+// Decoration kinds, in atlas order.
+const PLANT = 0, FLOWERS = 1, LAMP = 2, BOOKCASE = 3, BENCH = 4, GLOBE = 5
+type DecorPiece = { kind: number; dx: number; dy?: number; maxWidth?: number }
+// Furniture is composed into small scenes instead of being spaced along the edges.
+// Offsets are from the scene's centre; every piece shares one floor line unless dy is set.
+const DECOR_SCENES: Record<string, DecorPiece[]> = {
+  lounge: [{ kind: PLANT, dx: -122 }, { kind: BENCH, dx: 0 }, { kind: LAMP, dx: 100, dy: -8 }],
+  study: [{ kind: LAMP, dx: -112, dy: -8 }, { kind: BOOKCASE, dx: -48 }, { kind: GLOBE, dx: 50 }],
+  seat: [{ kind: BENCH, dx: -18 }, { kind: LAMP, dx: 82, dy: -8 }],
+  shelf: [{ kind: BOOKCASE, dx: -44 }, { kind: GLOBE, dx: 48 }],
+}
+const DECOR_LIMITS = [[82, 112], [60, 82], [46, 128], [80, 96], [144, 100], [88, 108]]
+
 /** Deterministic, inspectable placement; furniture never changes the walking graph. */
 export function workshopDecorations(layout: WorkshopLayout, frames: readonly Bounds[] = []): WorkshopDecoration[] {
-  const candidates: Array<{ kind: number; x: number; y: number; compact?: boolean }> = []
-  const add = (kind: number, x: number, y: number, compact = false) => candidates.push({ kind, x, y, compact })
-  const roomRows = [...new Set(layout.rooms.filter((room) => room.kind !== 'office').map((room) => room.y))].sort((a, b) => a - b)
-  for (const y of roomRows) {
-    const rooms = layout.rooms.filter((room) => room.kind !== 'office' && room.y === y).sort((a, b) => a.x - b.x)
-    const gaps: Array<{ x: number; width: number }> = []
-    let cursor = 0
-    for (const room of rooms) { gaps.push({ x: cursor, width: room.x - cursor }); cursor = room.x + room.width }
-    gaps.push({ x: cursor, width: layout.width - cursor })
-    for (const gap of gaps) {
-      if (gap.width >= 180) {
-        add(0, gap.x + gap.width * .33, y + 150)
-        add(4, gap.x + gap.width * .67, y + 266)
-        add(5, gap.x + gap.width * .67, y + 130)
-        add(3, gap.x + gap.width * .33, y + 278)
-      } else if (gap.width >= 80) {
-        add(0, gap.x + gap.width / 2, y + 144)
-        add(5, gap.x + gap.width / 2, y + 288)
-      } else if (gap.width >= 40) {
-        add(2, gap.x + gap.width / 2, y + 152, true)
-        add(1, gap.x + gap.width / 2, y + 272, true)
-      }
-    }
-  }
-  for (let y = TILE_SIZE * 3, row = 0; y < layout.height - 20; y += TILE_SIZE * 4, row++) {
-    add([0, 2, 3, 5][row % 4], TILE_SIZE, y)
-    add([5, 3, 0, 2][row % 4], layout.width - TILE_SIZE, y)
-  }
-  for (const hall of layout.halls) if (hall.width > hall.height) {
-    for (let x = hall.x + 24; x < hall.x + hall.width - 24; x += TILE_SIZE * 4) add(1, x, hall.y + 30, true)
-  }
-
   const navigation: Bounds[] = []
   for (const [from, neighbors] of Object.entries(layout.edges)) for (const to of neighbors) {
     if (from > to) continue
@@ -195,26 +176,76 @@ export function workshopDecorations(layout: WorkshopLayout, frames: readonly Bou
       width: Math.abs(a.x - b.x) + 36, height: Math.abs(a.y - b.y) + 36 })
   }
   const doors = layout.rooms.flatMap((room) => room.doors.map((door) => ({ x: door.x - 60, y: door.y - 32, width: 120, height: 64 })))
-  const limits = [[82, 112], [60, 82], [46, 128], [80, 96], [144, 100], [88, 108]]
   const decorations: WorkshopDecoration[] = []
-  const maximum = Math.min(40, Math.max(12, Math.ceil(layout.height / TILE_SIZE * .75)))
-  for (const candidate of candidates) {
-    const frame = decorationFrame(frames, candidate.kind)
-    const [maxWidth, maxHeight] = candidate.compact
-      ? candidate.kind === 2 ? [28, 88] : [32, 44] : limits[candidate.kind]
-    const scale = Math.min(maxWidth / frame.width, maxHeight / frame.height)
+  const fit = (piece: DecorPiece, x: number, y: number): WorkshopDecoration | null => {
+    const frame = decorationFrame(frames, piece.kind)
+    const [limitWidth, maxHeight] = DECOR_LIMITS[piece.kind]
+    const scale = Math.min(Math.min(limitWidth, piece.maxWidth || limitWidth) / frame.width, maxHeight / frame.height)
     const width = frame.width * scale, height = frame.height * scale
-    const bounds = { x: candidate.x - width / 2, y: candidate.y - height, width, height }
-    if (bounds.x < 8 || bounds.y < 8 || bounds.x + width > layout.width - 8 || bounds.y + height > layout.height - 8) continue
+    const bounds = { x: x + piece.dx - width / 2, y: y + (piece.dy || 0) - height, width, height }
+    if (bounds.x < 8 || bounds.y < 8 || bounds.x + width > layout.width - 8 || bounds.y + height > layout.height - 8) return null
     if (layout.rooms.some((room) => overlaps(bounds, room, 6))
       || layout.stations.some((station) => overlaps(bounds, station, 8))
       || doors.some((door) => overlaps(bounds, door))
       || navigation.some((edge) => overlaps(bounds, edge))
-      || decorations.some((other) => overlaps(bounds, other.bounds, 16))) continue
-    decorations.push({ kind: candidate.kind, bounds })
-    if (decorations.length >= maximum) break
+      || decorations.some((other) => overlaps(bounds, other.bounds, 8))) return null
+    return { kind: piece.kind, bounds }
   }
-  return decorations
+  // A scene is placed whole or not at all, so no stray half-arrangements remain.
+  const place = (pieces: DecorPiece[], x: number, y: number): boolean => {
+    const placed: WorkshopDecoration[] = []
+    for (const piece of pieces) {
+      const item = fit(piece, x, y)
+      if (!item) return false
+      placed.push(item)
+    }
+    decorations.push(...placed)
+    return true
+  }
+
+  const rowYs = [...new Set(layout.rooms.filter((room) => room.kind === 'dorm').map((room) => room.y))].sort((a, b) => a - b)
+  rowYs.forEach((y, row) => {
+    const rooms = layout.rooms.filter((room) => room.kind === 'dorm' && room.y === y).sort((a, b) => a.x - b.x)
+    const floor = y + rooms[0].height - 30
+    const left = rooms[0].x, right = layout.width - (rooms[rooms.length - 1].x + rooms[rooms.length - 1].width)
+    // The two ends of a row get different scenes, and alternate rows swap them.
+    const wide = row % 2 ? ['study', 'lounge'] : ['lounge', 'study']
+    const narrow = row % 2 ? ['shelf', 'seat'] : ['seat', 'shelf']
+    const ends: Array<[number, number, number]> = [[left / 2, left, 0], [layout.width - right / 2, right, 1]]
+    for (const [x, room, side] of ends) {
+      if (room >= 380) place(DECOR_SCENES[wide[side]], x, floor)
+      else if (room >= 200) place(DECOR_SCENES[narrow[side]], x, floor)
+      else if (room >= 90) place([{ kind: PLANT, dx: 0 }], x, y + rooms[0].height * .6)
+    }
+    // Neighbours share one piece between their doors rather than a stack of props.
+    for (let index = 1; index < rooms.length; index++) {
+      const from = rooms[index - 1].x + rooms[index - 1].width, gap = rooms[index].x - from
+      if (gap >= 90) place([{ kind: FLOWERS, dx: 0 }], from + gap / 2, floor)
+      else if (gap >= 40) place([{ kind: LAMP, dx: 0, maxWidth: gap - 16 }], from + gap / 2, floor)
+    }
+  })
+
+  const office = layout.rooms.find((room) => room.kind === 'office')
+  if (office) {
+    // Nobody walks beside the workshop: a quiet, even line of lamps reads as a lit gallery.
+    for (const x of [office.x / 2, layout.width - (layout.width - office.x - office.width) / 2]) {
+      for (const part of [.22, .5, .78]) place([{ kind: LAMP, dx: 0 }], x, office.y + office.height * part + 64)
+    }
+  }
+
+  const commons = layout.rooms.filter((room) => room.kind === 'lounge' || room.kind === 'observatory').sort((a, b) => a.x - b.x)
+  if (commons.length) {
+    const floor = commons[0].y + commons[0].height * .62
+    const first = commons[0], last = commons[commons.length - 1]
+    place([{ kind: PLANT, dx: 0 }], first.x / 2, floor)
+    place([{ kind: PLANT, dx: 0 }], layout.width - (layout.width - last.x - last.width) / 2, floor)
+    for (let index = 1; index < commons.length; index++) {
+      const from = commons[index - 1].x + commons[index - 1].width, gap = commons[index].x - from
+      if (gap >= 60) place([{ kind: GLOBE, dx: 0, maxWidth: gap - 16 }], from + gap / 2, floor)
+    }
+  }
+  // Paint back to front so pieces in a scene overlap naturally.
+  return decorations.sort((a, b) => a.bounds.y + a.bounds.height - b.bounds.y - b.bounds.height)
 }
 
 function scenery(ctx: CanvasRenderingContext2D, assets: WorkshopArtAssets, layout: WorkshopLayout): void {
