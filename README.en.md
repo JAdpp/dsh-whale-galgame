@@ -1,8 +1,10 @@
-<p align="center">
-  <img src="docs/brand/logo-simple.png" width="160" height="160" alt="Deep Sea Workshop: whale tail and starlight">
-</p>
-
-<h1 align="center">dsh-whale-galgame</h1>
+<h1 align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/brand/logo-title-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="docs/brand/logo-title.svg">
+    <img src="docs/brand/logo-title.svg" width="380" alt="dsh-whale-galgame">
+  </picture>
+</h1>
 
 <h3 align="center">A multi-character Galgame engine aware of cross-session task events</h3>
 
@@ -16,11 +18,11 @@ Between Harness tasks, discover an “extraordinary” coworker relationship wit
 
 `dsh-whale-galgame` is a standalone multi-character Galgame interface plugin built for DeepSeek Harness Web and Desktop. By blending naturally into your daily workflow, it turns impersonal AI interactions into warm, lasting companionship:
 
-- **Six AI girls with distinct personalities**: DeepSeek (the whale girl), Claude, GPT, Gemini, Kimi, and Grok, each with independent sprites, affection, memories, and backgrounds.
-- **Appearance and model are decoupled**: Like the whale-girl sprite but want an in-depth conversation with Claude or GPT? Mix and match the character image and underlying reply model freely.
+- **Six AI girls with distinct personalities**: DeepSeek (Dafeiyu — 大肥鱼, “Big Fat Fish”), Claude, GPT, Gemini, Kimi, and Grok, each with independent sprites, affection, memories, and backgrounds. Dafeiyu loves food, lazing around, and especially big bowls of plain white rice.
+- **Appearance and model are decoupled**: Like the Dafeiyu sprite but want an in-depth conversation with Claude or GPT? Mix and match the character image and underlying reply model freely.
 - **Side Story mode**: Go beyond one-to-one Q&A with multi-character daily scenes, work-recap skits, and dedicated milestone stories.
 - **A bond system that grows with you**: Daily interaction and accumulated work tokens both raise affection, unlocking more intimate dialogue styles and AI-generated commemorative CGs.
-- **A lightweight, lovable desktop pet**: Keep it in a corner of the screen and click once to jump into the Galgame view.
+- **A lightweight, lovable desktop pet**: She lives in a corner of the screen, pulls out a laptop while you work, and dons her rice basin or begs for food when idle. Pick her up and put her anywhere; one click jumps into the Galgame view.
 - **A pixel-art Deep Sea Workshop map**: Watch the AI girls work or relax, then click one to chat.
 
 ![dsh-whale-galgame running in DSH Web](docs/screenshots/galgame-overview.jpg)
@@ -43,7 +45,7 @@ See [mechanics](docs/mechanics.md) for relationship progression, task awareness,
 
 <table>
   <tr>
-    <td align="center"><img src="assets/default/maid-left.webp" width="180" alt="Default DeepSeek whale-girl sprite"><br><strong>DeepSeek · Whale Girl</strong></td>
+    <td align="center"><img src="assets/default/maid-left.webp" width="180" alt="Default DeepSeek Dafeiyu sprite"><br><strong>DeepSeek · Dafeiyu</strong></td>
     <td align="center"><img src="assets/default/claude-zipzippipe.webp" width="180" alt="Default Claude-inspired character sprite, nickname 克洛德"><br><strong>Claude · 克洛德</strong></td>
     <td align="center"><img src="assets/default/gpt-zipzippipe.webp" width="180" alt="Default GPT-inspired character sprite, nickname 小吉"><br><strong>GPT · 小吉</strong></td>
   </tr>
@@ -54,11 +56,11 @@ See [mechanics](docs/mechanics.md) for relationship progression, task awareness,
   </tr>
 </table>
 
-The six new role backgrounds are shown below. Claude, GPT, Gemini, Kimi, and Grok use their matching scene by default. DeepSeek keeps `palace-night.webp` as the whale-girl default; the seaside study shown here is a selectable built-in alternative.
+The six new role backgrounds are shown below. Claude, GPT, Gemini, Kimi, and Grok use their matching scene by default. Dafeiyu uses the daytime seaside study by default; the deep-sea palace (`palace-night.webp`) is a selectable built-in alternative.
 
 <table>
   <tr>
-    <td align="center"><img src="assets/default/bg-deepseek-seaside-study.webp" width="260" alt="Optional DeepSeek whale-girl seaside-study background"><br><strong>DeepSeek · optional</strong></td>
+    <td align="center"><img src="assets/default/bg-deepseek-seaside-study.webp" width="260" alt="Default DeepSeek Dafeiyu seaside-study background"><br><strong>DeepSeek · default</strong></td>
     <td align="center"><img src="assets/default/bg-claude-writing-study.webp" width="260" alt="Claude writing-study default background"><br><strong>Claude</strong></td>
     <td align="center"><img src="assets/default/bg-gpt-collaboration-workshop.webp" width="260" alt="GPT collaboration-workshop default background"><br><strong>GPT</strong></td>
   </tr>
@@ -145,7 +147,7 @@ The top-bar **Dialogue history** (`对话历史`) opens ordinary conversations, 
 The gear at the dialogue panel's upper-right controls text speed, font, ambient effects, sound effects, BGM, and volume; the literary font option uses fonts installed locally.
 Open **Personalization** (`个性化`) in the top bar, then **Background** (`背景图`) or **Character sprite** (`角色立绘`) to upload PNG, JPEG, WebP, or AVIF images; selecting a built-in background restores character-based scene switching. See [image details](docs/mechanics.md#舞台图片与显示设置) for size limits and default-background rules.
 
-Under **Settings → Plugins → Whale Girl** (`鲸鱼娘`), choose the default character and reply model, enable or disable the plugin, or toggle the pet. Disabling the plugin pauses dialogue and affection settlement while keeping saves.
+Under **Settings → Plugins → Dafeiyu** (`大肥鱼`), choose the default character and reply model, enable or disable the plugin, or toggle the pet. Disabling the plugin pauses dialogue and affection settlement while keeping saves.
 
 ![Plugin configuration in DSH Web](docs/screenshots/plugin-settings.png)
 
@@ -158,7 +160,7 @@ See [profile details](docs/mechanics.md#自定义角色设定) for greeting upda
 ### Side Story
 
 Click **Side Story** (`小剧场`) in the top bar for daily skits or work recaps; completed scenes can be read again in the Side Story archive.
-Web sourcing is on by default; switch to **Local task categories only** (`只用本地任务类别`) under **Settings → Plugins → Whale Girl → Skit sourcing** (`小剧场取材`) to turn off searches.
+Web sourcing is on by default; switch to **Local task categories only** (`只用本地任务类别`) under **Settings → Plugins → Dafeiyu → Skit sourcing** (`小剧场取材`) to turn off searches.
 Group CGs are generated by clicking the archive button and use the same DashScope configuration as level-up CGs.
 
 ![Multi-character Side Story](docs/screenshots/side-story-multi-character.png)
@@ -167,6 +169,11 @@ Group CGs are generated by clicking the archive button and use the same DashScop
 
 The pet is bundled and enabled by default; click it to enter Galgame. The top-bar pet toggle and **Show desktop pet** in plugin settings stay synchronized.
 When hidden, the `galgame` tab remains available for opening the view and restoring the pet.
+
+- While a session is running she works on a laptop; when it finishes she eats, and while it waits for you she waves.
+- When idle she turns to watch the pointer, and now and then wears her steel basin as a helmet, holds it out to beg, or dozes off.
+- Press and drag to pick her up and set her down anywhere (arrow keys move her too). The position is kept in this browser's local storage; **归位** (reset position) in settings returns her to the default corner.
+- With the system's reduced-motion setting on, she only shows still poses.
 
 ### Optional level-up CGs
 
@@ -208,15 +215,15 @@ npm run verify
 
 ## License and credits
 
-Code, the Galgame UI implementation, and documentation use [MIT](LICENSE.md). The 21 default images use [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) (noncommercial use, with adaptations under the same license); project-made AI-assisted images are offered to the extent the maintainer holds applicable rights. The pet atlas and directly inherited pet code retain upstream MIT licensing.
+Code, the Galgame UI implementation, and documentation use [MIT](LICENSE.md). The 22 default images use [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) (noncommercial use, with adaptations under the same license); project-made AI-assisted images, including the redrawn pet atlas, are offered to the extent the maintainer holds applicable rights. Directly inherited pet code retains upstream MIT licensing.
 
 Thanks to the creators and upstream projects:
 
 - **上善** created the original whale girl, **ZipZipPipe** added DeepSeek elements in the maid redesign, and **Small-tailqwq / [dsh-deep-whale](https://github.com/Small-tailqwq/dsh-deep-whale)** supplied the reused sprite and deep-sea palace background; this project prepared the expression variants. [上善 Pixiv](https://www.pixiv.net/users/62155430) · [Bilibili](https://space.bilibili.com/4456176) · [ZipZipPipe Pixiv](https://www.pixiv.net/users/18604994) · [Bilibili](https://space.bilibili.com/4168597).
 - **ZipZipPipe** drew the default Claude, GPT, and Grok sprites ([original post](https://www.bilibili.com/opus/1233069202138464289)); this project removed the white backgrounds, cropped the figures, and converted them to WebP.
-- **f0909172434 / [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet)** supplied the pet implementation and unchanged atlas; this project adapted integration and styling and added click-to-open Galgame.
+- **f0909172434 / [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet)** supplied the pet implementation, 16-direction pointer following with a 1.1-second reset, and atlas reference; the current atlas is a project redraw made with Codex's built-in image generator. See [NOTICE](NOTICE.md) for provenance and terms.
 - The Gemini and Kimi sprites, six character backgrounds, and Galgame UI are unofficial AI-assisted work made for this project.
-- The nine current workshop images (themed dorms, shared areas, the workshop office, residents, three walk-cycle sheets, workstations and outdoor decorations) and the minimalist logo were made with Codex's built-in image generator, which does not expose its exact model version. See the [workshop-art guide](assets/workshop/README.md) for references, licenses and historical asset records.
+- The nine current workshop images (themed dorms, shared areas, the workshop office, residents, three walk-cycle sheets, workstations and outdoor decorations) were made with Codex's built-in image generator, which does not expose its exact model version. The earlier minimalist logo was made the same way and is now superseded by the wordmark described in the [brand notes](docs/brand/README.md). See the [workshop-art guide](assets/workshop/README.md) for references, licenses and historical asset records.
 
 The [default-art guide](assets/default/README.md) preserves the full file list, sources, and hash information. See [NOTICE](NOTICE.md), the [third-party index](THIRD_PARTY_LICENSES.md), and [upstream license texts](assets/default/licenses/) for file-level licensing. All characters are unofficial fan designs; names and trademarks belong to their owners, with no affiliation, partnership, or endorsement.
 

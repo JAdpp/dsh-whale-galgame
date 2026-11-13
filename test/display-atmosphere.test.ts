@@ -468,7 +468,7 @@ function hasClass(root: any, className: string): boolean {
 
 test('rendered main dialogue keeps its accent, ambient layer and stored-expression replay', () => {
   const render = renderHarness({
-    current: 'deepseek', name: '鲸鱼娘', color: '#7fd0ff', enabled: true, level: 1, affection: 5, cap: 10,
+    current: 'deepseek', name: '大肥鱼', color: '#7fd0ff', enabled: true, level: 1, affection: 5, cap: 10,
     sprite: 'whale-normal', choices: [], history: [{ who: 'heroine', text: '哼！', emotion: 'angry' }, { who: 'user', text: '好啦' }],
   })
   let tree = render()
@@ -492,7 +492,7 @@ test('rendered main dialogue keeps its accent, ambient layer and stored-expressi
 
 test('side-story accents follow its speaker while ambience follows the first cast member', () => {
   const render = renderHarness({
-    current: 'deepseek', name: '鲸鱼娘', color: '#7fd0ff', enabled: true, level: 1, affection: 5, cap: 10,
+    current: 'deepseek', name: '大肥鱼', color: '#7fd0ff', enabled: true, level: 1, affection: 5, cap: 10,
     history: [], choices: [], sideStory: { scene: {
       id: 'scene', cursor: 0, choices: [],
       cast: [{ id: 'kimi', name: '月见', color: '#6fc3f7' }, { id: 'grok', name: '洛可', color: '#25c7d9' }],

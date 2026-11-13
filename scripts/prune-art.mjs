@@ -6,7 +6,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const target = resolve(root, 'src/client/art.generated.ts')
 
 const keep = [
-  'pet-spritesheet',
+  'pet-dafeiyu',
   'maid-left',
   'whale-cheerful',
   'whale-shy',

@@ -360,7 +360,7 @@ export function WorkshopMap(props: {
       ),
     ),
     !enabled
-      ? React.createElement('div', { className: 'whg-map-disabled' }, React.createElement('h2', null, '深海工坊正在休息'), React.createElement('p', null, '在“设置 → 插件 → 鲸鱼娘”中开启插件后，再来看看她们吧。'))
+      ? React.createElement('div', { className: 'whg-map-disabled' }, React.createElement('h2', null, '深海工坊正在休息'), React.createElement('p', null, '在“设置 → 插件 → 大肥鱼”中开启插件后，再来看看她们吧。'))
       : !canExplore
         ? React.createElement('div', { className: 'whg-map-disabled' + (!imageError && (loadingCatalog || people.length > 0) ? ' whg-map-loading' : ''), role: 'status' },
           React.createElement('span', { className: 'whg-map-empty-symbol', 'aria-hidden': true }, '✧'),

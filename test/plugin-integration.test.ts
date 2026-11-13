@@ -51,7 +51,7 @@ test('prefers the last real character chat before this round and ignores missing
 
 test('system prompt carries local time, truthful intervals and seen activity without a mandatory mention', () => {
   const now = new Date(2026, 10, 9, 15).getTime()
-  const profile = { displayName: '鲸鱼娘', address: '你' }
+  const profile = { displayName: '大肥鱼', address: '你' }
   const c = { level: 1, affection: 0, chatLines: [] }
   const { systemPrompt } = visitPromptHarness(now - 61 * 86400000)
   const prompt = systemPrompt(profile, c, null, null, now)
@@ -94,7 +94,7 @@ test('settlement preserves the old visit before overwriting either storage clock
       Date: { now: () => now }, ensureState() {}, splitStorageActive: () => split,
       currentWorkspaceRuntime: () => ({}), globalState, s: state, ROSTER_IDS: ['deepseek'],
       RELATIONSHIP_TOUCH_INTERVAL_MS: interval, DECAY_PER_DAY: 2, AFFECTION_FLOOR: 0,
-      MAX_TOKEN_GAIN: 5, TOKEN_PER_POINT: 5000, effectiveProfileFor: () => ({ displayName: '鲸鱼娘', address: '你' }),
+      MAX_TOKEN_GAIN: 5, TOKEN_PER_POINT: 5000, effectiveProfileFor: () => ({ displayName: '大肥鱼', address: '你' }),
     })
     const result = harness.settle()
     assert.equal(harness.previous(), old)
@@ -145,6 +145,14 @@ test('community personas remove obsolete identities and retain companion constra
   const match = source.match(/const ROSTER: Record<string, any> = (\{[\s\S]*?\n\})\n/)
   assert.ok(match, 'the built-in roster must be present')
   const roster = runInNewContext('(' + match[1] + ')')
+  assert.equal(roster.deepseek.name, '大肥鱼')
+  assert.match(roster.deepseek.persona, /聪明但爱偷懒，贪吃/)
+  assert.match(roster.deepseek.visual, /盛着大白饭的大铁盆/)
+  assert.match(roster.deepseek.affectionHigh, /最后一口大白饭/)
+  assert.equal(roster.deepseek.system.split('\n').length, 6)
+  assert.ok(roster.deepseek.system.endsWith('你是纯情感陪伴角色：绝不写文件、不执行任务、不主动给工作建议，只陪主人说话。\n每次只回复一句话（一屏一句），不超过40字；不要复读主人的话，也不要复读历史里出现过的句子。'))
+  assert.doesNotMatch(roster.claude.system + roster.chatgpt.system, /鲸鱼娘/)
+  assert.match(roster.chatgpt.system, /大肥鱼互相拌嘴（笑她吃白饭）/)
   for (const id of ['claude', 'chatgpt', 'grok']) {
     const character = roster[id]
     for (const field of ['persona', 'tone', 'system']) {
@@ -160,6 +168,7 @@ test('community personas remove obsolete identities and retain companion constra
 test('community defaults reach chat and preserve custom profiles across legacy reloads', async () => {
   const root = 'E:\\workspace\\community-personas'
   const greetings: Record<string, string> = {
+    deepseek: '「主人回来啦～饭……啊不是，我是说，今天也想听你说话呢。」',
     claude: '「晚上好。咱把书签夹好了——今天想从哪一页说起？」',
     chatgpt: '「好问题——啊，你还没问呢。来吧，今天的心事我帮你分成三点。」',
     grok: '「哟，来啦？说吧，想听真话还是听梗——两样我都管够。」',
@@ -403,7 +412,7 @@ test('binds the active workspace, counts Harness usage, and consumes a safe acti
     post('view', { sessionId }),
     new Promise((_, reject) => setTimeout(() => reject(new Error('view waited for the activity scan')), 100)),
   ])
-  assert.equal((firstView as any).name, '鲸鱼娘')
+  assert.equal((firstView as any).name, '大肥鱼')
   await activityScanStarted
   releaseActivityScan()
   const onSessionEvent = listeners.get('session/event')
@@ -527,20 +536,20 @@ test('migrates role-local backgrounds, preserves override behavior, and reloads 
   }
 
   const migratedView = await post('view')
-  assert.equal(migratedView.bg, 'palace-night')
+  assert.equal(migratedView.bg, 'bg-deepseek-seaside-study')
   assert.equal(migratedView.backgroundMode, 'builtin')
-  assert.equal(migratedView.builtinBackground, 'palace-night')
+  assert.equal(migratedView.builtinBackground, 'bg-deepseek-seaside-study')
   assert.deepEqual(migratedView.backgroundOptions.map((row: any) => row.key), [
-    'palace-night',
     'bg-deepseek-seaside-study',
+    'palace-night',
   ])
   assert.deepEqual(migratedView.builtinBackgroundOptions.map((row: any) => ({
     key: row.key,
     current: row.current,
     default: row.default,
   })), [
-    { key: 'palace-night', current: true, default: true },
-    { key: 'bg-deepseek-seaside-study', current: false, default: false },
+    { key: 'bg-deepseek-seaside-study', current: true, default: true },
+    { key: 'palace-night', current: false, default: false },
   ])
   let persisted = JSON.parse(saved)
   assert.equal(persisted.v, 9)
@@ -731,7 +740,7 @@ test('stores safe role-local profile overrides and applies the effective profile
   const initialWhaleResult = await post('settings-set', { characterMode: 'manual', characterId: 'deepseek' })
   const initialWhale = initialWhaleResult.view
   assert.equal(initialWhale.history.length, 1)
-  assert.equal(initialWhale.history[0].text, '「主人，又见面啦～今天也想听你说话呢。」')
+  assert.equal(initialWhale.history[0].text, '「主人回来啦～饭……啊不是，我是说，今天也想听你说话呢。」')
   const updatedWhaleGreeting = await post('profile-set', {
     characterId: 'deepseek',
     overrides: { greeting: '「今天也来听你说话啦。」' },
@@ -740,7 +749,7 @@ test('stores safe role-local profile overrides and applies the effective profile
   assert.equal(updatedWhaleGreeting.view.history[0].text, '「今天也来听你说话啦。」')
   const resetWhaleGreeting = await post('profile-reset', { characterId: 'deepseek' })
   assert.equal(resetWhaleGreeting.view.history.length, 1)
-  assert.equal(resetWhaleGreeting.view.history[0].text, '「主人，又见面啦～今天也想听你说话呢。」')
+  assert.equal(resetWhaleGreeting.view.history[0].text, '「主人回来啦～饭……啊不是，我是说，今天也想听你说话呢。」')
 
   const enteredClaude = await post('settings-set', { characterMode: 'manual', characterId: 'claude' })
   assert.equal(enteredClaude.view.history.length, 2)

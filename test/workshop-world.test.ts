@@ -184,7 +184,7 @@ test('retargeting a walking resident finishes her current edge before turning', 
   stepResidents(residents, .1, 30_100, true, layout)
   const endpoint = person.route[0]
   const before = { x: person.x, y: person.y }
-  syncResidents(residents, [{ id: person.id, name: '鲸鱼娘', status: 'running', activeSessions: 1 }], 30_200, layout)
+  syncResidents(residents, [{ id: person.id, name: '大肥鱼', status: 'running', activeSessions: 1 }], 30_200, layout)
   assert.equal(person.route[0], endpoint)
   assert.equal(person.x, before.x)
   assert.equal(person.y, before.y)

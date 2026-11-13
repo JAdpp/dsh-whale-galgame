@@ -1,8 +1,10 @@
-<p align="center">
-  <img src="docs/brand/logo-simple.png" width="160" height="160" alt="深海工房：鯨の尾と星の光">
-</p>
-
-<h1 align="center">dsh-whale-galgame</h1>
+<h1 align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/brand/logo-title-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="docs/brand/logo-title.svg">
+    <img src="docs/brand/logo-title.svg" width="380" alt="dsh-whale-galgame">
+  </picture>
+</h1>
 
 <h3 align="center">セッションをまたぐタスクイベントを感知するマルチキャラクター Galgame エンジン</h3>
 
@@ -16,11 +18,11 @@ Harness で作業する合間に、AI娘との「ひと味違う」同僚関係�
 
 `dsh-whale-galgame` は、DeepSeek Harness Web / Desktop 向けの独立したマルチキャラクター Galgame インターフェースプラグインです。日々のワークフローへ自然に溶け込み、無機質な AI とのやり取りを温かく長く続くつながりへ変えます。
 
-- **個性豊かな 6 人のAI娘**：DeepSeek（鯨娘）、Claude、GPT、Gemini、Kimi、Grok に対応し、立ち絵、好感度、記憶、背景はそれぞれ独立しています。
-- **外見と中身を分離**：鯨娘の立ち絵が好きでも、Claude や GPT とじっくり話したい？ キャラクター画像と内部の返信モデルを自由に組み合わせられます。
+- **個性豊かな 6 人のAI娘**：DeepSeek（大肥魚（ダーフェイユー））、Claude、GPT、Gemini、Kimi、Grok に対応し、立ち絵、好感度、記憶、背景はそれぞれ独立しています。大肥魚は食いしん坊で怠けるのが好き、何より大盛りの白いご飯が大好きです。
+- **外見と中身を分離**：大肥魚の立ち絵が好きでも、Claude や GPT とじっくり話したい？ キャラクター画像と内部の返信モデルを自由に組み合わせられます。
 - **「小劇場」モード**：一対一の質疑応答にとどまらず、複数キャラクターの日常、仕事の振り返り短編、専用のマイルストーンストーリーを楽しめます。
 - **一緒に育つ絆システム**：日々の交流と仕事で蓄積した token の両方が好感度を高め、専用の親密な口調と AI 生成の記念 CG を解放します。
-- **軽量でかわいいデスクトップペット**：画面の隅に常駐でき、クリック一つで Galgame 画面へ切り替えられます。
+- **軽量でかわいいデスクトップペット**：画面の隅に常駐し、作業中はノートパソコンを取り出して一緒に働き、暇なときは鉄のたらいをかぶったりご飯をねだったりします。つまんで好きな場所へ移動でき、クリック一つで Galgame 画面へ切り替えられます。
 - **深海工房のピクセルマップ**：働いたり休んだりするAI娘を眺め、クリックして会話できます。
 
 ![DSH Web で実際に動作している dsh-whale-galgame](docs/screenshots/galgame-overview.jpg)
@@ -43,7 +45,7 @@ Harness で作業する合間に、AI娘との「ひと味違う」同僚関係�
 
 <table>
   <tr>
-    <td align="center"><img src="assets/default/maid-left.webp" width="180" alt="DeepSeek 鯨娘のデフォルト立ち絵"><br><strong>DeepSeek · 鯨娘</strong></td>
+    <td align="center"><img src="assets/default/maid-left.webp" width="180" alt="DeepSeek 大肥魚のデフォルト立ち絵"><br><strong>DeepSeek · 大肥魚</strong></td>
     <td align="center"><img src="assets/default/claude-zipzippipe.webp" width="180" alt="Claude AI娘・克洛德のデフォルト立ち絵"><br><strong>Claude · 克洛德</strong></td>
     <td align="center"><img src="assets/default/gpt-zipzippipe.webp" width="180" alt="GPT AI娘・小吉のデフォルト立ち絵"><br><strong>GPT · 小吉</strong></td>
   </tr>
@@ -54,11 +56,11 @@ Harness で作業する合間に、AI娘との「ひと味違う」同僚関係�
   </tr>
 </table>
 
-新しい 6 点のキャラクター背景を下に示します。Claude、GPT、Gemini、Kimi、Grok は各シーンを既定背景として使います。DeepSeek 鯨娘の既定背景は `palace-night.webp` のままで、海辺の書斎は選択可能な内蔵代替背景です。
+新しい 6 点のキャラクター背景を下に示します。Claude、GPT、Gemini、Kimi、Grok は各シーンを既定背景として使います。大肥魚の既定背景は昼の海辺の書斎で、深海宮殿（`palace-night.webp`）は選択可能な内蔵代替背景です。
 
 <table>
   <tr>
-    <td align="center"><img src="assets/default/bg-deepseek-seaside-study.webp" width="260" alt="DeepSeek 鯨娘の海辺の書斎・代替背景"><br><strong>DeepSeek · 選択可</strong></td>
+    <td align="center"><img src="assets/default/bg-deepseek-seaside-study.webp" width="260" alt="DeepSeek 大肥魚の海辺の書斎・既定背景"><br><strong>DeepSeek · 既定背景</strong></td>
     <td align="center"><img src="assets/default/bg-claude-writing-study.webp" width="260" alt="Claude の書斎・既定背景"><br><strong>Claude</strong></td>
     <td align="center"><img src="assets/default/bg-gpt-collaboration-workshop.webp" width="260" alt="GPT の共同作業スタジオ・既定背景"><br><strong>GPT</strong></td>
   </tr>
@@ -145,7 +147,7 @@ DSH の会話上部にある `galgame` タブ、または右下のペットを�
 会話パネル右上の歯車で、文字速度、フォント、雰囲気エフェクト、効果音、BGM、音量を調整します。文芸フォントには端末にインストール済みのフォントを使います。
 上部の「个性化 → 背景图 / 角色立绘」から PNG・JPEG・WebP・AVIF をアップロードでき、内蔵背景を選ぶとキャラクターに応じた背景切り替えに戻ります。容量上限と既定背景のルールは[画像の説明](docs/mechanics.md#舞台图片与显示设置)をご覧ください。
 
-「設定 → プラグイン → 鲸鱼娘」では既定のキャラクター・応答モデル、プラグインの有効・無効、ペット表示を設定できます。無効にすると会話と好感度の精算が一時停止し、セーブは保持されます。
+「設定 → プラグイン → 大肥鱼」では既定のキャラクター・応答モデル、プラグインの有効・無効、ペット表示を設定できます。無効にすると会話と好感度の精算が一時停止し、セーブは保持されます。
 
 ![DSH Web のプラグイン設定画面](docs/screenshots/plugin-settings.png)
 
@@ -158,7 +160,7 @@ DSH の会話上部にある `galgame` タブ、または右下のペットを�
 ### 小劇場
 
 上部の「小剧场」からキャラクター同士の日常劇や作業の振り返りを生成し、完了した場面の台詞は「小剧场」の記録で見返せます。
-Web 取材は初期状態でオンです。「設定 → プラグイン → 鲸鱼娘 → 小剧场取材」で「只用本地任务类别」を選ぶと検索をオフにできます。
+Web 取材は初期状態でオンです。「設定 → プラグイン → 大肥鱼 → 小剧场取材」で「只用本地任务类别」を選ぶと検索をオフにできます。
 集合 CG は記録画面から手動で生成し、レベルアップ CG と同じ DashScope 設定を使います。
 
 ![複数キャラクターによる小劇場](docs/screenshots/side-story-multi-character.png)
@@ -167,6 +169,11 @@ Web 取材は初期状態でオンです。「設定 → プラグイン → 鲸
 
 ペットは同梱され、初期状態でオンです。クリックすると Galgame が開き、上部の「桌宠 · 开/关」と設定の「显示桌宠」は同期します。
 非表示にしても `galgame` タブから開き、再びオンにできます。
+
+- セッションの実行中はノートパソコンで作業し、終わるとご飯を食べ、返事待ちのあいだは手を振ります。
+- 待機中はポインターの方向を向き、ときどき鉄のたらいをかぶる、空のたらいを差し出してねだる、うたた寝をする、といった仕草を見せます。
+- 押したままドラッグするとつまみ上げて好きな場所に置けます（矢印キーでも移動できます）。位置はこのブラウザーのローカルストレージに保存され、設定の「归位」で既定の隅に戻ります。
+- システムで視差効果を減らす設定が有効なときは、静止ポーズのみ表示します。
 
 ### 任意のレベルアップ CG
 
@@ -208,15 +215,15 @@ npm run verify
 
 ## ライセンスと謝辞
 
-コード、Galgame UI の実装、文書は [MIT](LICENSE.md) です。既定画像 21 点は [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)（非商用利用、改変物は同じライセンスで共有）で、プロジェクト製の AI 支援画像はメンテナーが該当する権利を持つ範囲で提供します。ペットのアトラスと直接継承したコードは上流の MIT を引き継ぎます。
+コード、Galgame UI の実装、文書は [MIT](LICENSE.md) です。既定画像 22 点は [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)（非商用利用、改変物は同じライセンスで共有）で、描き直したペットのアトラスを含むプロジェクト製の AI 支援画像はメンテナーが該当する権利を持つ範囲で提供します。直接継承したペットのコードは上流の MIT を引き継ぎます。
 
 制作者と上流プロジェクトに感謝します。
 
 - **上善**が原案の鯨娘を制作し、**ZipZipPipe**が DeepSeek 要素を加えてメイド姿に二次創作、**Small-tailqwq / [dsh-deep-whale](https://github.com/Small-tailqwq/dsh-deep-whale)** が本作で使用する立ち絵と深海宮殿の背景を公開しました。本作はそれをもとに表情差分を制作しています。[上善 Pixiv](https://www.pixiv.net/users/62155430) · [Bilibili](https://space.bilibili.com/4456176) · [ZipZipPipe Pixiv](https://www.pixiv.net/users/18604994) · [Bilibili](https://space.bilibili.com/4168597)。
 - **ZipZipPipe**が Claude・GPT・Grok の既定立ち絵を制作しました（[原作投稿](https://www.bilibili.com/opus/1233069202138464289)）。本作では白背景を除去し、人物に合わせて切り抜き、WebP に変換しています。
-- **f0909172434 / [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet)** がペットの実装と未変更のアトラスを提供しました。本作は統合方法とスタイルを調整し、クリックで Galgame を開く動作を追加しています。
+- **f0909172434 / [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet)** がペットの実装、16 方向のポインター追従と 1.1 秒での復帰処理、アトラスの参照元を提供しました。現在のアトラスは Codex の内蔵画像生成機能で本作向けに描き直したものです。出典と利用条件は [NOTICE](NOTICE.md) をご覧ください。
 - Gemini・Kimi の立ち絵、6 点のキャラクター背景、Galgame UI は本作向けに制作した非公式の AI 支援素材です。
-- 現在のテーマ別寮、共用区域、工房オフィス、住人、歩行キーフレーム3枚、専用作業台、屋外装飾の9枚の画像と簡約ロゴは Codex の内蔵画像生成機能で制作しました。ツールは具体的なモデルのバージョンを公開していません。参照背景、ライセンスと旧素材の記録は[工房素材の説明](assets/workshop/README.md)をご覧ください。
+- 現在のテーマ別寮、共用区域、工房オフィス、住人、歩行キーフレーム3枚、専用作業台、屋外装飾の9枚の画像は Codex の内蔵画像生成機能で制作しました。ツールは具体的なモデルのバージョンを公開していません。以前の簡約ロゴも同じ方法で制作しましたが、現在は[ワードマーク](docs/brand/README.md)に置き換えています。参照背景、ライセンスと旧素材の記録は[工房素材の説明](assets/workshop/README.md)をご覧ください。
 
 完全なファイル一覧、出所、ハッシュは[既定素材の説明](assets/default/README.md)、ファイル別のライセンスは [NOTICE](NOTICE.md)、[第三者ライセンス一覧](THIRD_PARTY_LICENSES.md)、[上流ライセンス原文](assets/default/licenses/)にあります。キャラクターは非公式ファンデザインで、名称・商標は各権利者に帰属し、各社との所属・提携・公認関係はありません。
 

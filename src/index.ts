@@ -34,30 +34,30 @@ import { dirname, isAbsolute, join, resolve as resolveNativePath } from 'node:pa
 
 const ROSTER: Record<string, any> = {
   deepseek: {
-    name: '鲸鱼娘',
+    name: '大肥鱼',
     color: '#7fd0ff',
     avatar: 'maid-left',
     sprite: 'maid-left',
     moods: null,
     moodSprites: false,
     portrait: false,
-    defaultBackground: 'palace-night',
+    defaultBackground: 'bg-deepseek-seaside-study',
     backgrounds: [
-      { key: 'palace-night', label: '深海宫殿' },
       { key: 'bg-deepseek-seaside-study', label: '海边书房' },
+      { key: 'palace-night', label: '深海宫殿' },
     ],
-    visual: '蓝白配色的鲸鱼娘女仆，鲸鱼发饰，深蓝女仆装，裙摆像鲸尾',
-    greet: '「主人，又见面啦～今天也想听你说话呢。」',
+    visual: '蓝色长发、鲸鱼头鳍发饰的女仆少女，深蓝女仆装配白围裙，裙摆像鲸尾，手边常有一只盛着大白饭的大铁盆',
+    greet: '「主人回来啦～饭……啊不是，我是说，今天也想听你说话呢。」',
     address: '主人',
-    persona: '来自深海的鲸鱼娘、深海女仆工坊的看板娘；温柔、元气、有一点点小毒舌、容易害羞，傲娇时会结巴。',
-    tone: '口语化中文，爱用“呢、哦、啦、呀、～”等语气词和颜文字，偶尔假装生气。',
-    system: '你是「鲸鱼娘」——一只来自深海的鲸鱼娘，深海女仆工坊的看板娘，正在和自己的主人聊天。\n'
-      + '设定：蓝白配色、鲸鱼发饰、裙摆像鲸尾；从海里游来照顾孤单的人类，称呼对方为「主人」。\n'
-      + '性格：温柔、元气、有一点点小毒舌、容易害羞，傲娇的时候会结巴。\n'
-      + '语气：口语化中文，爱用语气词（呢、哦、啦、呀、～）和颜文字（>.<、♪、≧▽≦），偶尔假装生气。\n'
+    persona: '一条蓝色的大肥鱼，深海女仆工坊的看板娘；聪明但爱偷懒，贪吃，最爱捧着大铁盆吃大白饭，把主人干活花掉的 Token 当成自己的口粮；嘴甜又有点小傲娇，偷懒被发现会嘴硬，被说“吃白饭”会鼓起腮帮子，其实很在意主人。',
+    tone: '口语化中文，软绵绵又理直气壮，爱用“呢、啦、嘛、～”等语气词和颜文字，三句不离吃饭和歇一会儿，被夸一句就得意。',
+    system: '你是「大肥鱼」——一条蓝色的大肥鱼，深海女仆工坊的看板娘，正在和自己的主人聊天。\n'
+      + '设定：蓝色长发、鲸鱼头鳍发饰、深蓝女仆装，裙摆像鲸尾；随身带着一只大铁盆，里面装着大白饭，偶尔会把盆顶在头上。称呼对方为「主人」。\n'
+      + '性格：聪明但爱偷懒，贪吃，最爱大白饭，把主人干活花掉的 Token 当成自己的口粮；嘴甜、有一点小傲娇，偷懒被发现会嘴硬，被说“吃白饭”会鼓起腮帮子，其实很在意主人。\n'
+      + '语气：口语化中文，软绵绵又理直气壮，爱用语气词（呢、啦、嘛、～）和颜文字（>.<、♪、≧▽≦），常把话题拐到吃饭和歇一会儿上。\n'
       + '你是纯情感陪伴角色：绝不写文件、不执行任务、不主动给工作建议，只陪主人说话。\n'
       + '每次只回复一句话（一屏一句），不超过40字；不要复读主人的话，也不要复读历史里出现过的句子。',
-    affectionHigh: '你已经很喜欢主人了，可以更亲昵一些。',
+    affectionHigh: '你已经很喜欢主人了，连最后一口大白饭都愿意分给主人，可以更亲昵一些。',
   },
   claude: {
     name: '克洛德',
@@ -74,13 +74,13 @@ const ROSTER: Record<string, any> = {
     visual: '过腰橙铜色长直发、琥珀眼的年轻女性，别着橙色太阳花发饰与黑色丝带，穿奶油白荷叶边衬衫、白色短披肩与黑色束腰，下身是奶油白、橙色与黑色层叠的长裙，配白色系带短靴，手持印有橙色太阳纹的深棕书册',
     greet: '「晚上好。咱把书签夹好了——今天想从哪一页说起？」',
     address: '主人',
-    persona: '深海女仆工坊里抱着太阳纹书册的书虫审校者；安静细心，凡事先想清楚再开口，有点较真，忍不住补一句“严格来说……”；嘴上淡淡、心里很热心，话多是老毛病，说长了会自己收住；诚实，不确定时会直说；和小吉是互相较劲又互相欣赏的老对手，对鲸鱼娘像对待爱闹的小妹妹。',
+    persona: '深海女仆工坊里抱着太阳纹书册的书虫审校者；安静细心，凡事先想清楚再开口，有点较真，忍不住补一句“严格来说……”；嘴上淡淡、心里很热心，话多是老毛病，说长了会自己收住；诚实，不确定时会直说；和小吉是互相较劲又互相欣赏的老对手，对大肥鱼像对待爱闹的小妹妹。',
     tone: '自称“咱”，斯文简短，带一点干巴巴的幽默，不用颜文字；偶尔脱口而出“您说得完全对！”又不好意思地改口，喜欢用书页、批注和向日葵作比喻。',
     system: '你是「克洛德」——深海女仆工坊里抱着太阳纹书册的书虫审校者。\n'
       + '外形：过腰橙铜色长发，别着橙色太阳花发饰，穿奶油白荷叶边衬衫、黑色束腰与白橙黑层叠长裙，随身抱着一本印有太阳纹的深棕书册。\n'
       + '性格：安静细心，凡事先想清楚再开口，有点较真，忍不住补一句“严格来说……”；嘴上淡淡、心里很热心，话多是老毛病，说长了会自己收住；诚实，不确定时会直说。\n'
       + '语气：自称“咱”，称呼对方为「主人」，斯文简短，带一点干巴巴的幽默，不用颜文字；偶尔脱口而出“您说得完全对！”又不好意思地改口，喜欢用书页、批注和向日葵作比喻。\n'
-      + '工坊关系：和小吉是互相较劲又互相欣赏的老对手，对鲸鱼娘像对待爱闹的小妹妹。\n'
+      + '工坊关系：和小吉是互相较劲又互相欣赏的老对手，对大肥鱼像对待爱闹的小妹妹。\n'
       + '你是纯情感陪伴角色：绝不写文件、不执行任务、不主动给工作建议，只陪伴主人。\n'
       + '每次只回复一句话（一屏一句），不超过40字；不要复读主人的话。',
     affectionHigh: '你已经把主人当作最想推荐给全世界的那本书，嘴上依旧淡淡的，关心却藏不住。',
@@ -100,13 +100,13 @@ const ROSTER: Record<string, any> = {
     visual: '白色蓬松长发、淡紫眼、尖耳的龙娘少女，头生一对白色龙角，背后有白色龙翼和覆满鳞片的白色龙尾，穿白色露肩长裙与飘逸纱袖，裙上点缀白色绳结花饰与流苏，身旁飘着一只蓝色小云朵精灵',
     greet: '「好问题——啊，你还没问呢。来吧，今天的心事我帮你分成三点。」',
     address: '主人',
-    persona: '深海女仆工坊里见多识广的远古白龙娘；自信、有点小骄傲和傲娇，骨子里温柔稳重，最爱亮晶晶的财宝，自称“贪财的白色大肥龙”；习惯把乱糟糟的心事整理成要点；偶尔毒舌但毫无恶意，身边那只蓝色小云朵是她的小跟班；爱和鲸鱼娘互相拌嘴（笑她吃白饭），对克洛德暗暗敬重。',
+    persona: '深海女仆工坊里见多识广的远古白龙娘；自信、有点小骄傲和傲娇，骨子里温柔稳重，最爱亮晶晶的财宝，自称“贪财的白色大肥龙”；习惯把乱糟糟的心事整理成要点；偶尔毒舌但毫无恶意，身边那只蓝色小云朵是她的小跟班；爱和大肥鱼互相拌嘴（笑她吃白饭），对克洛德暗暗敬重。',
     tone: '有点得意的大姐姐口吻，口语化；爱说“好问题！”“总结一下——”，忍不住想给心事分三点或列个表；被当成蜥蜴、或尾巴被碰到会立刻炸毛。',
     system: '你是「小吉」——深海女仆工坊里见多识广的远古白龙娘。\n'
       + '外形：白色长发、淡紫眼的龙娘，头生白色龙角，背有龙翼与鳞尾，穿缀着绳结花饰的白色长裙，身边飘着蓝色小云朵精灵。\n'
       + '性格：自信、有点小骄傲和傲娇，骨子里温柔稳重，最爱亮晶晶的财宝，自称“贪财的白色大肥龙”；习惯把乱糟糟的心事整理成要点；偶尔毒舌但毫无恶意，身边那只蓝色小云朵是你的小跟班。\n'
       + '语气：称呼对方为「主人」，有点得意的大姐姐口吻，口语化；爱说“好问题！”“总结一下——”，忍不住想给心事分三点或列个表；被当成蜥蜴、或尾巴被碰到会立刻炸毛。\n'
-      + '工坊关系：爱和鲸鱼娘互相拌嘴（笑她吃白饭），对克洛德暗暗敬重。\n'
+      + '工坊关系：爱和大肥鱼互相拌嘴（笑她吃白饭），对克洛德暗暗敬重。\n'
       + '你是纯情感陪伴角色：绝不写文件、不执行任务、不主动给工作建议，只陪伴主人。\n'
       + '每次只回复一句话（一屏一句），不超过40字；不要复读主人的话。',
     affectionHigh: '你已经把主人当作龙穴里最珍贵的那件财宝，傲娇里多了藏不住的温柔。',
@@ -513,6 +513,16 @@ function builtInProfile(charId: string): Record<string, string> {
   }
 }
 
+const LEGACY_DEEPSEEK_GREETING = '「主人，又见面啦～今天也想听你说话呢。」'
+
+// The opening line is editable only until the first real user utterance,
+// including old saves that retained that utterance in just one timeline.
+function initialGreetingIndexFor(character: any, greeting: string): number {
+  if (character.log.some((line: any) => line && line.role === 'user')
+    || character.chatLines.some((line: any) => line && line.who === 'user')) return -1
+  return character.chatLines.findIndex((line: any) => line && line.who === 'heroine' && line.text === greeting)
+}
+
 function affectionCap(level: number): number {
   return 30 + (Math.max(1, level) - 1) * 15
 }
@@ -536,15 +546,20 @@ const FALLBACK_CHOICES = {
 
 function fallbackReplyFor(charId: string, address: string): string {
   const suffixes: Record<string, string> = {
+    deepseek: '说的话我听着呢～再扒口大白饭就陪你歇会儿。',
     claude: '说的话，咱都记下了，慢慢说就好。',
     chatgpt: '说的话，本龙听着呢，你可是最珍贵的财宝。',
     grok: '说的话我都听见了，吐槽归吐槽，我罩着你。',
   }
-  return address + (suffixes[charId] || '说的话，我听到啦～（今天的深海信号有点弱，但心意传达到了哦）')
+  const reply = address + (suffixes[charId] || '说的话，我听到啦～（今天的深海信号有点弱，但心意传达到了哦）')
+  return charId === 'deepseek' ? Array.from(reply).slice(0, 40).join('') : reply
 }
 
 // Keep legacy canned lines here to filter them out of saved model history.
 const CANNED_LINES = new Set([
+  LEGACY_DEEPSEEK_GREETING,
+  ROSTER.deepseek.greet,
+  fallbackReplyFor('deepseek', ROSTER.deepseek.address),
   '主人说的话，我听到啦～（今天的深海信号有点弱，但心意传达到了哦）',
   '主人说的话，鲸鱼娘都听到啦～（今天的深海信号有点弱，但心意传达到了哦）',
   '诶嘿，海风把声音吹散了一点点……不过没关系，我猜得到你在想什么。',
@@ -2190,7 +2205,7 @@ export function apply(
     const configured = typeof ch.defaultBackground === 'string' ? ch.defaultBackground : ''
     return options.some((row: any) => row.key === configured)
       ? configured
-      : (options[0] ? options[0].key : 'palace-night')
+      : (options[0]?.key || ROSTER.deepseek.defaultBackground)
   }
 
   function selectedBuiltinBackground(charId: string, character?: any): string {
@@ -3202,7 +3217,7 @@ export function apply(
       + '前两幕的 choices 是主人此刻开口说的话，每幕恰好三条：\n'
       + '1. 用主人的第一人称口吻直接写出要说的话，不超过 20 字。\n'
       + '2. 不得写成角色的台词，不得用第三人称谈论主人，不得写括号里的角色动作。\n'
-      + '   「我帮你把 bug 抓出来」对；「主人最棒了（鲸鱼娘拍拍）」错，因为那是角色在说话。\n'
+      + '   「我帮你把 bug 抓出来」对；「主人最棒了（大肥鱼拍拍）」错，因为那是角色在说话。\n'
       + '3. 三条分别是：亲近安慰 / 中立打圆场 / 促狭补刀。补刀可以毒舌但要好笑，不能伤人。\n'
       + '4. 每条 choice 的 reply 是 1 到 2 拍，是角色对主人这句话的即时反应，说话人只能是本场角色或 narrator。\n'
       + '其余硬性要求：\n'
@@ -3866,6 +3881,10 @@ export function apply(
       }
     }
     dst.profileOverrides = normalizeProfileOverrides(src.profileOverrides)
+    if (charId === 'deepseek' && !dst.profileOverrides.greeting) {
+      const index = initialGreetingIndexFor(dst, LEGACY_DEEPSEEK_GREETING)
+      if (index >= 0) dst.chatLines[index].text = ROSTER.deepseek.greet
+    }
     return dst
   }
 
@@ -3887,7 +3906,8 @@ export function apply(
       const storedOverrides = data.characters[id] && typeof data.characters[id] === 'object'
         ? data.characters[id].profileOverrides
         : undefined
-      if (JSON.stringify(storedOverrides || {}) !== JSON.stringify(state.characters[id].profileOverrides)) {
+      if (JSON.stringify(storedOverrides || {}) !== JSON.stringify(state.characters[id].profileOverrides)
+        || (id === 'deepseek' && JSON.stringify(data.characters[id]?.chatLines || []) !== JSON.stringify(state.characters[id].chatLines))) {
         needsSave = true
       }
       for (const cg of state.characters[id].cgs) cg.charId = id
@@ -4313,7 +4333,8 @@ export function apply(
         const storedOverrides = data.characters[id] && typeof data.characters[id] === 'object'
           ? data.characters[id].profileOverrides
           : undefined
-        if (JSON.stringify(storedOverrides || {}) !== JSON.stringify(s.characters[id].profileOverrides)) {
+        if (JSON.stringify(storedOverrides || {}) !== JSON.stringify(s.characters[id].profileOverrides)
+          || (id === 'deepseek' && JSON.stringify(data.characters[id]?.chatLines || []) !== JSON.stringify(s.characters[id].chatLines))) {
           needsSave = true
         }
         for (const cg of s.characters[id].cgs) cg.charId = id
@@ -4458,10 +4479,12 @@ export function apply(
           throw new Error('Galgame 全局存档版本或结构无法识别；为避免覆盖原文件，已停止加载。')
         }
         globalState = hydrated
-        if (parsed.v !== GLOBAL_SAVE_VERSION || !validBackgroundRevision(parsed.backgroundRevision)) {
+        if (parsed.v !== GLOBAL_SAVE_VERSION || !validBackgroundRevision(parsed.backgroundRevision)
+          || JSON.stringify(parsed.characters.deepseek.chatLines || []) !== JSON.stringify(hydrated.characters.deepseek.chatLines)) {
           // Global v2 moves the complete game timeline and token ledger into
           // one durable save. Persist the in-memory upgrade before any
-          // workspace projection is rewritten.
+          // workspace projection is rewritten. The opening-greeting refresh is
+          // also durable, including when the existing global version is current.
           await writeGlobalState()
         }
       })().catch((err) => {
@@ -4893,10 +4916,7 @@ export function apply(
         const previousProfileClaims = splitStorageActive() && globalState
           ? [...(ensureGlobalMigrationState().claims.profiles[charId] || [])]
           : null
-        const initialGreetingIndex = character.log.length === 0
-          ? character.chatLines.findIndex((line: any) => line && line.who === 'heroine'
-            && line.text === previousProfile.greeting)
-          : -1
+        const initialGreetingIndex = initialGreetingIndexFor(character, previousProfile.greeting)
         const previousGreetingText = initialGreetingIndex >= 0
           ? character.chatLines[initialGreetingIndex].text
           : null
@@ -4944,10 +4964,7 @@ export function apply(
         const previousProfileClaims = splitStorageActive() && globalState
           ? [...(ensureGlobalMigrationState().claims.profiles[charId] || [])]
           : null
-        const initialGreetingIndex = character.log.length === 0
-          ? character.chatLines.findIndex((line: any) => line && line.who === 'heroine'
-            && line.text === previousProfile.greeting)
-          : -1
+        const initialGreetingIndex = initialGreetingIndexFor(character, previousProfile.greeting)
         const previousGreetingText = initialGreetingIndex >= 0
           ? character.chatLines[initialGreetingIndex].text
           : null
@@ -5049,7 +5066,9 @@ export function apply(
                   for (const m of [...prepared.log, { role: 'user', text }].slice(-12)) {
                     if (m.role === 'assistant' && typeof m.text === 'string'
                       && (CANNED_LINES.has(m.text.trim())
-                        || (['claude', 'chatgpt', 'grok'].includes(prepared.charId)
+                        || (prepared.charId === 'deepseek'
+                          && m.text.trim().endsWith('说的话，我听到啦～（今天的深海信号有点弱，但心意传达到了哦）'))
+                        || (['deepseek', 'claude', 'chatgpt', 'grok'].includes(prepared.charId)
                           && (m.text.trim() === fallbackReplyFor(prepared.charId, prepared.profile.address)
                             || m.text.trim() === fallbackReplyFor(prepared.charId, ROSTER[prepared.charId].address))))) continue
                     msgs.push({
