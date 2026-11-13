@@ -30,7 +30,7 @@ export const WORKSHOP_CSS = `
 @media(prefers-reduced-motion:reduce){.whg-map-person{transition:none!important}.whg-map-bubble,.whg-map-bubble-dot,.whg-map-loading .whg-map-empty-symbol{animation:none!important}}
 `
 
-type WorkshopImages = { publicAtlas: HTMLImageElement; officeImage: HTMLImageElement; walkAtlas: HTMLImageElement; walkSideAtlas: HTMLImageElement; walk: typeof WORKSHOP_WALK; roomAtlas: HTMLImageElement; residentAtlas: HTMLImageElement; workstationAtlas: HTMLImageElement; decorAtlas: HTMLImageElement; decorBounds: Array<{ x: number; y: number; width: number; height: number }>; residentAnchors: Array<Array<{ x: number; y: number }>> }
+type WorkshopImages = { publicAtlas: HTMLImageElement; officeImage: HTMLImageElement; walkAtlas: HTMLImageElement; walkSideAtlas: HTMLImageElement; walkMidAtlas: HTMLImageElement; walk: typeof WORKSHOP_WALK; roomAtlas: HTMLImageElement; residentAtlas: HTMLImageElement; workstationAtlas: HTMLImageElement; decorAtlas: HTMLImageElement; decorBounds: Array<{ x: number; y: number; width: number; height: number }>; residentAnchors: Array<Array<{ x: number; y: number }>> }
 let workshopImages: Promise<WorkshopImages> | null = null
 
 function loadWorkshopImages(): Promise<WorkshopImages> {
@@ -44,8 +44,8 @@ function loadWorkshopImages(): Promise<WorkshopImages> {
     image.src = source
   })
   workshopImages = Promise.all([load('workshop-map-atlas'), load('workshop-resident-atlas'), load('workshop-workstation-atlas'),
-    load('workshop-room-atlas'), load('workshop-decor-atlas'), load('workshop-office-atlas'), load('workshop-walk-atlas'), load('workshop-walk-side-atlas')])
-    .then(([publicAtlas, residentAtlas, workstationAtlas, roomAtlas, decorAtlas, officeImage, walkAtlas, walkSideAtlas]) => ({ publicAtlas, officeImage, walkAtlas, walkSideAtlas, walk: WORKSHOP_WALK, residentAtlas, workstationAtlas, roomAtlas, decorAtlas, decorBounds: WORKSHOP_DECOR_BOUNDS, residentAnchors: WORKSHOP_SPRITE_ANCHORS }))
+    load('workshop-room-atlas'), load('workshop-decor-atlas'), load('workshop-office-atlas'), load('workshop-walk-atlas'), load('workshop-walk-side-atlas'), load('workshop-walk-mid-atlas')])
+    .then(([publicAtlas, residentAtlas, workstationAtlas, roomAtlas, decorAtlas, officeImage, walkAtlas, walkSideAtlas, walkMidAtlas]) => ({ publicAtlas, officeImage, walkAtlas, walkSideAtlas, walkMidAtlas, walk: WORKSHOP_WALK, residentAtlas, workstationAtlas, roomAtlas, decorAtlas, decorBounds: WORKSHOP_DECOR_BOUNDS, residentAnchors: WORKSHOP_SPRITE_ANCHORS }))
     .catch((error) => { workshopImages = null; throw error })
   return workshopImages
 }

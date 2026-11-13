@@ -7,7 +7,7 @@ import { findMetadataChunks, readWebpDimensions } from './webp.mjs'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const directory = resolve(root, 'assets/workshop')
 const manifest = JSON.parse(readFileSync(resolve(directory, 'manifest.json'), 'utf8'))
-const expectedKeys = ['workshop-map-atlas', 'workshop-office-atlas', 'workshop-room-atlas', 'workshop-resident-atlas', 'workshop-walk-atlas', 'workshop-walk-side-atlas', 'workshop-workstation-atlas', 'workshop-decor-atlas']
+const expectedKeys = ['workshop-map-atlas', 'workshop-office-atlas', 'workshop-room-atlas', 'workshop-resident-atlas', 'workshop-walk-atlas', 'workshop-walk-side-atlas', 'workshop-walk-mid-atlas', 'workshop-workstation-atlas', 'workshop-decor-atlas']
 const entries = expectedKeys.map((key) => {
   const asset = manifest.assets.find((item) => item.key === key)
   if (!asset || !/^[a-z0-9-]+\.png$/.test(asset.file)) throw new Error('Missing workshop asset: ' + key)
@@ -34,7 +34,7 @@ const validAnchors = (rows) => Array.isArray(rows) && rows.length === 4 && rows.
 const idleAnchors = manifest.walkLayout?.idleAnchors
 if (!validAnchors([idleAnchors, idleAnchors, idleAnchors, idleAnchors])) throw new Error('Expected six idle anchors for the walking cycle')
 const walk = { idle: idleAnchors }
-for (const [sheet, key] of [['frontBack', 'workshop-walk-atlas'], ['side', 'workshop-walk-side-atlas']]) {
+for (const [sheet, key] of [['frontBack', 'workshop-walk-atlas'], ['side', 'workshop-walk-side-atlas'], ['sideMid', 'workshop-walk-mid-atlas']]) {
   const layout = manifest.walkLayout?.[sheet], image = manifest.assets.find((asset) => asset.key === key)
   if (manifest.walkLayout?.columns !== 6 || manifest.walkLayout?.rows !== 4 || image.width !== 1536 || image.height !== 1024
     || !validAnchors(layout?.footAnchors) || !(layout.scale >= .8 && layout.scale <= 1.4)) {

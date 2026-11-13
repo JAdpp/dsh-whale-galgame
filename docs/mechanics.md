@@ -88,7 +88,7 @@ Galgame 顶栏“工坊地图”在当前 Galgame 内打开俯视像素地图，
 
 ## 美术清单与构建说明
 
-安装包保留原有 22 项默认美术：六张角色立绘、七张内置背景、八张原始分辨率透明 `whale-*.webp` 表情，以及一张 8 列 × 11 行的 `pet-spritesheet.webp` 桌宠动画图集；另内嵌公共区、高清工作区、主题宿舍、角色、两张行走关键帧、专属办公与室外装饰八张图。逐文件用途、来源、改动与桌宠图集 SHA-256 保留在[默认美术清单](../assets/default/README.md)、[庄园美术清单](../assets/workshop/README.md)和 [NOTICE](../NOTICE.md)，许可索引见[第三方许可](../THIRD_PARTY_LICENSES.md)。
+安装包保留原有 22 项默认美术：六张角色立绘、七张内置背景、八张原始分辨率透明 `whale-*.webp` 表情，以及一张 8 列 × 11 行的 `pet-spritesheet.webp` 桌宠动画图集；另内嵌公共区、高清工作区、主题宿舍、角色、三张行走关键帧、专属办公与室外装饰九张图。逐文件用途、来源、改动与桌宠图集 SHA-256 保留在[默认美术清单](../assets/default/README.md)、[庄园美术清单](../assets/workshop/README.md)和 [NOTICE](../NOTICE.md)，许可索引见[第三方许可](../THIRD_PARTY_LICENSES.md)。
 
 npm 包只携带内嵌美术的客户端 bundle，不重复收录导出原图或生成图源码。Galgame 布局、对话框、控件与装饰的实现公开在 `src/client/index.ts`，没有额外的未公开 UI 图片包。地图图块与人物动作渲染在 `src/client/workshop-art.ts`，交互和路径分别在 `workshop-map.ts` 与 `workshop-world.ts`。当前公共区使用 1254 × 1254 的 `public-rooms-atlas.png` 四格图集，主题宿舍使用 1536 × 1024 的 `themed-rooms-atlas.png` 六格图集，角色行走图集为 1536 × 1024 透明 PNG，专属办公图集为 1374 × 1145 透明 PNG，新增 `decor-atlas-builtin.png` 为 1536 × 1024 的透明六格装饰图集；来源、提示、像素尺寸与完整性记录见 [`assets/workshop/README.md`](../assets/workshop/README.md)。这五张图集随客户端 bundle 内嵌，不需运行时下载。旧 `manor-atlas-image26.png` 及其生成记录仅保留在源码历史素材中，不再作为当前运行图内嵌。README Logo 说明见 [`docs/brand/README.md`](brand/README.md)。
 

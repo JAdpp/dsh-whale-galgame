@@ -1,5 +1,5 @@
 {
-  "version": 6,
+  "version": 7,
   "generatedOn": "2026-11-13",
   "assets": [
     {
@@ -115,6 +115,21 @@
       "runtime": {
         "file": "walk-cycle-side.webp",
         "sha256": "d72ad72221ea8385b7475bfedcc93e271ea5d6b59ab80b257974f802f38606d0"
+      }
+    },
+    {
+      "key": "workshop-walk-mid-atlas",
+      "file": "walk-cycle-side-mid.png",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "8b5435613758c7448a44ecbdf4200e556391b673eeaa8b6d6112c3ddb7f4f40f",
+      "model": "Codex built-in image generation",
+      "modelVersionExposed": false,
+      "reference": "walk-cycle-side.png",
+      "notes": "walk-cycle-side-mid-notes.md",
+      "runtime": {
+        "file": "walk-cycle-side-mid.webp",
+        "sha256": "379edfcd850bf73c377c028a14d28a493998b58a0531c7adcc65ca2ed5929400"
       }
     }
   ],
@@ -665,6 +680,121 @@
         "x": 122,
         "y": 249
       }
-    ]
+    ],
+    "sideMid": {
+      "poses": [
+        "side, half stride, near leg forward",
+        "side, half stride, far leg forward",
+        "side, passing, near leg lifted",
+        "side, passing, far leg lifted"
+      ],
+      "scale": 1.16,
+      "footAnchors": [
+        [
+          {
+            "x": 143,
+            "y": 238
+          },
+          {
+            "x": 134,
+            "y": 239
+          },
+          {
+            "x": 125.5,
+            "y": 239
+          },
+          {
+            "x": 128.5,
+            "y": 239
+          },
+          {
+            "x": 115,
+            "y": 239
+          },
+          {
+            "x": 112,
+            "y": 238
+          }
+        ],
+        [
+          {
+            "x": 143,
+            "y": 234
+          },
+          {
+            "x": 134,
+            "y": 234
+          },
+          {
+            "x": 125.5,
+            "y": 234
+          },
+          {
+            "x": 128.5,
+            "y": 234
+          },
+          {
+            "x": 115,
+            "y": 234
+          },
+          {
+            "x": 112,
+            "y": 234
+          }
+        ],
+        [
+          {
+            "x": 143,
+            "y": 232
+          },
+          {
+            "x": 134,
+            "y": 232
+          },
+          {
+            "x": 125.5,
+            "y": 232
+          },
+          {
+            "x": 127.5,
+            "y": 232
+          },
+          {
+            "x": 115,
+            "y": 232
+          },
+          {
+            "x": 113.5,
+            "y": 231
+          }
+        ],
+        [
+          {
+            "x": 143,
+            "y": 232
+          },
+          {
+            "x": 134,
+            "y": 230
+          },
+          {
+            "x": 125.5,
+            "y": 231
+          },
+          {
+            "x": 127.5,
+            "y": 231
+          },
+          {
+            "x": 115,
+            "y": 230
+          },
+          {
+            "x": 113.5,
+            "y": 231
+          }
+        ]
+      ]
+    }
   }
 }

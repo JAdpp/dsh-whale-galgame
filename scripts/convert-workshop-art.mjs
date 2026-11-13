@@ -22,6 +22,7 @@ const targets = {
   'residents-atlas-builtin': sprite,
   'walk-cycle-front-back': sprite,
   'walk-cycle-side': sprite,
+  'walk-cycle-side-mid': sprite,
   'workstations-rpg-atlas': sprite,
   'decor-atlas-builtin': sprite,
 }
@@ -85,6 +86,7 @@ manifest.walkLayout.idleAnchors = footAnchors(await withoutHaze(resolve(director
 const walking = {
   'walk-cycle-front-back': { key: 'frontBack', pairs: [0, 2], standingRows: [0, 1, 2, 3] },
   'walk-cycle-side': { key: 'side', pairs: [0], standingRows: [2, 3] },
+  'walk-cycle-side-mid': { key: 'sideMid', pairs: [0, 2], standingRows: [2, 3] },
 }
 for (const [name, options] of Object.entries(targets)) {
   const file = resolve(directory, name + '.png')
