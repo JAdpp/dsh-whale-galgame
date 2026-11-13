@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "generatedOn": "2026-11-13",
   "assets": [
     {
@@ -8,6 +8,10 @@
       "width": 1254,
       "height": 1254,
       "sha256": "57993235514e01bf176836adb6b756724a6364f023b48bbde8db9a81af7166e3",
+      "runtime": {
+        "file": "public-rooms-atlas.webp",
+        "sha256": "70b10ddb2bdbbc250f76e667404ab1e474c7a69f504ffa0cb8076a6c553ad3c1"
+      },
       "model": "Codex built-in image generation",
       "modelVersionExposed": false,
       "sourceId": "exec-3fe596af-6228-4b06-87d1-6210b2abbcee"
@@ -18,6 +22,10 @@
       "width": 1536,
       "height": 1024,
       "sha256": "1bc4ece284924837f4fba6b9f64bfa061d200e96fa77a2c590d19098cd78ef42",
+      "runtime": {
+        "file": "themed-rooms-atlas.webp",
+        "sha256": "ceb368c14035e220b55add49a35b813ef998f302f3c5cb82c25167e092f34a39"
+      },
       "model": "Codex built-in image generation",
       "modelVersionExposed": false,
       "sourceId": "exec-09907cdd-adf6-4028-b23e-d74379cca9e4"
@@ -28,6 +36,10 @@
       "width": 1536,
       "height": 1024,
       "sha256": "709be979f3d3ebcbdad3304fe34d95e69ea1edb0704c03acae8c6065f653989b",
+      "runtime": {
+        "file": "residents-atlas-builtin.webp",
+        "sha256": "9cb0fb673c34257718f8fb3f622093633817505c6cb620d2d276655bb47b7fd8"
+      },
       "model": "Codex built-in image generation"
     },
     {
@@ -36,6 +48,10 @@
       "width": 1374,
       "height": 1145,
       "sha256": "486125c1da4e61ba34cc1601de85c46a37ca156f4223c327bba9642b012eb8bd",
+      "runtime": {
+        "file": "workstations-rpg-atlas.webp",
+        "sha256": "69b59787434b829ac04301635b5ba12c39f1ffed77003b2c9ad81db7e37b083f"
+      },
       "model": "Codex built-in image generation",
       "sourceId": "exec-8c4fe3c7-dbee-45f4-af18-b1c7cb3b48fb",
       "reference": "residents-atlas-builtin.png"
@@ -46,6 +62,10 @@
       "width": 1536,
       "height": 1024,
       "sha256": "28b06bed3e887fc68b5eaf72c797429067bbfbc645d47858db816e4fcc1fea0d",
+      "runtime": {
+        "file": "decor-atlas-builtin.webp",
+        "sha256": "0a77d29ed2d0fc9332081c1fc41816f79619efdcf6717ac5e7c8b2068971471a"
+      },
       "model": "Codex built-in image generation",
       "modelVersionExposed": false,
       "sourceId": "exec-05972b28-3e94-40f8-a148-cadb44d8b477",

@@ -285,7 +285,7 @@ export function drawResident(ctx: CanvasRenderingContext2D, id: string, x: numbe
   status: 'idle' | 'running' | 'waiting', moving: boolean, assets: WorkshopArtAssets = {}, atDesk = false): void {
   if (atDesk && status !== 'idle' && assets.workstationAtlas) {
     const row = status === 'waiting' ? 4 : 1 + Math.floor(frame / 12) % 3
-    ctx.save(); ctx.imageSmoothingEnabled = false
+    ctx.save(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'
     workFrame(ctx, assets, id, { x: x - TILE_SIZE * 2, y: y - TILE_SIZE * 4.5,
       width: TILE_SIZE * 4, height: TILE_SIZE * 4 }, row)
     ctx.restore()
@@ -300,7 +300,7 @@ export function drawResident(ctx: CanvasRenderingContext2D, id: string, x: numbe
   const cellWidth = size.width / 6, cellHeight = size.height / 4
   const row = moving ? 1 + Math.floor(frame / 8) % 2 : status === 'idle' ? 0 : 3
   const anchor = assets.residentAnchors?.[row]?.[column] || { x: 128, y: 248 }
-  ctx.save(); ctx.imageSmoothingEnabled = false
+  ctx.save(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'
   // Full cells preserve each character's horns, wings, tools and tail.
   ctx.drawImage(assets.residentAtlas, column * cellWidth, row * cellHeight, cellWidth, cellHeight,
     x - anchor.x / 256 * 96, y - anchor.y / 256 * 96, 96, 96)

@@ -1,6 +1,18 @@
 // Transient RPG-style navigation. The generated art is assembled on one 48px grid.
 // Model-family availability determines rooms; movement never touches the Galgame save.
 export const TILE_SIZE = 48
+// Rug bounds in the square office atlas cell, in resident slot order.
+export const OFFICE_ART = {
+  cellSize: 627,
+  rugs: [
+    { x0: 96, y0: 245, x1: 217, y1: 368 },
+    { x0: 260, y0: 245, x1: 381, y1: 368 },
+    { x0: 424, y0: 245, x1: 545, y1: 368 },
+    { x0: 96, y0: 407, x1: 217, y1: 530 },
+    { x0: 260, y0: 407, x1: 381, y1: 530 },
+    { x0: 424, y0: 407, x1: 545, y1: 530 },
+  ],
+} as const
 export const RESIDENT_IDS = ['deepseek', 'claude', 'chatgpt', 'gemini', 'kimi', 'grok'] as const
 export type ResidentId = typeof RESIDENT_IDS[number]
 export type PresenceStatus = 'idle' | 'running' | 'waiting'
@@ -40,8 +52,8 @@ export function createWorkshopLayout(availableIds: readonly string[] = RESIDENT_
   const dormRows = Math.ceil(ids.length / 3)
   const officeY = TILE_SIZE + (dormRows ? dormRows * ROW_PITCH : TILE_SIZE * 2)
   const workRows = Math.max(1, Math.ceil(ids.length / 3))
-  // Reserve a full, richly furnished north wall before the seated desk islands.
-  const officeHeight = workRows * TILE_SIZE * 6 + TILE_SIZE * 6
+  // Keep the complete square interior at a uniform scale for every roster size.
+  const officeHeight = TILE_SIZE * 20
   const publicY = officeY + officeHeight + TILE_SIZE * 2
   const rooms: WorkshopRoom[] = [], stations: WorkshopStation[] = [], props: WorkshopProp[] = []
   const nodes: Record<string, Point> = {}, edges: Record<string, string[]> = {}, halls: Bounds[] = []
@@ -119,16 +131,20 @@ export function createWorkshopLayout(availableIds: readonly string[] = RESIDENT_
   link(hallName(hallRows - 1, officeDoor.x), 'work-door')
   add('work-entry', officeDoor.x, officeY + TILE_SIZE * 1.5)
   link('work-door', 'work-entry')
+  const officeScale = office.width / OFFICE_ART.cellSize
+  const stationSize = TILE_SIZE * 4
   for (let row = 0; row < workRows; row++) {
-    const stationY = officeY + TILE_SIZE * 6 + row * TILE_SIZE * 6
-    const aisleY = stationY + TILE_SIZE * 4.5
+    const rowRug = OFFICE_ART.rugs[row * 3]
+    // Round the shared frame origin once so empty and seated desks stay aligned.
+    const stationY = Math.round(office.y + rowRug.y1 * officeScale - 20 - stationSize)
+    const aisleY = stationY + stationSize + TILE_SIZE * .5
     const aisle = add('work-aisle-' + row, officeDoor.x, aisleY)
-    link(row === 0 ? 'work-entry' : 'work-aisle-0', aisle)
+    link(row === 0 ? 'work-entry' : 'work-aisle-' + (row - 1), aisle)
     ids.slice(row * 3, row * 3 + 3).forEach((id, column) => {
-      // Align the desk islands with the authored rugs in the complete office scene.
-      const x = TILE_SIZE * 5 + column * 256
-      const walkPoint = { x: x + TILE_SIZE * 2, y: aisleY }
-      stations.push({ id, x, y: stationY, width: TILE_SIZE * 4, height: TILE_SIZE * 4, walkPoint,
+      const rug = OFFICE_ART.rugs[row * 3 + column]
+      const x = Math.round(office.x + (rug.x0 + rug.x1) / 2 * officeScale - stationSize / 2)
+      const walkPoint = { x: x + stationSize / 2, y: aisleY }
+      stations.push({ id, x, y: stationY, width: stationSize, height: stationSize, walkPoint,
         tableBounds: { x: x + TILE_SIZE * .5, y: stationY + TILE_SIZE * 1.5, width: TILE_SIZE * 3, height: TILE_SIZE * 2 } })
       add('work-' + id, walkPoint.x, walkPoint.y)
       link(aisle, 'work-' + id)
