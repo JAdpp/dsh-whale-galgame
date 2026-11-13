@@ -1,31 +1,36 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { DEFAULT_NAMES, drawWorkshop, drawResident } from './workshop-art'
 import { WORKSHOP_ART, WORKSHOP_SPRITE_ANCHORS, WORKSHOP_WORK_ACTIVITIES, WORKSHOP_DECOR_BOUNDS } from './workshop.generated'
 import { createWorkshopLayout, createResidents, syncResidents, stepResidents, settleResidents, residentActivity, type Resident, type Presence } from './workshop-world'
 
 export const WORKSHOP_CSS = `
-.whg-map{--whg-map-ink:#315661;--whg-map-muted:#718b8b;--whg-map-line:#c9dbd6;--whg-map-paper:#fbfaf3;position:relative;display:flex;flex-direction:column;flex:1;width:100%;height:100%;min-height:0;overflow:hidden;box-sizing:border-box;background:#eff4ee;color:var(--whg-map-ink);font:13px/1.5 system-ui,"Microsoft YaHei",sans-serif;user-select:none}
-.whg-map *{box-sizing:border-box}.whg-map button{font:inherit;cursor:pointer}.whg-map button:focus-visible{outline:2px solid #347e94;outline-offset:3px}.whg-map button:disabled{cursor:wait;opacity:.55}
-.whg-map-head{display:flex;align-items:center;gap:20px;flex:none;padding:18px 26px 16px;border-bottom:1px solid #d7dfd2;background:var(--whg-map-paper);box-shadow:0 2px 0 #fff9;z-index:1}
-.whg-map-heading{margin:0;font:600 26px/1.25 "Yu Mincho","Songti SC","SimSun",serif;letter-spacing:4px;color:#28586b}.whg-map-kicker{margin:0 0 6px;color:#6d9c9b;font:10px/1.4 Consolas,monospace;letter-spacing:2px}.whg-map-sub{margin:7px 0 0;color:#798c83;font-size:12px;letter-spacing:.5px}
-.whg-map-head-actions{display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap}.whg-map-control{padding:7px 12px;border:1px solid #b8d0ca;border-radius:6px;background:#f5faf5;color:#3f6e76;white-space:nowrap;box-shadow:0 2px 0 #d6e2d94d}.whg-map-control:hover{background:#e5f1e9;border-color:#83ada9}.whg-map-control[aria-pressed=true]{border-color:#75a69a;background:#e1eee3;color:#2b6866}
-.whg-map-content{display:grid;grid-template-columns:minmax(0,1fr) 234px;min-height:0;flex:1}.whg-map-viewport{min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-color:#afc9c0 #edf1e7;display:grid;align-items:center;background:#e9f0e8}
-.whg-map-floor{position:relative;width:100%;min-width:1152px;margin:auto;isolation:isolate;flex:none}.whg-map-floor[data-zoom=true]{width:150%;min-width:1728px}.whg-map-scene{display:block;width:100%;height:100%;image-rendering:auto}
-.whg-map-person{position:absolute;z-index:2;width:72px;height:96px;transform:translate(-50%,-88px) scale(var(--whg-map-scale,1));transform-origin:50% 88px;padding:0;border:0;background:transparent;color:#315661;overflow:visible;touch-action:manipulation}.whg-map-person:hover,.whg-map-person:focus-visible{z-index:4}.whg-map-person:focus-visible{outline-offset:-4px;border-radius:8px}
-.whg-map-person canvas{position:absolute;display:block;width:96px;height:112px;left:50%;top:-12px;transform:translateX(-50%);margin:0;image-rendering:auto;filter:drop-shadow(0 3px 1px #638b7540)}.whg-map-person:hover canvas{filter:drop-shadow(0 0 5px #fffbd7)}
-.whg-map-person[data-at-desk="true"]{width:192px;height:216px;transform:translate(-50%,-216px) scale(var(--whg-map-scale,1));transform-origin:50% 216px}.whg-map-person[data-at-desk="true"] canvas{width:224px;height:240px;top:0}
-.whg-map-roster{display:flex;flex-direction:column;min-height:0;overflow:auto;border-left:1px solid var(--whg-map-line);background:#f9faf1;padding:22px 15px}.whg-map-roster h2{margin:0 8px 5px;color:#3e6c71;font-size:14px;font-weight:600;letter-spacing:2px}.whg-map-roster-note{margin:0 8px 17px;color:#85948b;font-size:11px;line-height:1.7}.whg-map-resident{display:flex;align-items:center;gap:11px;width:100%;min-height:76px;padding:8px 6px;border:1px solid transparent;border-bottom-color:#dee6d9;background:transparent;color:inherit;text-align:left;border-radius:7px}.whg-map-resident:hover{border-color:#b8d0c2;background:#edf4e9}.whg-map-resident canvas{width:44px;height:52px;flex:none;image-rendering:auto}.whg-map-resident-meta{flex:1;min-width:0}.whg-map-resident-name{display:block;font-size:13px;font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.whg-map-resident-status{display:block;margin-top:4px;font-size:11px;color:#7b9089;line-height:1.5}.whg-map-resident-arrow{color:#8ea89e;font-size:14px}
-.whg-map-presence-dot{display:inline-block;width:6px;height:6px;margin:0 6px 1px 0;border-radius:2px;background:#a2b6ae}.whg-map-resident[data-status=running] .whg-map-presence-dot{background:#65a98b}.whg-map-resident[data-status=waiting] .whg-map-presence-dot{background:#cca361}
-.whg-map-legend{display:flex;gap:12px;flex-wrap:wrap;margin:auto 7px 0;padding-top:24px;color:#83968b;font-size:10px}.whg-map-legend span{display:inline-flex;align-items:center;gap:5px}.whg-map-legend i{width:6px;height:6px;border-radius:2px;display:inline-block;background:#a2b6ae}.whg-map-legend i.running{background:#65a98b}.whg-map-legend i.waiting{background:#cca361}
-.whg-map-foot{display:flex;align-items:center;gap:12px;justify-content:space-between;padding:10px 26px;border-top:1px solid #d7dfd2;color:#83958a;background:var(--whg-map-paper);font-size:11px;flex:none}.whg-map-sync{color:#649786;white-space:nowrap}.whg-map-message{position:absolute;bottom:48px;left:50%;max-width:90%;transform:translateX(-50%);z-index:8;margin:0;padding:11px 17px;border:1px solid #ceb98f;background:#fff8e8;color:#866944;border-radius:7px;font-size:12px;box-shadow:0 5px 20px #58766b17}.whg-map-disabled{display:grid;place-content:center;justify-items:center;flex:1;text-align:center;padding:32px;color:#81958a;background:#f4f6ee}.whg-map-disabled h2{margin:12px 0 8px;color:#46767d;font:600 23px/1.4 "Yu Mincho","Songti SC","SimSun",serif;letter-spacing:2px}.whg-map-disabled p{max-width:380px;margin:6px 0;font-size:13px;line-height:1.9}.whg-map-empty-symbol{display:block;width:62px;height:62px;border:1px solid #b9d4c6;border-radius:50%;color:#79a89c;background:#e8f2e8;font:28px/60px serif}.whg-map-loading .whg-map-empty-symbol{animation:whgMapBreathe 2s ease-in-out infinite}.whg-map-catalog-note{padding:10px 16px;border-bottom:1px solid #dedbc1;background:#fff9e8;color:#9b8561;font-size:11px;line-height:1.6}.whg-map-catalog-note button{margin-left:8px;border:0;border-bottom:1px solid #b4a782;padding:0;background:none;color:#7e7663}
+.whg-map{--whg-map-panel:linear-gradient(180deg,rgba(7,30,45,.96),rgba(3,17,31,.98));--whg-map-brass:#d7b66c;--whg-map-line:rgba(215,182,108,.48);--whg-map-accent:#8fd8ef;--whg-map-text:#e8f1f5;--whg-map-muted:#a9c0cc;--whg-map-running:#6fd3a4;--whg-map-waiting:#f2b95c;--whg-map-idle:#8fa6b3;position:relative;display:flex;flex-direction:column;flex:1;width:100%;height:100%;min-width:0;min-height:0;overflow:hidden;box-sizing:border-box;background:#061a28;color:var(--whg-map-text);font:13px/1.5 system-ui,"Microsoft YaHei",sans-serif;user-select:none}
+.whg-map *{box-sizing:border-box}.whg-map button{font:inherit;cursor:pointer}.whg-map button:focus-visible,.whg-map-viewport:focus-visible{outline:2px solid var(--whg-map-accent);outline-offset:-3px}.whg-map button:disabled{cursor:not-allowed}
+.whg-map-head{display:flex;align-items:center;gap:14px;flex:none;min-width:0;padding:8px 16px;border-bottom:1px solid var(--whg-map-line);background:var(--whg-map-panel);z-index:1}
+.whg-map-heading{flex:none;margin:0;font:600 18px/1.3 "Yu Mincho","Songti SC","SimSun",serif;letter-spacing:2px;color:var(--whg-map-brass)}.whg-map-summary{flex:1;min-width:0;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--whg-map-muted);font-size:12.5px}
+.whg-map-head-actions{display:flex;align-items:center;gap:6px;margin-left:auto;flex:none}.whg-map-control{min-height:32px;padding:4px 10px;border:1px solid var(--whg-map-line);border-radius:6px;background:rgba(3,17,31,.45);color:var(--whg-map-brass);white-space:nowrap}.whg-map-control:hover:not(:disabled),.whg-map-control:focus-visible{background:rgba(215,182,108,.12);border-color:var(--whg-map-brass);color:#f2d89d}.whg-map-control[aria-pressed=true]{border-color:var(--whg-map-brass);background:rgba(215,182,108,.18)}.whg-map-control:disabled{border-style:dashed}.whg-map .whg-map-zoom-step{min-width:32px;padding:4px 8px;font-size:18px;line-height:1}
+.whg-map-content{display:grid;grid-template-columns:minmax(0,1fr) 248px;min-height:0;min-width:0;flex:1}.whg-map-viewport{position:relative;display:flex;min-width:0;min-height:0;padding:12px;overflow:auto;overscroll-behavior:contain;scrollbar-color:var(--whg-map-brass) #061a28;background:#061a28}.whg-map-viewport[data-pan=true]{cursor:grab;touch-action:none}.whg-map-viewport[data-dragging=true]{cursor:grabbing}
+.whg-map-floor{position:relative;margin:auto;isolation:isolate;flex:none}.whg-map-scene{display:block;width:100%;height:100%;image-rendering:auto}
+.whg-map-person{position:absolute;width:72px;height:96px;transform:translate(-50%,-88px) scale(var(--whg-map-scale,1));transform-origin:50% 88px;padding:0;border:0;border-radius:8px;background:transparent;color:var(--whg-map-text);overflow:visible;touch-action:manipulation}.whg-map:not([data-paused=true]) .whg-map-person[data-settled=true]{transition:left .1s linear,top .1s linear}.whg-map-person:hover,.whg-map-person:focus-visible{z-index:2147483647!important}.whg-map-person:focus-visible{outline-offset:-4px}.whg-map-person[data-highlight=true]{outline:2px solid var(--whg-map-brass);outline-offset:3px;box-shadow:0 0 16px rgba(215,182,108,.5)}
+.whg-map-person canvas{position:absolute;display:block;width:96px;height:112px;left:50%;top:-12px;transform:translateX(-50%);margin:0;image-rendering:auto;filter:drop-shadow(0 3px 2px rgba(0,8,24,.6))}.whg-map-person:hover canvas,.whg-map-person:focus-visible canvas,.whg-map-person[data-highlight=true] canvas{filter:drop-shadow(0 0 5px var(--whg-map-brass))}
+.whg-map-person[data-at-desk=true]{width:192px;height:216px;transform:translate(-50%,-216px) scale(var(--whg-map-scale,1));transform-origin:50% 216px}.whg-map-person[data-at-desk=true] canvas{width:224px;height:240px;top:0}
+.whg-map-bubble-anchor,.whg-map-name-anchor{position:absolute;left:50%;width:0;height:0;pointer-events:none}.whg-map-bubble-anchor{bottom:calc(100% + 4px)}.whg-map-person[data-at-desk=true] .whg-map-bubble-anchor{bottom:calc(100% - 40px)}.whg-map-bubble-scale{position:absolute;bottom:0;display:block;width:max-content;transform:translateX(-50%) scale(calc(1 / var(--whg-map-scale,1)));transform-origin:50% 100%}
+.whg-map-bubble{display:flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--whg-map-running);border-radius:999px;padding:6px 9px;background:#071e2d;color:var(--whg-map-running);font-size:12px;font-weight:600;line-height:1.4;white-space:nowrap;box-shadow:0 3px 12px rgba(0,8,24,.55)}.whg-map-bubble-waiting{padding:5px 10px;border-color:var(--whg-map-waiting);background:var(--whg-map-waiting);color:#061a28;animation:whg-map-waiting-pulse 2.4s ease-in-out infinite}.whg-map-bubble-alert{font-size:15px;font-weight:800}.whg-map-bubble-dot{width:4px;height:4px;border-radius:50%;background:currentColor;animation:whg-map-working-dot 1.2s ease-in-out infinite}.whg-map-bubble-dot:nth-child(2){animation-delay:.16s}.whg-map-bubble-dot:nth-child(3){animation-delay:.32s}
+.whg-map-name-anchor{top:calc(100% + 8px);visibility:hidden}.whg-map-person[data-at-desk=true] .whg-map-name-anchor{top:calc(100% + 32px)}.whg-map-person:hover .whg-map-name-anchor,.whg-map-person:focus-visible .whg-map-name-anchor{visibility:visible}.whg-map-name{display:block;width:max-content;padding:4px 9px;border:1px solid var(--whg-map-brass);border-radius:999px;background:#071e2d;color:var(--whg-map-text);font-size:12px;line-height:1.5;white-space:nowrap;transform:translateX(-50%) scale(calc(1 / var(--whg-map-scale,1)));transform-origin:50% 0;box-shadow:0 3px 12px rgba(0,8,24,.55)}
+.whg-map-roster{display:flex;flex-direction:column;min-height:0;min-width:0;overflow:auto;border-left:1px solid var(--whg-map-line);background:var(--whg-map-panel);padding:18px 12px;scrollbar-color:var(--whg-map-brass) #061a28}.whg-map-roster h2{margin:0 7px 5px;color:var(--whg-map-brass);font-size:15px;font-weight:600;letter-spacing:1px}.whg-map-roster-note{margin:0 7px 14px;color:var(--whg-map-muted);font-size:12.5px;line-height:1.7}.whg-map-resident{display:flex;align-items:center;gap:9px;width:100%;flex:none;min-height:78px;padding:8px 6px;border:1px solid transparent;border-left:3px solid transparent;border-bottom-color:var(--whg-map-line);background:transparent;color:var(--whg-map-text);text-align:left;border-radius:7px}.whg-map-resident[data-status=waiting]{border-left-color:var(--whg-map-waiting);background:rgba(242,185,92,.08)}.whg-map-resident:hover:not(:disabled),.whg-map-resident:focus-visible{border-top-color:var(--whg-map-line);border-right-color:var(--whg-map-line);background:rgba(215,182,108,.14)}.whg-map-resident canvas{width:44px;height:52px;flex:none;image-rendering:auto}.whg-map-resident-meta{flex:1;min-width:0}.whg-map-resident-name{display:block;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.whg-map-resident-status{display:block;margin-top:4px;font-size:12.5px;color:var(--whg-map-muted);line-height:1.5;overflow-wrap:anywhere}.whg-map-resident-arrow{color:var(--whg-map-brass);font-size:14px}
+.whg-map-presence-dot{display:inline-block;width:9px;height:9px;margin:0 6px 0 0;border-radius:50%;background:var(--whg-map-idle)}.whg-map-resident[data-status=running] .whg-map-presence-dot{background:var(--whg-map-running)}.whg-map-resident[data-status=waiting] .whg-map-presence-dot{background:var(--whg-map-waiting)}
+.whg-map-message{position:absolute;bottom:16px;left:50%;max-width:90%;transform:translateX(-50%);z-index:8;margin:0;padding:11px 17px;border:1px solid var(--whg-map-waiting);background:#071e2d;color:var(--whg-map-waiting);border-radius:7px;font-size:12.5px;box-shadow:0 5px 20px rgba(0,8,24,.55);overflow-wrap:anywhere}.whg-map-disabled{display:grid;place-content:center;justify-items:center;flex:1;min-height:0;overflow:auto;text-align:center;padding:32px;color:var(--whg-map-muted);background:var(--whg-map-panel)}.whg-map-disabled h2{margin:12px 0 8px;color:var(--whg-map-brass);font:600 23px/1.4 "Yu Mincho","Songti SC","SimSun",serif;letter-spacing:2px}.whg-map-disabled p{max-width:380px;margin:6px 0;font-size:13px;line-height:1.9}.whg-map-empty-symbol{display:block;width:62px;height:62px;border:1px solid var(--whg-map-line);border-radius:50%;color:var(--whg-map-accent);background:#071e2d;font:28px/60px serif}.whg-map-loading .whg-map-empty-symbol{animation:whg-map-loading-glow 2s ease-in-out infinite}.whg-map-catalog-note{margin:0 0 10px;padding:9px 10px;border:1px solid var(--whg-map-line);border-radius:6px;background:rgba(242,185,92,.08);color:var(--whg-map-waiting);font-size:12.5px;line-height:1.6}
 .whg-map-overlay{position:absolute;inset:0;z-index:20}.whg-map-tab{display:flex;flex:1;min-width:0;min-height:0;height:100%;overflow:hidden}
-@keyframes whgMapBreathe{50%{opacity:.55}}
-@media(max-width:900px){.whg-map-content{grid-template-columns:minmax(0,1fr) 190px}.whg-map-roster{padding:18px 9px}.whg-map-head{padding:15px 18px;gap:12px}.whg-map-heading{font-size:23px}.whg-map-sub{font-size:11px}.whg-map-foot{padding:9px 18px;font-size:10px}}
-@media(max-width:640px){.whg-map-content{display:flex;flex-direction:column}.whg-map-viewport{flex:1;min-height:220px;display:block}.whg-map-roster{flex:none;max-height:148px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 5px;border-left:0;border-top:1px solid var(--whg-map-line);padding:5px 9px}.whg-map-roster h2,.whg-map-roster-note,.whg-map-legend{display:none}.whg-map-resident{min-height:62px;padding:4px 1px;gap:3px}.whg-map-resident canvas{width:34px;height:44px}.whg-map-resident-name{font-size:11px}.whg-map-resident-status{font-size:9px}.whg-map-resident-arrow{display:none}.whg-map-head{flex-wrap:wrap;gap:9px;padding:12px}.whg-map-head-actions{gap:5px}.whg-map-control{font-size:11px!important;padding:6px 8px}.whg-map-heading{font-size:21px;letter-spacing:2px}.whg-map-sub{display:none}.whg-map-kicker{font-size:8px;letter-spacing:1px;margin-bottom:4px}.whg-map-foot{align-items:flex-start;padding:8px 11px;font-size:9px;gap:6px}.whg-map-sync{max-width:45%;white-space:normal;text-align:right}.whg-map-disabled{padding:24px}.whg-map-disabled h2{font-size:21px}.whg-map-disabled p{font-size:12px}}
-@media(prefers-reduced-motion:reduce){.whg-map-person{scroll-behavior:auto}.whg-map-loading .whg-map-empty-symbol{animation:none}}
+@keyframes whg-map-loading-glow{50%{box-shadow:0 0 18px rgba(143,216,239,.25)}}
+@keyframes whg-map-waiting-pulse{50%{box-shadow:0 0 0 5px rgba(242,185,92,.16),0 0 22px rgba(242,185,92,.4)}}
+@keyframes whg-map-working-dot{50%{transform:translateY(-2px)}}
+.whg-map[data-paused=true] .whg-map-bubble,.whg-map[data-paused=true] .whg-map-bubble-dot{animation:none}
+@media(max-width:900px){.whg-map-content{grid-template-columns:minmax(0,1fr) 200px}.whg-map-roster{padding:16px 8px}.whg-map-head{padding:8px 12px;gap:10px}.whg-map-head-actions{gap:4px}.whg-map-control{padding:4px 8px}}
+@media(max-width:640px){.whg-map-content{display:flex;flex-direction:column}.whg-map-viewport{flex:1;min-height:220px}.whg-map-roster{flex:none;max-height:168px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 5px;border-left:0;border-top:1px solid var(--whg-map-line);padding:5px 8px}.whg-map-roster h2,.whg-map-roster-note{display:none}.whg-map-catalog-note{grid-column:1/-1}.whg-map-resident{min-height:74px;padding:6px 3px;gap:4px;align-items:flex-start}.whg-map-resident canvas{width:28px;height:36px}.whg-map-resident-arrow{display:none}.whg-map-head{flex-wrap:wrap;gap:8px;padding:8px 12px}.whg-map-head-actions{flex:1;justify-content:flex-end;flex-wrap:wrap;gap:5px}.whg-map-summary{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip-path:inset(50%)}.whg-map-disabled{padding:24px}.whg-map-disabled h2{font-size:21px}}
+@media(prefers-reduced-motion:reduce){.whg-map-person{transition:none!important}.whg-map-bubble,.whg-map-bubble-dot,.whg-map-loading .whg-map-empty-symbol{animation:none!important}}
 `
 
-type WorkshopImages = { atlas: HTMLImageElement; publicAtlas: HTMLImageElement; roomAtlas: HTMLImageElement; residentAtlas: HTMLImageElement; workstationAtlas: HTMLImageElement; decorAtlas: HTMLImageElement; decorBounds: Array<{ x: number; y: number; width: number; height: number }>; atlasColumns: number; atlasRows: number; residentAnchors: Array<Array<{ x: number; y: number }>> }
+type WorkshopImages = { publicAtlas: HTMLImageElement; roomAtlas: HTMLImageElement; residentAtlas: HTMLImageElement; workstationAtlas: HTMLImageElement; decorAtlas: HTMLImageElement; decorBounds: Array<{ x: number; y: number; width: number; height: number }>; residentAnchors: Array<Array<{ x: number; y: number }>> }
 let workshopImages: Promise<WorkshopImages> | null = null
 
 function loadWorkshopImages(): Promise<WorkshopImages> {
@@ -40,7 +45,7 @@ function loadWorkshopImages(): Promise<WorkshopImages> {
   })
   workshopImages = Promise.all([load('workshop-map-atlas'), load('workshop-resident-atlas'), load('workshop-workstation-atlas'),
     load('workshop-room-atlas'), load('workshop-decor-atlas')])
-    .then(([atlas, residentAtlas, workstationAtlas, roomAtlas, decorAtlas]) => ({ atlas, publicAtlas: atlas, residentAtlas, workstationAtlas, roomAtlas, decorAtlas, decorBounds: WORKSHOP_DECOR_BOUNDS, atlasColumns: 2, atlasRows: 2, residentAnchors: WORKSHOP_SPRITE_ANCHORS }))
+    .then(([publicAtlas, residentAtlas, workstationAtlas, roomAtlas, decorAtlas]) => ({ publicAtlas, residentAtlas, workstationAtlas, roomAtlas, decorAtlas, decorBounds: WORKSHOP_DECOR_BOUNDS, residentAnchors: WORKSHOP_SPRITE_ANCHORS }))
     .catch((error) => { workshopImages = null; throw error })
   return workshopImages
 }
@@ -80,6 +85,7 @@ export function WorkshopMap(props: {
 }): React.ReactElement {
   const rootRef = useRef<HTMLDivElement | null>(null)
   const sceneRef = useRef<HTMLCanvasElement | null>(null)
+  const viewportRef = useRef<HTMLDivElement | null>(null)
   const floorRef = useRef<HTMLDivElement | null>(null)
   const requestRef = useRef(props.request)
   requestRef.current = props.request
@@ -96,7 +102,14 @@ export function WorkshopMap(props: {
   const [visible, setVisible] = useState(true)
   const [reducedMotion, setReducedMotion] = useState(() => window.matchMedia('(prefers-reduced-motion:reduce)').matches)
   const [paused, setPaused] = useState(false)
-  const [zoom, setZoom] = useState(false)
+  const [zoom, setZoom] = useState<'fit' | number>('fit')
+  const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 })
+  const zoomAnchor = useRef<{ worldX: number; worldY: number; viewportX: number; viewportY: number } | null>(null)
+  const pan = useRef<{ pointerId: number; x: number; y: number; left: number; top: number; dragging: boolean } | null>(null)
+  const [dragging, setDragging] = useState(false)
+  const [hoveredResident, setHoveredResident] = useState('')
+  const [focusedResident, setFocusedResident] = useState('')
+  const placements = useRef<{ layout: typeof layout; positions: Map<string, { x: number; y: number; atDesk: boolean }> }>({ layout, positions: new Map() })
   const [updatedAt, setUpdatedAt] = useState(0)
   const [enabled, setEnabled] = useState(true)
   const [syncError, setSyncError] = useState(false)
@@ -105,7 +118,52 @@ export function WorkshopMap(props: {
   const [error, setError] = useState('')
   const mounted = useRef(true)
   const hasSnapshot = useRef(false)
+  const canExplore = people.length > 0 && !!images
+  const fitScale = viewportSize.width && viewportSize.height
+    ? Math.min(Math.max(1, viewportSize.width - 24) / layout.width, Math.max(1, viewportSize.height - 24) / layout.height) : 1
+  const scale = zoom === 'fit' ? fitScale : Math.max(fitScale, Math.min(2, zoom))
+  const canPan = scale > fitScale + .001
   useEffect(() => { mounted.current = true; return () => { mounted.current = false } }, [])
+
+  function zoomBy(factor: number, clientX?: number, clientY?: number): void {
+    if (Math.max(fitScale, Math.min(2, scale * factor)) === scale) return
+    const viewport = viewportRef.current, floor = floorRef.current
+    if (viewport && floor) {
+      const bounds = viewport.getBoundingClientRect(), floorBounds = floor.getBoundingClientRect()
+      const x = clientX ?? bounds.left + viewport.clientLeft + viewport.clientWidth / 2
+      const y = clientY ?? bounds.top + viewport.clientTop + viewport.clientHeight / 2
+      zoomAnchor.current = {
+        worldX: (x - floorBounds.left) / scale, worldY: (y - floorBounds.top) / scale,
+        viewportX: x - bounds.left - viewport.clientLeft, viewportY: y - bounds.top - viewport.clientTop,
+      }
+    }
+    setZoom((current) => Math.max(fitScale, Math.min(2, (current === 'fit' ? fitScale : Math.max(fitScale, Math.min(2, current))) * factor)))
+  }
+
+  function startPan(event: React.PointerEvent<HTMLDivElement>): void {
+    if (!canPan || !event.isPrimary || event.button !== 0 || (event.target as Element).closest('.whg-map-person')) return
+    const viewport = event.currentTarget
+    pan.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, left: viewport.scrollLeft, top: viewport.scrollTop, dragging: false }
+    viewport.setPointerCapture(event.pointerId)
+  }
+
+  function movePan(event: React.PointerEvent<HTMLDivElement>): void {
+    const current = pan.current
+    if (!current || current.pointerId !== event.pointerId) return
+    const dx = event.clientX - current.x, dy = event.clientY - current.y
+    if (!current.dragging && Math.hypot(dx, dy) <= 4) return
+    if (!current.dragging) { current.dragging = true; setDragging(true) }
+    event.preventDefault()
+    event.currentTarget.scrollLeft = current.left - dx
+    event.currentTarget.scrollTop = current.top - dy
+  }
+
+  function endPan(event: React.PointerEvent<HTMLDivElement>): void {
+    if (pan.current?.pointerId !== event.pointerId) return
+    pan.current = null
+    setDragging(false)
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
+  }
 
   useEffect(() => {
     let alive = true
@@ -142,15 +200,55 @@ export function WorkshopMap(props: {
     }
   }, [enabled, layout, images, catalogReady, people.length])
 
-  useEffect(() => {
-    const floor = floorRef.current
-    if (!floor) return undefined
-    const sync = () => floor.style.setProperty('--whg-map-scale', String(floor.getBoundingClientRect().width / layout.width))
+  useLayoutEffect(() => {
+    const viewport = viewportRef.current
+    if (!viewport) return undefined
+    const sync = () => setViewportSize((size) => size.width === viewport.clientWidth && size.height === viewport.clientHeight
+      ? size : { width: viewport.clientWidth, height: viewport.clientHeight })
     sync()
     const observer = new ResizeObserver(sync)
-    observer.observe(floor)
+    observer.observe(viewport)
     return () => observer.disconnect()
-  }, [layout.width, images, people.length, enabled])
+  }, [layout.width, layout.height, canExplore, enabled])
+
+  useLayoutEffect(() => {
+    const viewport = viewportRef.current, floor = floorRef.current
+    if (!viewport || !floor) { zoomAnchor.current = null; return }
+    if (zoom === 'fit') {
+      viewport.scrollLeft = 0; viewport.scrollTop = 0
+    } else if (zoomAnchor.current) {
+      const anchor = zoomAnchor.current
+      viewport.scrollLeft = floor.offsetLeft + anchor.worldX * scale - anchor.viewportX
+      viewport.scrollTop = floor.offsetTop + anchor.worldY * scale - anchor.viewportY
+    }
+    zoomAnchor.current = null
+  }, [scale, zoom, layout, canExplore, enabled])
+
+  useEffect(() => {
+    const viewport = viewportRef.current
+    if (!viewport) return undefined
+    const wheel = (event: WheelEvent) => {
+      if (!event.ctrlKey && !event.metaKey) return
+      event.preventDefault()
+      if (event.deltaY) zoomBy(event.deltaY < 0 ? 1.25 : 1 / 1.25, event.clientX, event.clientY)
+    }
+    viewport.addEventListener('wheel', wheel, { passive: false })
+    return () => viewport.removeEventListener('wheel', wheel)
+  }, [canExplore, enabled, fitScale, scale])
+
+  useEffect(() => {
+    if (canPan && enabled && canExplore && visible) return
+    const viewport = viewportRef.current, pointerId = pan.current?.pointerId
+    pan.current = null
+    setDragging(false)
+    if (viewport && pointerId !== undefined && viewport.hasPointerCapture(pointerId)) viewport.releasePointerCapture(pointerId)
+  }, [canPan, enabled, canExplore, visible])
+
+  useEffect(() => {
+    placements.current = { layout, positions: new Map(enabled && canExplore ? people.map((resident) => [resident.id, {
+      x: resident.x, y: resident.y, atDesk: resident.status !== 'idle' && resident.route.length === 0 && resident.node === 'work-' + resident.id,
+    }]) : []) }
+  }, [people, layout, enabled, canExplore])
 
   useEffect(() => {
     if (!visible) return undefined
@@ -229,8 +327,18 @@ export function WorkshopMap(props: {
   const statusText = (resident: Resident) => !updatedAt ? '等待状态同步' : syncError ? '状态同步中断'
     : resident.status === 'running' && resident.route.length === 0 && resident.node === 'work-' + resident.id
       ? (WORKSHOP_WORK_ACTIVITIES[resident.id] || '工作') + '中' : residentActivity(resident)
+  const rosterStatus = (resident: Resident) => {
+    // The activity already names the state; only a waiting resident who is still walking needs it spelled out.
+    const detail = statusText(resident)
+    return resident.status === 'waiting' && !detail.includes('确认') ? '等你确认 · ' + detail : detail
+  }
+  const statusOrder = (resident: Resident) => resident.status === 'waiting' ? 0 : resident.status === 'running' ? 1 : 2
+  const roster = people.map((resident, index) => ({ resident, index }))
+    .sort((a, b) => statusOrder(a.resident) - statusOrder(b.resident) || a.index - b.index)
+  const syncStatus = syncError ? '状态同步中断，正在重试' : updatedAt
+    ? '已同步 ' + new Date(updatedAt).toLocaleTimeString('zh-CN', { hour12: false }) : '连接工坊中…'
+  const summary = `${working} 位在工位忙碌 · ${people.length - working} 位自由活动 · ${syncStatus}`
   const loadingCatalog = !catalogReady && !people.length && !catalogError && !syncError
-  const canExplore = people.length > 0 && !!images
   const emptyTitle = imageError ? '工坊图景还没准备好'
     : !people.length ? loadingCatalog ? '正在获取接入模型' : catalogError || syncError ? '暂时没有连上模型目录' : '为她留一间房吧'
       : '正在布置深海工坊'
@@ -239,16 +347,15 @@ export function WorkshopMap(props: {
       : catalogError || syncError ? '模型目录读取失败，正在重试。连接恢复后，房间和角色会自动出现。'
         : '在 Harness 中配置并启用模型后，回来看看。她的宿舍和工位会一起准备好。'
       : '阳光、海风，还有等你一起度过的日常。'
-  return React.createElement('div', { ref: rootRef, className: 'whg-map', 'aria-label': '深海工坊地图' },
+  return React.createElement('div', { ref: rootRef, className: 'whg-map', 'data-paused': paused || reducedMotion || !visible, 'aria-label': '深海工坊地图' },
     React.createElement('header', { className: 'whg-map-head' },
-      React.createElement('div', null,
-        React.createElement('p', { className: 'whg-map-kicker' }, 'DEEP SEA WORKSHOP / MAP'),
-        React.createElement('h1', { className: 'whg-map-heading' }, '深海工坊'),
-        React.createElement('p', { className: 'whg-map-sub' }, '海风经过回廊，她们的日常也在继续。'),
-      ),
+      React.createElement('h1', { className: 'whg-map-heading' }, '深海工坊'),
+      React.createElement('p', { className: 'whg-map-summary', role: 'status', title: summary }, summary),
       React.createElement('div', { className: 'whg-map-head-actions' },
-        React.createElement('button', { className: 'whg-map-control', type: 'button', 'aria-pressed': zoom, disabled: !canExplore, onClick: () => setZoom(!zoom), title: '放大地图后可滚动查看' }, zoom ? '缩小地图' : '放大地图'),
-        React.createElement('button', { className: 'whg-map-control', type: 'button', 'aria-pressed': paused || reducedMotion, disabled: reducedMotion || !canExplore, onClick: () => setPaused(!paused), title: reducedMotion ? '已跟随系统减少动态效果' : '仅暂停地图动画，工作状态继续同步' }, reducedMotion ? '静态显示' : paused ? '继续散步' : '暂停散步'),
+        React.createElement('button', { className: 'whg-map-control whg-map-zoom-step', type: 'button', disabled: !enabled || !canExplore || scale <= fitScale, onClick: () => zoomBy(1 / 1.25), 'aria-label': '缩小地图', title: '缩小地图' }, '−'),
+        React.createElement('button', { className: 'whg-map-control', type: 'button', 'aria-pressed': zoom === 'fit', disabled: !enabled || !canExplore, onClick: () => { zoomAnchor.current = null; setZoom('fit') }, 'aria-label': '适应视口', title: '显示完整地图' }, '适应'),
+        React.createElement('button', { className: 'whg-map-control whg-map-zoom-step', type: 'button', disabled: !enabled || !canExplore || scale >= Math.max(fitScale, 2), onClick: () => zoomBy(1.25), 'aria-label': '放大地图', title: '放大地图' }, '＋'),
+        React.createElement('button', { className: 'whg-map-control', type: 'button', 'aria-pressed': paused || reducedMotion, disabled: reducedMotion || !enabled || !canExplore, onClick: () => setPaused(!paused), title: reducedMotion ? '已跟随系统减少动态效果' : '仅暂停地图动画，工作状态继续同步' }, reducedMotion ? '静态显示' : paused ? '继续散步' : '暂停散步'),
         props.onClose ? React.createElement('button', { className: 'whg-map-control', type: 'button', onClick: props.onClose }, '返回 Galgame') : null,
       ),
     ),
@@ -262,44 +369,64 @@ export function WorkshopMap(props: {
           imageError ? React.createElement('button', { className: 'whg-map-control', type: 'button', onClick: () => setImageLoadAttempt((attempt) => attempt + 1) }, '重试加载') : null,
         )
       : React.createElement('div', { className: 'whg-map-content' },
-        React.createElement('div', { className: 'whg-map-viewport', tabIndex: 0, role: 'region', 'aria-label': '像素平面图，可滚动查看；也可从角色名单进入对话' },
-          React.createElement('div', { ref: floorRef, className: 'whg-map-floor', 'data-zoom': zoom, style: { aspectRatio: layout.width + '/' + layout.height } },
+        React.createElement('div', {
+          ref: viewportRef, className: 'whg-map-viewport', tabIndex: 0, role: 'region',
+          'data-pan': canPan, 'data-dragging': dragging,
+          onPointerDown: startPan, onPointerMove: movePan, onPointerUp: endPan, onPointerCancel: endPan, onLostPointerCapture: endPan,
+          'aria-label': '像素平面图，可滚动查看；按 Ctrl 或 Command 加滚轮缩放，放大后可拖动；也可从角色名单进入对话',
+        },
+          React.createElement('div', { ref: floorRef, className: 'whg-map-floor', style: { width: layout.width * scale, height: layout.height * scale, aspectRatio: layout.width + '/' + layout.height, '--whg-map-scale': scale } as React.CSSProperties },
             React.createElement('canvas', { ref: sceneRef, className: 'whg-map-scene', width: layout.width * 2, height: layout.height * 2, role: 'img', 'aria-label': `深海工坊庄园俯视图：${people.length} 间已接入模型的宿舍，工作室、茶水休息室与海底观景室。` }),
-            people.map((resident) => React.createElement('button', {
-              key: resident.id, type: 'button', className: 'whg-map-person', 'data-character': resident.id, 'data-status': resident.status,
-              'data-at-desk': resident.status !== 'idle' && resident.route.length === 0 && resident.node === 'work-' + resident.id,
-              style: { left: resident.x / layout.width * 100 + '%', top: resident.y / layout.height * 100 + '%' },
-              disabled: !!entering, onClick: () => void enter(resident),
-              'aria-label': '与' + resident.name + '对话，' + statusText(resident),
-            }, React.createElement(PixelAvatar, { resident, frame, images: images! }))),
+            people.map((resident) => {
+              const atDesk = resident.status !== 'idle' && resident.route.length === 0 && resident.node === 'work-' + resident.id
+              const previous = placements.current.layout === layout ? placements.current.positions.get(resident.id) : undefined
+              const settled = !!previous && previous.atDesk === atDesk && Math.hypot(resident.x - previous.x, resident.y - previous.y) <= 96
+              const waiting = resident.status === 'waiting' && resident.route.length === 0
+              return React.createElement('button', {
+                key: resident.id, type: 'button', className: 'whg-map-person', 'data-character': resident.id, 'data-status': resident.status,
+                'data-at-desk': atDesk, 'data-settled': settled, 'data-highlight': hoveredResident === resident.id || focusedResident === resident.id,
+                style: { left: resident.x / layout.width * 100 + '%', top: resident.y / layout.height * 100 + '%', zIndex: 10 + Math.round(resident.y) },
+                disabled: !!entering, onClick: () => void enter(resident),
+                'aria-label': '与' + resident.name + '对话，' + statusText(resident),
+              },
+                React.createElement(PixelAvatar, { resident, frame, images: images! }),
+                waiting || resident.status === 'running' && atDesk ? React.createElement('span', { className: 'whg-map-bubble-anchor', 'aria-hidden': true },
+                  React.createElement('span', { className: 'whg-map-bubble-scale' },
+                    waiting ? React.createElement('span', { className: 'whg-map-bubble whg-map-bubble-waiting' },
+                      React.createElement('span', { className: 'whg-map-bubble-alert' }, '!'), '等你确认',
+                    ) : React.createElement('span', { className: 'whg-map-bubble' },
+                      React.createElement('span', { className: 'whg-map-bubble-dot' }),
+                      React.createElement('span', { className: 'whg-map-bubble-dot' }),
+                      React.createElement('span', { className: 'whg-map-bubble-dot' }),
+                    ),
+                  ),
+                ) : null,
+                React.createElement('span', { className: 'whg-map-name-anchor', 'aria-hidden': true },
+                  React.createElement('span', { className: 'whg-map-name' }, resident.name + ' · ' + statusText(resident)),
+                ),
+              )
+            }),
           ),
         ),
         React.createElement('aside', { className: 'whg-map-roster', 'aria-label': '工坊角色名单' },
           React.createElement('h2', null, '工坊里的她们'),
           React.createElement('p', { className: 'whg-map-roster-note' }, '点击像素小人或名单，和她聊一会儿。'),
           catalogError ? React.createElement('p', { className: 'whg-map-catalog-note', role: 'status' }, '模型目录暂时无法更新，先保留已接入的角色。') : null,
-          people.map((resident) => React.createElement('button', {
+          roster.map(({ resident }) => React.createElement('button', {
             key: resident.id, type: 'button', className: 'whg-map-resident', 'data-status': resident.status,
-            disabled: !!entering, onClick: () => void enter(resident), 'aria-label': '与' + resident.name + '对话，' + statusText(resident),
+            disabled: !!entering, onClick: () => void enter(resident), 'aria-label': '与' + resident.name + '对话，' + rosterStatus(resident),
+            onPointerEnter: () => setHoveredResident(resident.id), onPointerLeave: () => setHoveredResident((current) => current === resident.id ? '' : current),
+            onFocus: () => setFocusedResident(resident.id), onBlur: () => setFocusedResident((current) => current === resident.id ? '' : current),
           },
             React.createElement(PixelAvatar, { resident, frame: 0, images: images!, small: true }),
             React.createElement('span', { className: 'whg-map-resident-meta' },
               React.createElement('span', { className: 'whg-map-resident-name' }, resident.name),
-              React.createElement('span', { className: 'whg-map-resident-status' }, React.createElement('i', { className: 'whg-map-presence-dot', 'aria-hidden': true }), statusText(resident), resident.activeSessions > 1 ? ' · ' + resident.activeSessions + ' 个任务' : ''),
+              React.createElement('span', { className: 'whg-map-resident-status' }, React.createElement('i', { className: 'whg-map-presence-dot', 'aria-hidden': true }), rosterStatus(resident), resident.activeSessions > 1 ? ' · ' + resident.activeSessions + ' 个任务' : ''),
             ),
             React.createElement('span', { className: 'whg-map-resident-arrow', 'aria-hidden': true }, '↗'),
           )),
-          React.createElement('div', { className: 'whg-map-legend' },
-            React.createElement('span', null, React.createElement('i', { className: 'running' }), '工作'),
-            React.createElement('span', null, React.createElement('i', { className: 'waiting' }), '等待确认'),
-            React.createElement('span', null, React.createElement('i'), '空闲'),
-          ),
         ),
       ),
-    React.createElement('footer', { className: 'whg-map-foot' },
-      React.createElement('span', null, people.length && updatedAt && !syncError ? `${working} 位在工位忙碌 · ${people.length - working} 位自由活动 · 可滚动查看地图` : '房间与角色跟随已接入的模型'),
-      React.createElement('span', { className: 'whg-map-sync', role: 'status' }, syncError ? '状态同步中断，正在重试' : updatedAt ? '已同步 ' + new Date(updatedAt).toLocaleTimeString('zh-CN', { hour12: false }) : '连接工坊中…'),
-    ),
     error ? React.createElement('p', { className: 'whg-map-message', role: 'alert' }, error) : null,
   )
 }

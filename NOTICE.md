@@ -84,7 +84,7 @@ The screenshots under `docs/screenshots/` are browser captures of the plugin, no
 
 - `docs/screenshots/galgame-overview.jpg` shows the running Galgame view with the default whale-girl sprite and deep-sea palace background. The pictured artwork remains under CC BY-NC-SA 4.0.
 - `docs/screenshots/plugin-settings.png` shows the real DSH Web plugin-settings dialog. DSH Web and visible surrounding components remain subject to their own licenses.
-- `docs/screenshots/workshop-map.png` and `workshop-one-resident.png` demonstrate the rendered workshop with fictional connected-model and task states. They do not show a user's live tasks or save data.
+- `docs/screenshots/workshop-map.jpg` and `workshop-one-resident.jpg` demonstrate the rendered workshop with fictional connected-model and task states. They do not show a user's live tasks or save data.
 
 Inclusion in a screenshot does not relicense any pictured work.
 

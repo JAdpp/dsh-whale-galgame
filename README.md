@@ -102,12 +102,12 @@ allowBuilds:
 
 从 Galgame 顶栏打开“工坊地图”，宿舍随已接入模型自动增减。模型娘工作时前往工位，空闲时散步或休息；点击小人或侧栏名单即可聊天。支持缩放、滚动与暂停散步。[详细机制](docs/mechanics.md#深海工坊地图的实时状态)。
 
-![深海工坊像素地图，演示状态](docs/screenshots/workshop-map.png)
+![深海工坊像素地图，演示状态](docs/screenshots/workshop-map.jpg)
 
 <details>
 <summary>仅接入 DeepSeek 时的布局</summary>
 
-![仅有 DeepSeek 宿舍的自适应地图，虚构状态演示](docs/screenshots/workshop-one-resident.png)
+![仅有 DeepSeek 宿舍的自适应地图，虚构状态演示](docs/screenshots/workshop-one-resident.jpg)
 
 </details>
 

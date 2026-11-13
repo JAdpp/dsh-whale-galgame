@@ -1,5 +1,7 @@
-// Transient RPG-style navigation. The generated art is assembled on one 48px grid.
-// Model-family availability determines rooms; movement never touches the Galgame save.
+// Transient RPG-style navigation on a 48px grid.
+// The manor is one building: a dorm row above a single gallery, with the workshop
+// flanked by the lounge and the observatory below it. Model-family availability
+// determines the dorms; movement never touches the Galgame save.
 export const TILE_SIZE = 48
 // Rug bounds in the square office atlas cell, in resident slot order.
 export const OFFICE_ART = {
@@ -24,24 +26,26 @@ export type Resident = Presence & Point & {
 }
 export type RoomKind = 'dorm' | 'office' | 'lounge' | 'observatory'
 export type WorkshopRoom = Bounds & {
-  id: string; kind: RoomKind; characterId?: ResidentId; atlasIndex: number
-  label: string; door: Point; doors: Point[]
+  id: string; kind: RoomKind; characterId?: ResidentId
+  door: Point; doors: Point[]
 }
 export type WorkshopStation = Bounds & {
   id: ResidentId; walkPoint: Point; tableBounds: Bounds
 }
-export type PropKind = 'bed' | 'bookcase' | 'window' | 'plant' | 'sofa' | 'tea' | 'telescope'
-export type WorkshopProp = Bounds & { kind: PropKind; blocking: boolean }
 export type WorkshopLayout = {
   ids: ResidentId[]; width: number; height: number; tileSize: number
-  rooms: WorkshopRoom[]; stations: WorkshopStation[]; props: WorkshopProp[]
+  rooms: WorkshopRoom[]; stations: WorkshopStation[]
   nodes: Record<string, Point>; edges: Record<string, string[]>; commonDestinations: string[]
+  /** The gallery every room opens onto. */
   halls: Bounds[]
 }
 
 const ROOM_SIZE = TILE_SIZE * 6
-const ROW_PITCH = TILE_SIZE * 8
-const WORLD_WIDTH = TILE_SIZE * 24
+const OFFICE_SIZE = TILE_SIZE * 20
+const COMMON_WIDTH = TILE_SIZE * 9, COMMON_HEIGHT = TILE_SIZE * 7
+// Sea and outer wall around the building.
+const MARGIN = TILE_SIZE * 2
+const GALLERY_HEIGHT = TILE_SIZE * 3
 const FAMILY_NAMES: Record<ResidentId, string> = {
   deepseek: 'DeepSeek', claude: 'Claude', chatgpt: 'GPT', gemini: 'Gemini', kimi: 'Kimi', grok: 'Grok',
 }
@@ -49,90 +53,63 @@ const FAMILY_NAMES: Record<ResidentId, string> = {
 export function createWorkshopLayout(availableIds: readonly string[] = RESIDENT_IDS): WorkshopLayout {
   const available = new Set(availableIds.map((id) => id === 'gpt' ? 'chatgpt' : id))
   const ids = RESIDENT_IDS.filter((id) => available.has(id))
-  const dormRows = Math.ceil(ids.length / 3)
-  const officeY = TILE_SIZE + (dormRows ? dormRows * ROW_PITCH : TILE_SIZE * 2)
-  const workRows = Math.max(1, Math.ceil(ids.length / 3))
-  // Keep the complete square interior at a uniform scale for every roster size.
-  const officeHeight = TILE_SIZE * 20
-  const publicY = officeY + officeHeight + TILE_SIZE * 2
-  const rooms: WorkshopRoom[] = [], stations: WorkshopStation[] = [], props: WorkshopProp[] = []
-  const nodes: Record<string, Point> = {}, edges: Record<string, string[]> = {}, halls: Bounds[] = []
+  const dormsWidth = ids.length ? ids.length * ROOM_SIZE + (ids.length - 1) * TILE_SIZE : 0
+  const lowerWidth = COMMON_WIDTH * 2 + OFFICE_SIZE + TILE_SIZE * 2
+  const innerWidth = Math.max(dormsWidth, lowerWidth)
+  const width = innerWidth + MARGIN * 2
+  const dormY = MARGIN, galleryY = dormY + ROOM_SIZE, lowerY = galleryY + GALLERY_HEIGHT
+  const walkY = galleryY + GALLERY_HEIGHT / 2
+  const rooms: WorkshopRoom[] = [], stations: WorkshopStation[] = []
+  const nodes: Record<string, Point> = {}, edges: Record<string, string[]> = {}
   const add = (id: string, x: number, y: number): string => {
     nodes[id] = { x, y }; edges[id] = []; return id
   }
   const link = (a: string, b: string): void => { edges[a].push(b); edges[b].push(a) }
-  const prop = (kind: PropKind, x: number, y: number, width: number, height: number, blocking = true): void => {
-    props.push({ kind, x, y, width, height, blocking })
-  }
-  for (let row = 0; row < dormRows; row++) {
-    const rowIds = ids.slice(row * 3, row * 3 + 3)
-    // A two-room row has a two-tile gap so both rooms remain centred on the grid.
-    const gap = rowIds.length === 2 ? TILE_SIZE * 2 : TILE_SIZE
-    const rowWidth = rowIds.length * ROOM_SIZE + (rowIds.length - 1) * gap
-    const left = (WORLD_WIDTH - rowWidth) / 2
-    rowIds.forEach((id, column) => {
-      const x = left + column * (ROOM_SIZE + gap), y = TILE_SIZE + row * ROW_PITCH
-      const door = { x: x + ROOM_SIZE / 2, y: y + ROOM_SIZE }
-      rooms.push({ id: 'dorm-' + id, kind: 'dorm', characterId: id, x, y, width: ROOM_SIZE, height: ROOM_SIZE,
-        atlasIndex: 0, label: FAMILY_NAMES[id] + ' 的房间', door, doors: [door] })
-      prop('window', x + TILE_SIZE * 2, y, TILE_SIZE * 3, TILE_SIZE * 2, false)
-      prop('bed', x + TILE_SIZE, y + TILE_SIZE * 2, TILE_SIZE * 2, TILE_SIZE * 3)
-      prop('bookcase', x + TILE_SIZE * 4, y + TILE_SIZE, TILE_SIZE, TILE_SIZE * 2)
-      prop('plant', x + TILE_SIZE, y + TILE_SIZE, TILE_SIZE, TILE_SIZE)
-    })
-  }
-  const officeDoor = { x: TILE_SIZE * 19.5, y: officeY }
-  const officeBackDoor = { x: officeDoor.x, y: officeY + officeHeight }
-  const office: WorkshopRoom = { id: 'office', kind: 'office', x: TILE_SIZE * 2, y: officeY,
-    width: TILE_SIZE * 20, height: officeHeight, atlasIndex: 1, label: '协作工坊',
-    door: officeDoor, doors: [officeDoor, officeBackDoor] }
+
+  const dormLeft = (width - dormsWidth) / 2
+  ids.forEach((id, column) => {
+    const x = dormLeft + column * (ROOM_SIZE + TILE_SIZE)
+    const door = { x: x + ROOM_SIZE / 2, y: galleryY }
+    rooms.push({ id: 'dorm-' + id, kind: 'dorm', characterId: id, x, y: dormY,
+      width: ROOM_SIZE, height: ROOM_SIZE, door, doors: [door] })
+  })
+  const lowerLeft = (width - lowerWidth) / 2
+  const officeX = lowerLeft + COMMON_WIDTH + TILE_SIZE
+  // The painted doorway sits in the clear floor strip right of the rugs.
+  const officeDoor = { x: officeX + TILE_SIZE * 17.5, y: lowerY }
+  const office: WorkshopRoom = { id: 'office', kind: 'office', x: officeX, y: lowerY,
+    width: OFFICE_SIZE, height: OFFICE_SIZE, door: officeDoor, doors: [officeDoor] }
   rooms.push(office)
-  for (const [kind, x, label, atlasIndex] of [
-    ['lounge', TILE_SIZE * 2, '茶水休息室', 2], ['observatory', TILE_SIZE * 13, '海底观景室', 3],
-  ] as const) {
-    const door = { x: x + TILE_SIZE * 4.5, y: publicY }
-    rooms.push({ id: kind, kind, x, y: publicY, width: TILE_SIZE * 9, height: TILE_SIZE * 7,
-      atlasIndex, label, door, doors: [door] })
-    prop('window', x + TILE_SIZE * 5, publicY, TILE_SIZE * 3, TILE_SIZE * 2, false)
-    if (kind === 'lounge') {
-      prop('sofa', x + TILE_SIZE, publicY + TILE_SIZE * 2, TILE_SIZE * 2, TILE_SIZE * 2)
-      prop('tea', x + TILE_SIZE * 6, publicY + TILE_SIZE * 2, TILE_SIZE * 2, TILE_SIZE * 2)
-      prop('bookcase', x + TILE_SIZE, publicY + TILE_SIZE * 5, TILE_SIZE * 2, TILE_SIZE)
-    } else {
-      prop('telescope', x + TILE_SIZE, publicY + TILE_SIZE * 2, TILE_SIZE * 2, TILE_SIZE * 2)
-      prop('sofa', x + TILE_SIZE * 6, publicY + TILE_SIZE * 2, TILE_SIZE * 2, TILE_SIZE * 2)
-      prop('plant', x + TILE_SIZE, publicY + TILE_SIZE * 5, TILE_SIZE, TILE_SIZE)
-    }
+  const commons: Array<['lounge' | 'observatory', number]> = [
+    ['lounge', lowerLeft], ['observatory', officeX + OFFICE_SIZE + TILE_SIZE],
+  ]
+  for (const [kind, x] of commons) {
+    const door = { x: x + TILE_SIZE * 4.5, y: lowerY }
+    rooms.push({ id: kind, kind, x, y: lowerY, width: COMMON_WIDTH, height: COMMON_HEIGHT, door, doors: [door] })
   }
-  // Every room floor and gallery uses the same 48px source tile.
-  const hallRows = Math.max(1, dormRows)
-  const hallXs = [...new Set([TILE_SIZE, WORLD_WIDTH - TILE_SIZE, ...rooms.flatMap((room) => room.doors.map((door) => door.x))])].sort((a, b) => a - b)
-  const hallName = (row: number, x: number) => 'hall-' + row + '-' + x
-  for (let row = 0; row < hallRows; row++) {
-    const y = dormRows ? TILE_SIZE + row * ROW_PITCH + ROOM_SIZE + TILE_SIZE : officeY - TILE_SIZE
-    halls.push({ x: 0, y: y - TILE_SIZE, width: WORLD_WIDTH, height: TILE_SIZE * 2 })
-    hallXs.forEach((x, index) => {
-      add(hallName(row, x), x, y)
-      if (index) link(hallName(row, hallXs[index - 1]), hallName(row, x))
-    })
-    if (row) for (const x of [TILE_SIZE, WORLD_WIDTH - TILE_SIZE]) link(hallName(row - 1, x), hallName(row, x))
-  }
-  if (hallRows > 1) for (const x of [0, WORLD_WIDTH - TILE_SIZE * 2]) {
-    halls.push({ x, y: TILE_SIZE + ROOM_SIZE, width: TILE_SIZE * 2, height: (hallRows - 1) * ROW_PITCH + TILE_SIZE * 2 })
-  }
+
+  const gallery = { x: MARGIN, y: galleryY, width: innerWidth, height: GALLERY_HEIGHT }
+  const stops = [...new Set([gallery.x + TILE_SIZE, gallery.x + gallery.width - TILE_SIZE,
+    ...rooms.flatMap((room) => room.doors.map((door) => door.x))])].sort((a, b) => a - b)
+  const stop = (x: number): string => 'gallery-' + x
+  stops.forEach((x, index) => {
+    add(stop(x), x, walkY)
+    if (index) link(stop(stops[index - 1]), stop(x))
+  })
   for (const room of rooms) {
     if (room.kind !== 'dorm') continue
-    const row = Math.floor(ids.indexOf(room.characterId!) / 3)
     add(room.id, room.door.x, room.y + TILE_SIZE * 4.5)
     add(room.id + '-door', room.door.x, room.door.y)
-    link(room.id, room.id + '-door'); link(room.id + '-door', hallName(row, room.door.x))
+    link(room.id, room.id + '-door')
+    link(room.id + '-door', stop(room.door.x))
   }
   add('work-door', officeDoor.x, officeDoor.y)
-  link(hallName(hallRows - 1, officeDoor.x), 'work-door')
-  add('work-entry', officeDoor.x, officeY + TILE_SIZE * 1.5)
+  link(stop(officeDoor.x), 'work-door')
+  add('work-entry', officeDoor.x, lowerY + TILE_SIZE * 1.5)
   link('work-door', 'work-entry')
   const officeScale = office.width / OFFICE_ART.cellSize
   const stationSize = TILE_SIZE * 4
+  const workRows = Math.max(1, Math.ceil(ids.length / 3))
   for (let row = 0; row < workRows; row++) {
     const rowRug = OFFICE_ART.rugs[row * 3]
     // Round the shared frame origin once so empty and seated desks stay aligned.
@@ -150,30 +127,21 @@ export function createWorkshopLayout(availableIds: readonly string[] = RESIDENT_
       link(aisle, 'work-' + id)
     })
   }
-  add('work-back-door', officeBackDoor.x, officeBackDoor.y)
-  link('work-aisle-' + (workRows - 1), 'work-back-door')
-  const publicHallY = publicY - TILE_SIZE
-  halls.push({ x: 0, y: publicHallY - TILE_SIZE, width: WORLD_WIDTH, height: TILE_SIZE * 2 })
-  hallXs.forEach((x, index) => {
-    add('public-hall-' + x, x, publicHallY)
-    if (index) link('public-hall-' + hallXs[index - 1], 'public-hall-' + x)
-  })
-  link('work-back-door', 'public-hall-' + officeBackDoor.x)
-  for (const kind of ['lounge', 'observatory'] as const) {
-    const room = rooms.find((entry) => entry.kind === kind)!
+  for (const [kind, x] of commons) {
+    const doorX = x + TILE_SIZE * 4.5
     const names = kind === 'lounge' ? ['lounge-coffee', 'lounge-sofa'] : ['observatory-window', 'observatory-aquarium']
-    add(kind + '-door', room.door.x, room.door.y)
-    link('public-hall-' + room.door.x, kind + '-door')
-    for (let index = 0; index < 2; index++) {
-      const y = publicY + TILE_SIZE * (index === 0 ? 4.5 : 5.5)
-      const aisle = add(names[index] + '-aisle', room.door.x, y)
+    add(kind + '-door', doorX, lowerY)
+    link(stop(doorX), kind + '-door')
+    names.forEach((name, index) => {
+      const y = lowerY + TILE_SIZE * (index === 0 ? 4.5 : 5.5)
+      const aisle = add(name + '-aisle', doorX, y)
       link(index === 0 ? kind + '-door' : names[0] + '-aisle', aisle)
-      add(names[index], room.x + TILE_SIZE * (index === 0 ? 2.5 : 6.5), y)
-      link(aisle, names[index])
-    }
+      add(name, x + TILE_SIZE * (index === 0 ? 2.5 : 6.5), y)
+      link(aisle, name)
+    })
   }
-  return { ids, width: WORLD_WIDTH, height: publicY + TILE_SIZE * 8, tileSize: TILE_SIZE,
-    rooms, stations, props, nodes, edges, halls,
+  return { ids, width, height: lowerY + OFFICE_SIZE + MARGIN, tileSize: TILE_SIZE,
+    rooms, stations, nodes, edges, halls: [gallery],
     commonDestinations: ['lounge-coffee', 'observatory-window', 'lounge-sofa', 'observatory-aquarium'] }
 }
 const DEFAULT_LAYOUT = createWorkshopLayout()
