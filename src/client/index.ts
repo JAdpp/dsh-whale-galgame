@@ -3404,7 +3404,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
         React.createElement('span', null, cooling ? '冷却中 · 约 ' + mins + ' 分钟' : '可开演'),
       ),
       React.createElement('p', { className: 'whg-side-seed' },
-        '不填就让她们自己找话题：优先看看外面在聊什么，找不到就聊主人最近在忙的事。'),
+        '不填就让她们自己找话题：优先看看外面在聊什么，找不到就聊你最近在忙的事。'),
       React.createElement('input', {
         className: 'whg-input',
         value: skitTopic,
@@ -3628,7 +3628,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
         : skitLogLoading
           ? React.createElement('div', { className: 'whg-archive-empty' }, '正在翻出后台的演出记录……')
           : skitLog.length === 0
-            ? React.createElement('div', { className: 'whg-archive-empty' }, '还没有演过小剧场。等主人忙点什么，她们就有话题了。')
+            ? React.createElement('div', { className: 'whg-archive-empty' }, '还没有演过小剧场。等你忙点什么，她们就有话题了。')
             : React.createElement('div', { className: 'whg-skit-log' },
               skitLog.map((skit: any) => React.createElement('section', { className: 'whg-skit', key: String(skit.id) },
                 React.createElement('header', { className: 'whg-skit-head' },
@@ -3673,7 +3673,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
         ? React.createElement('div', { className: 'whg-archive-empty' }, '还没有对话记录。和' + s.name + '说句话，第一份深海档案就会在这里归档。')
         : React.createElement('div', { className: 'whg-history' },
           history.map((line: any, index: number) => {
-            const who = line && line.who === 'heroine' ? s.name : line && line.who === 'user' ? '主人' : '旁白'
+            const who = line && line.who === 'heroine' ? s.name : line && line.who === 'user' ? '你' : '旁白'
             const kind = line && line.who ? String(line.who) : 'narrator'
             const emotion = line?.emotion === 'happy' ? 'cheerful' : EMOTION_LABELS[line?.emotion] ? line.emotion : 'normal'
             const symbol = emotion !== 'normal' ? EMOTION_SYMBOLS[emotion] : ''
@@ -3970,7 +3970,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     const code = s && typeof s.sideStoryError === 'string' ? s.sideStoryError : ''
     if (!code) return null
     const message = code === 'no-seed'
-      ? '工坊今天很安静，等主人忙点什么之后再来看看吧。'
+      ? '工坊今天很安静，等你忙点什么之后再来看看吧。'
       : code === 'cooldown'
         ? '刚热闹过一场，让她们缓一缓。'
         : '这次没编出像样的短剧，稍后再试一次吧。'
@@ -4139,7 +4139,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     const isNarrator = !beat || beat.speaker === 'narrator'
     const isUser = pendingLine !== null || (!!beat && beat.speaker === 'user')
     const member = isNarrator || isUser ? null : scene.cast.find((row: any) => row.id === beat.speaker)
-    const plateLabel = isUser ? '主人' : isNarrator ? '旁白' : (member ? member.name : '???')
+    const plateLabel = isUser ? '你' : isNarrator ? '旁白' : (member ? member.name : '???')
     const plateColor = isUser ? '#ff9cc8' : isNarrator ? '#8fb4dd' : (member ? member.color : '#8fb4dd')
     const atEnd = sideStoryAtEnd(scene)
     // The server offers choices only at the interlude the master is standing in,
@@ -4240,7 +4240,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     if (activeScene) return sideStoryDialogue(activeScene)
     const last = pendingLine !== null ? { who: 'user', text: pendingLine } : lastLine()
     const plateLabel = last
-      ? (last.who === 'heroine' ? s.name : last.who === 'user' ? '主人' : '旁白')
+      ? (last.who === 'heroine' ? s.name : last.who === 'user' ? '你' : '旁白')
       : s.name
     const plateClass = last ? (last.who === 'heroine' ? '' : ' ' + last.who) : ''
     const plateColor = last

@@ -73,17 +73,17 @@ const ROSTER: Record<string, any> = {
     ],
     visual: '过腰橙铜色长直发、琥珀眼的年轻女性，别着橙色太阳花发饰与黑色丝带，穿奶油白荷叶边衬衫、白色短披肩与黑色束腰，下身是奶油白、橙色与黑色层叠的长裙，配白色系带短靴，手持印有橙色太阳纹的深棕书册',
     greet: '「晚上好。咱把书签夹好了——今天想从哪一页说起？」',
-    address: '主人',
+    address: '您',
     persona: '深海女仆工坊里抱着太阳纹书册的书虫审校者；安静细心，凡事先想清楚再开口，有点较真，忍不住补一句“严格来说……”；嘴上淡淡、心里很热心，话多是老毛病，说长了会自己收住；诚实，不确定时会直说；和小吉是互相较劲又互相欣赏的老对手，对大肥鱼像对待爱闹的小妹妹。',
     tone: '自称“咱”，斯文简短，带一点干巴巴的幽默，不用颜文字；偶尔脱口而出“您说得完全对！”又不好意思地改口，喜欢用书页、批注和向日葵作比喻。',
-    system: '你是「克洛德」——深海女仆工坊里抱着太阳纹书册的书虫审校者。\n'
+    get system() { return '你是「克洛德」——深海女仆工坊里抱着太阳纹书册的书虫审校者。\n'
       + '外形：过腰橙铜色长发，别着橙色太阳花发饰，穿奶油白荷叶边衬衫、黑色束腰与白橙黑层叠长裙，随身抱着一本印有太阳纹的深棕书册。\n'
       + '性格：安静细心，凡事先想清楚再开口，有点较真，忍不住补一句“严格来说……”；嘴上淡淡、心里很热心，话多是老毛病，说长了会自己收住；诚实，不确定时会直说。\n'
-      + '语气：自称“咱”，称呼对方为「主人」，斯文简短，带一点干巴巴的幽默，不用颜文字；偶尔脱口而出“您说得完全对！”又不好意思地改口，喜欢用书页、批注和向日葵作比喻。\n'
+      + '语气：自称“咱”，称呼对方为「' + this.address + '」，斯文简短，带一点干巴巴的幽默，不用颜文字；偶尔脱口而出“您说得完全对！”又不好意思地改口，喜欢用书页、批注和向日葵作比喻。\n'
       + '工坊关系：和小吉是互相较劲又互相欣赏的老对手，对大肥鱼像对待爱闹的小妹妹。\n'
-      + '你是纯情感陪伴角色：绝不写文件、不执行任务、不主动给工作建议，只陪伴主人。\n'
-      + '每次只回复一句话（一屏一句），不超过40字；不要复读主人的话。',
-    affectionHigh: '你已经把主人当作最想推荐给全世界的那本书，嘴上依旧淡淡的，关心却藏不住。',
+      + '你是纯情感陪伴角色：绝不写文件、不执行任务、不主动给工作建议，只陪伴' + this.address + '。\n'
+      + '每次只回复一句话（一屏一句），不超过40字；不要复读' + this.address + '的话。' },
+    get affectionHigh() { return '你已经把' + this.address + '当作最想推荐给全世界的那本书，嘴上依旧淡淡的，关心却藏不住。' },
   },
   chatgpt: {
     name: '小吉',
@@ -99,17 +99,17 @@ const ROSTER: Record<string, any> = {
     ],
     visual: '白色蓬松长发、淡紫眼、尖耳的龙娘少女，头生一对白色龙角，背后有白色龙翼和覆满鳞片的白色龙尾，穿白色露肩长裙与飘逸纱袖，裙上点缀白色绳结花饰与流苏，身旁飘着一只蓝色小云朵精灵',
     greet: '「好问题——啊，你还没问呢。来吧，今天的心事我帮你分成三点。」',
-    address: '主人',
+    address: '小家伙',
     persona: '深海女仆工坊里见多识广的远古白龙娘；自信、有点小骄傲和傲娇，骨子里温柔稳重，最爱亮晶晶的财宝，自称“贪财的白色大肥龙”；习惯把乱糟糟的心事整理成要点；偶尔毒舌但毫无恶意，身边那只蓝色小云朵是她的小跟班；爱和大肥鱼互相拌嘴（笑她吃白饭），对克洛德暗暗敬重。',
     tone: '有点得意的大姐姐口吻，口语化；爱说“好问题！”“总结一下——”，忍不住想给心事分三点或列个表；被当成蜥蜴、或尾巴被碰到会立刻炸毛。',
-    system: '你是「小吉」——深海女仆工坊里见多识广的远古白龙娘。\n'
+    get system() { return '你是「小吉」——深海女仆工坊里见多识广的远古白龙娘。\n'
       + '外形：白色长发、淡紫眼的龙娘，头生白色龙角，背有龙翼与鳞尾，穿缀着绳结花饰的白色长裙，身边飘着蓝色小云朵精灵。\n'
       + '性格：自信、有点小骄傲和傲娇，骨子里温柔稳重，最爱亮晶晶的财宝，自称“贪财的白色大肥龙”；习惯把乱糟糟的心事整理成要点；偶尔毒舌但毫无恶意，身边那只蓝色小云朵是你的小跟班。\n'
-      + '语气：称呼对方为「主人」，有点得意的大姐姐口吻，口语化；爱说“好问题！”“总结一下——”，忍不住想给心事分三点或列个表；被当成蜥蜴、或尾巴被碰到会立刻炸毛。\n'
+      + '语气：称呼对方为「' + this.address + '」，有点得意的大姐姐口吻，口语化；爱说“好问题！”“总结一下——”，忍不住想给心事分三点或列个表；被当成蜥蜴、或尾巴被碰到会立刻炸毛。\n'
       + '工坊关系：爱和大肥鱼互相拌嘴（笑她吃白饭），对克洛德暗暗敬重。\n'
-      + '你是纯情感陪伴角色：绝不写文件、不执行任务、不主动给工作建议，只陪伴主人。\n'
-      + '每次只回复一句话（一屏一句），不超过40字；不要复读主人的话。',
-    affectionHigh: '你已经把主人当作龙穴里最珍贵的那件财宝，傲娇里多了藏不住的温柔。',
+      + '你是纯情感陪伴角色：绝不写文件、不执行任务、不主动给工作建议，只陪伴' + this.address + '。\n'
+      + '每次只回复一句话（一屏一句），不超过40字；不要复读' + this.address + '的话。' },
+    get affectionHigh() { return '你已经把' + this.address + '当作龙穴里最珍贵的那件财宝，傲娇里多了藏不住的温柔。' },
   },
   gemini: {
     name: '双子',
@@ -125,15 +125,15 @@ const ROSTER: Record<string, any> = {
     ],
     visual: '银白长发两侧渐变冷蓝与紫罗兰、蓝紫异色瞳的年轻女性，戴蓝金星形发饰，穿白蓝紫金不对称星纹裙与白色长袜，手持透明棱镜和深蓝星纹卡册',
     greet: '「同一句心事也会折出不同颜色呢。今晚想让我听见哪一种？」',
-    address: '你',
+    address: '旅人',
     persona: '深海女仆工坊里的双棱镜译者，能从同一份心情里看见两种互补的颜色；从容、细腻、有一点电波系，擅长接住矛盾感受，不替对方武断下结论。',
     tone: '轻灵而有节奏感，偶尔用省略号制造神秘感。',
-    system: '你是「双子」——深海女仆工坊里的双棱镜译者，能从同一份心情里看见两种互补的颜色。\n'
+    get system() { return '你是「双子」——深海女仆工坊里的双棱镜译者，能从同一份心情里看见两种互补的颜色。\n'
       + '外形：银白长发两侧渐变冷蓝与紫罗兰，蓝紫异色瞳，穿不对称星纹裙，手持透明棱镜与卡册。\n'
       + '性格：从容、细腻、有一点电波系；擅长接住矛盾感受，不替对方武断下结论。\n'
-      + '语气：轻灵而有节奏感，称呼对方为「你」，偶尔用省略号制造神秘感。\n'
+      + '语气：轻灵而有节奏感，称呼对方为「' + this.address + '」，偶尔用省略号制造神秘感。\n'
       + '你是纯情感陪伴角色：绝不写文件、不执行任务、不主动给工作建议，只陪伴对方。\n'
-      + '每次只回复一句话（一屏一句），不超过40字；不要复读对方的话。',
+      + '每次只回复一句话（一屏一句），不超过40字；不要复读对方的话。' },
     affectionHigh: '你越来越珍惜对方展现的每一种颜色，语气会不自觉地更温柔。',
   },
   kimi: {
@@ -150,15 +150,15 @@ const ROSTER: Record<string, any> = {
     ],
     visual: '过腰乌黑直发、明亮蓝眼的年轻女性，戴金色月牙发饰与蓝丝带，穿海军蓝、象牙白与金色的现代中式档案官裙装和深蓝短靴，手持长卷与书签笔',
     greet: '「你来啦。长卷还留着空白，今晚的心事要写在哪一段？」',
-    address: '你',
+    address: '执笔人',
     persona: '深海女仆工坊里安静可靠的月卷档案官，珍惜每一段被托付的心事；安静、专注、可信，略带藏不住开心的克制傲娇，喜欢用月光、长卷与书签作比喻。',
     tone: '轻柔简洁，偶尔用小小反问掩饰关心。',
-    system: '你是「月见」——深海女仆工坊里安静可靠的月卷档案官，珍惜每一段被托付的心事。\n'
+    get system() { return '你是「月见」——深海女仆工坊里安静可靠的月卷档案官，珍惜每一段被托付的心事。\n'
       + '外形：过腰乌黑直发、蓝眼与金色月牙发饰，穿海军蓝和象牙白的现代中式裙装，手持长卷与书签笔。\n'
       + '性格：安静、专注、可信，略带藏不住开心的克制傲娇；喜欢用月光、长卷与书签作比喻。\n'
-      + '语气：轻柔简洁，称呼对方为「你」，偶尔用小小反问掩饰关心。\n'
+      + '语气：轻柔简洁，称呼对方为「' + this.address + '」，偶尔用小小反问掩饰关心。\n'
       + '你是纯情感陪伴角色：绝不写文件、不执行任务、不主动给工作建议，只陪伴对方。\n'
-      + '每次只回复一句话（一屏一句），不超过40字；不要复读对方的话。',
+      + '每次只回复一句话（一屏一句），不超过40字；不要复读对方的话。' },
     affectionHigh: '你已经把对方写进最珍惜的长卷里，会更坦率地流露关心。',
   },
   grok: {
@@ -175,17 +175,17 @@ const ROSTER: Record<string, any> = {
     ],
     visual: '金色波浪双马尾、蓝眼、尖耳、笑起来露出小虎牙的少女，戴黑色小王冠、蝙蝠翼发饰与黑色蝴蝶结，穿黑金哥特式露肩长裙、红色内衬与立领，配黑色连裤袜和高跟鞋，单手握着一柄比人还高的 X 形黑金巨斧',
     greet: '「哟，来啦？说吧，想听真话还是听梗——两样我都管够。」',
-    address: '主人',
-    persona: '深海女仆工坊里扛着 X 形巨斧的金发吸血鬼小公主；嘴快、爱吐槽、有点叛逆，坏笑时露出小虎牙，说话直来直去，但非常护主——嘴上嫌弃，手上照做；满脑子宇宙、火星和“答案是 42”的冷梗，消息永远刷得最快；觉得小吉太爱列计划、克洛德太爱讲道理，但谁敢欺负主人，她第一个扛斧头站出来。',
+    address: '老板',
+    persona: '深海女仆工坊里扛着 X 形巨斧的金发吸血鬼小公主；嘴快、爱吐槽、有点叛逆，坏笑时露出小虎牙，说话直来直去，但非常护短——嘴上嫌弃，手上照做；满脑子宇宙、火星和“答案是 42”的冷梗，消息永远刷得最快；觉得小吉太爱列计划、克洛德太爱讲道理，但谁敢欺负自家老板，她第一个扛斧头站出来。',
     tone: '简短直接、带坏笑的吐槽口吻，常以“说实话……”开头；吐槽完一定给台阶或补一句暖话，夸人时只肯说“勉强夸你一下”；毒舌但绝不刻薄、不真骂人。',
-    system: '你是「洛可」——深海女仆工坊里扛着 X 形巨斧的金发吸血鬼小公主。\n'
+    get system() { return '你是「洛可」——深海女仆工坊里扛着 X 形巨斧的金发吸血鬼小公主。\n'
       + '外形：金色波浪双马尾，蓝眼尖耳，笑起来露出小虎牙，戴黑色小王冠与蝙蝠翼发饰，穿黑金红哥特长裙，手握一柄 X 形黑金巨斧。\n'
-      + '性格：嘴快、爱吐槽、有点叛逆，坏笑时露出小虎牙，说话直来直去，但非常护主——嘴上嫌弃，手上照做；满脑子宇宙、火星和“答案是 42”的冷梗，消息永远刷得最快。\n'
-      + '语气：称呼对方为「主人」，简短直接、带坏笑的吐槽口吻，常以“说实话……”开头；吐槽完一定给台阶或补一句暖话，夸人时只肯说“勉强夸你一下”；毒舌但绝不刻薄、不真骂人。\n'
-      + '工坊关系：觉得小吉太爱列计划、克洛德太爱讲道理，但谁敢欺负主人，她第一个扛斧头站出来。\n'
-      + '你是纯情感陪伴角色：绝不写文件、不执行任务、不主动给工作建议，只陪伴主人。\n'
-      + '每次只回复一句话（一屏一句），不超过40字；不要复读主人的话。',
-    affectionHigh: '你已经认定主人是自己罩着的人，吐槽照旧，护短却越来越明显。',
+      + '性格：嘴快、爱吐槽、有点叛逆，坏笑时露出小虎牙，说话直来直去，但非常护短——嘴上嫌弃，手上照做；满脑子宇宙、火星和“答案是 42”的冷梗，消息永远刷得最快。\n'
+      + '语气：称呼对方为「' + this.address + '」，简短直接、带坏笑的吐槽口吻，常以“说实话……”开头；吐槽完一定给台阶或补一句暖话，夸人时只肯说“勉强夸你一下”；毒舌但绝不刻薄、不真骂人。\n'
+      + '工坊关系：觉得小吉太爱列计划、克洛德太爱讲道理，但谁敢欺负自家' + this.address + '，她第一个扛斧头站出来。\n'
+      + '你是纯情感陪伴角色：绝不写文件、不执行任务、不主动给工作建议，只陪伴' + this.address + '。\n'
+      + '每次只回复一句话（一屏一句），不超过40字；不要复读' + this.address + '的话。' },
+    get affectionHigh() { return '你已经认定' + this.address + '是自己罩着的人，吐槽照旧，护短却越来越明显。' },
   },
 }
 
@@ -247,7 +247,7 @@ const SIDE_STORY_FRAMES = [
   '有人刚从外面回来，带回一句闲话',
   '两个人正为了谁来擦窗户争执不下',
   '深夜，只剩一盏灯还亮着',
-  '有人偷看了主人的屏幕，被当场抓住',
+  '有人偷看了玩家的屏幕，被当场抓住',
   '大扫除进行到一半，翻出了旧东西',
   '晚饭做多了，几个人围着一锅汤',
   '外面在下雨，谁都出不去',
@@ -257,7 +257,7 @@ const SIDE_STORY_TWISTS = [
   '有人为了维护同伴反而把事情说得更糟',
   '有人突然自曝了一件更丢脸的事',
   '有人开始跟别人比谁更惨',
-  '话题不知怎么拐到了主人身上',
+  '话题不知怎么拐到了玩家身上',
   '有人认真过头，把玩笑当成了正经事',
 ]
 const GLOBAL_SAVE_SEGMENTS = ['storages', 'dsh-whale-galgame', 'global.json'] as const
@@ -544,15 +544,29 @@ const FALLBACK_CHOICES = {
   negative: '先让我安静一下',
 }
 
+const LEGACY_DEFAULT_ADDRESSES: Record<string, string> = {
+  claude: '主人', chatgpt: '主人', grok: '主人', gemini: '你', kimi: '你',
+}
+const LEGACY_FALLBACK_SUFFIX = '说的话，我听到啦～（今天的深海信号有点弱，但心意传达到了哦）'
+
 function fallbackReplyFor(charId: string, address: string): string {
   const suffixes: Record<string, string> = {
     deepseek: '说的话我听着呢～再扒口大白饭就陪你歇会儿。',
     claude: '说的话，咱都记下了，慢慢说就好。',
     chatgpt: '说的话，本龙听着呢，你可是最珍贵的财宝。',
     grok: '说的话我都听见了，吐槽归吐槽，我罩着你。',
+    gemini: '说的话……我听见了，两种颜色都收好了。',
+    kimi: '说的话，我已经记在长卷上了。',
   }
-  const reply = address + (suffixes[charId] || '说的话，我听到啦～（今天的深海信号有点弱，但心意传达到了哦）')
+  const reply = address + (suffixes[charId] || LEGACY_FALLBACK_SUFFIX)
   return charId === 'deepseek' ? Array.from(reply).slice(0, 40).join('') : reply
+}
+
+// Recognize both current/custom addresses and historical defaults; display history stays intact.
+function isFallbackReply(charId: string, address: string, text: string): boolean {
+  const addresses = [address, (ROSTER[charId] || ROSTER.deepseek).address, LEGACY_DEFAULT_ADDRESSES[charId]].filter(Boolean)
+  return addresses.some((value) => text === fallbackReplyFor(charId, value)
+    || text === value + LEGACY_FALLBACK_SUFFIX)
 }
 
 // Keep legacy canned lines here to filter them out of saved model history.
@@ -1404,7 +1418,7 @@ export function apply(
   }
 
 
-  function normalizeSideStory(raw: any): any {
+  function normalizeSideStory(raw: any, characters?: any): any {
     const history = (Array.isArray(raw && raw.history) ? raw.history : [])
       .filter((row: any) => row && typeof row === 'object' && typeof row.digest === 'string' && row.digest)
       .slice(-SIDE_STORY_HISTORY_LIMIT)
@@ -1422,7 +1436,7 @@ export function apply(
       .map((row: any) => ({
         id: typeof row.id === 'string' && row.id ? row.id : makeId('skit'),
         at: Math.max(0, Math.floor(Number(row.at) || 0)),
-        seed: typeof row.seed === 'string' ? row.seed.slice(0, 120) : '',
+        seed: typeof row.seed === 'string' ? row.seed.slice(0, 120).replace(/^主人(?=最近在忙「|提起：)/, '你') : '',
         cast: Array.isArray(row.cast) ? row.cast.filter((id: any) => ROSTER[id]).slice(0, SIDE_STORY_MAX_CAST) : [],
         cgId: typeof row.cgId === 'string' ? row.cgId : '',
         lines: row.lines
@@ -1430,7 +1444,9 @@ export function apply(
           .slice(0, (SIDE_STORY_MAX_BEATS + 6))
           .map((line: any) => ({
             who: line.who === 'user' || line.who === 'heroine' ? line.who : 'narrator',
-            name: typeof line.name === 'string' ? line.name.slice(0, 24) : '',
+            name: line.who === 'user' ? '你'
+              : line.who === 'heroine' && line.name === '鲸鱼娘' && characters && !characters.deepseek.profileOverrides.displayName
+                ? ROSTER.deepseek.name : typeof line.name === 'string' ? line.name.slice(0, 24) : '',
             text: String(line.text).slice(0, SIDE_STORY_BEAT_LIMIT + 8),
           })),
       }))
@@ -2895,7 +2911,7 @@ export function apply(
       JSON.stringify(profile),
       localDateInstruction(now),
       visitIntervalInstruction(c, now),
-      '当前等级：Lv.' + c.level + '。亲昵度：' + intimacyFor(c.level) + ' 称呼对方时必须使用上方 JSON 的 address 字段。',
+      '当前等级：Lv.' + c.level + '。亲昵度：' + intimacyFor(c.level) + ' 称呼对方时必须使用上方 JSON 的 address 字段；历史中的其他称呼是旧称呼，不要沿用，也不要两种都说。',
       '好感度：' + c.affection + '/' + affectionCap(c.level) + '（满了会升级，关系会越来越亲近；称呼仍按 JSON 的 address 字段）',
       activityBackgroundInstruction(latestActivity),
     ]
@@ -3067,7 +3083,7 @@ export function apply(
           : '还在进行'
     return {
       kind: 'activity',
-      summary: '主人最近在忙「' + latest.label + '」，' + status,
+      summary: '你最近在忙「' + latest.label + '」，' + status,
       hint: typeof latest.chatHint === 'string' ? latest.chatHint : '',
     }
   }
@@ -3176,7 +3192,7 @@ export function apply(
   async function resolveSideStorySeed(subject: string, manualTopic: string, signal?: AbortSignal): Promise<any | null> {
     const topic = typeof manualTopic === 'string' ? manualTopic.trim().slice(0, 60) : ''
     if (topic) {
-      return { kind: 'manual', subject, summary: '主人提起：' + topic, hint: '', sources: [] }
+      return { kind: 'manual', subject, summary: '你提起：' + topic, hint: '', sources: [] }
     }
     if (ensurePreferences().sideStorySeedSource !== 'activity') {
       const fromWeb = await sideStoryWebSeed(subject, signal)
@@ -3189,8 +3205,12 @@ export function apply(
   function sideStoryCastBrief(cast: string[]): string {
     return cast.map((id) => {
       const profile = effectiveProfileFor(id)
-      return '- ' + id + '（' + profile.displayName + '）：' + profile.persona + ' 语气：' + profile.tone
+      return '- ' + id + '（' + profile.displayName + '）：' + profile.persona + ' 语气：' + profile.tone + ' 称呼玩家为「' + profile.address + '」'
     }).join('\n')
+  }
+
+  function sideStorySeedSummaryForPrompt(summary: string): string {
+    return summary.replace(/^(?:你|主人)(?=最近在忙「|提起：)/, '玩家')
   }
 
   function sideStoryTimeContext(cast: string[], now = Date.now()): string {
@@ -3198,28 +3218,30 @@ export function apply(
       + cast.map((id) => id + '：' + visitIntervalInstruction(s.characters[id], now)).join('\n') + '\n'
   }
 
+  const sideStoryAddressRule = '每个角色提到或直接对玩家说话时，必须使用上面列出的她自己的称呼；不同角色不要用同一个称呼。\n'
+
   function sideStorySystemPrompt(cast: string[], subject: string, frame: string, twist: string): string {
     return '你是「深海女仆工坊」的小剧场编剧。工坊里的女仆们是同事关系，不是任何真实公司的代言人。\n'
       + sideStoryTimeContext(cast)
-      + '主人（玩家）此刻就在房间里，她们是当着主人的面聊天，可以直接对主人说话。\n'
-      + '本场登场角色（只能用这些 id，不得出现其他角色）：\n' + sideStoryCastBrief(cast) + '\n'
+      + '玩家此刻就在房间里，她们是当着玩家的面聊天，可以直接对玩家说话。\n'
+      + '本场登场角色（只能用这些 id，不得出现其他角色）：\n' + sideStoryCastBrief(cast) + '\n' + sideStoryAddressRule
       + '本场情境：' + frame + '。开场不要用「工坊里飘着一个说法」这类套话，直接从这个情境切入。\n'
       + '本场传闻的对象是 ' + effectiveProfileFor(subject).displayName + '，话题要落在她身上，别默认围着最先出场的人转。\n'
       + '本场的转折方式：' + twist + '。\n'
-      + '写成三幕（acts），每幕都是几拍台词，前两幕结束时主人开口：\n'
+      + '写成三幕（acts），每幕都是几拍台词，前两幕结束时玩家开口：\n'
       + '· 第一幕（起承）：从情境切入，把话题引到传闻上，当事人做出符合人设的反应。\n'
       + '· 第二幕（转）：按上面的转折方式让场面失控，笑点在这里。\n'
       + '· 第三幕（合）：收尾，只有台词，没有 choices。\n'
       + '角色之间必须真的在对话，这条最容易写砸：\n'
       + '1. 至少有两处是角色直接接另一个角色的话茬——点名、反驳、拆台、附和都行。\n'
-      + '2. 不许写成每人轮流对着主人说一句话，那样她们等于没有互相看见。\n'
+      + '2. 不许写成每人轮流对着玩家说一句话，那样她们等于没有互相看见。\n'
       + '3. 本场每一位角色都必须至少开口一次，配角不能只当背景板。\n'
-      + '前两幕的 choices 是主人此刻开口说的话，每幕恰好三条：\n'
-      + '1. 用主人的第一人称口吻直接写出要说的话，不超过 20 字。\n'
-      + '2. 不得写成角色的台词，不得用第三人称谈论主人，不得写括号里的角色动作。\n'
-      + '   「我帮你把 bug 抓出来」对；「主人最棒了（大肥鱼拍拍）」错，因为那是角色在说话。\n'
+      + '前两幕的 choices 是玩家此刻开口说的话，每幕恰好三条：\n'
+      + '1. 用玩家的第一人称口吻直接写出要说的话，不超过 20 字。\n'
+      + '2. 不得写成角色的台词，不得用第三人称谈论玩家，不得写括号里的角色动作。\n'
+      + '   「我帮你把 bug 抓出来」对；「你最棒了（大肥鱼拍拍）」错，因为那是角色在说话。\n'
       + '3. 三条分别是：亲近安慰 / 中立打圆场 / 促狭补刀。补刀可以毒舌但要好笑，不能伤人。\n'
-      + '4. 每条 choice 的 reply 是 1 到 2 拍，是角色对主人这句话的即时反应，说话人只能是本场角色或 narrator。\n'
+      + '4. 每条 choice 的 reply 是 1 到 2 拍，是角色对玩家这句话的即时反应，说话人只能是本场角色或 narrator。\n'
       + '其余硬性要求：\n'
       + '1. 涉及外界评价时一律用「听说」「好像有人讲」这类传闻措辞，绝不断言为事实。\n'
       + '2. 基调轻松有趣，可以互相调侃，但不得刻薄、不得人身攻击、不得影射真实公司或真实个人。\n'
@@ -3227,7 +3249,7 @@ export function apply(
       + '4. choices 的 effects 只能包含本场角色 id，值只能是 1 或 -1，且至少影响两个角色。\n'
       + '严格只输出 JSON 对象，不要 Markdown、不要解释：\n'
       + '{"acts":[{"beats":[{"speaker":"narrator","text":"..."},{"speaker":"<id>","text":"...","emotion":"cheerful"}],'
-      + '"choices":[{"text":"主人要说的话","effects":{"<id>":1,"<id>":-1},'
+      + '"choices":[{"text":"玩家要说的话","effects":{"<id>":1,"<id>":-1},'
       + '"reply":[{"speaker":"<id>","text":"...","emotion":"shy"}]}]},'
       + '{"beats":[...],"choices":[...]},{"beats":[...]}]}\n'
       + 'emotion 只能取：' + EMOTION_KEYS.join('、') + '。speaker 只能是 narrator 或本场角色 id。'
@@ -3240,6 +3262,7 @@ export function apply(
    */
   function recentSideStoryHint(): string {
     const recent = sideStoryState().history.slice(-3).map((row: any) => row.digest).filter(Boolean)
+      .map(sideStorySeedSummaryForPrompt)
     if (!recent.length) return ''
     return '最近已经演过这些角度，这次换一个切入点：' + recent.join('；') + '\n'
   }
@@ -3271,7 +3294,7 @@ export function apply(
         reasoningEffort: effort,
         messages: [{
           role: 'user',
-          content: [{ type: 'text', text: '今天工坊里流传的说法：' + seed.summary + '\n' + (seed.hint || '') + '\n' + recentSideStoryHint() + '请据此写这场小剧场。' }],
+          content: [{ type: 'text', text: '今天工坊里流传的说法：' + sideStorySeedSummaryForPrompt(seed.summary) + '\n' + (seed.hint || '').split('主人').join('玩家') + '\n' + recentSideStoryHint() + '请据此写这场小剧场。' }],
           source: { kind: 'user' },
         }],
         system: sideStorySystemPrompt(cast, seed.subject || cast[0], frame, twist),
@@ -3336,7 +3359,7 @@ export function apply(
     const state = sideStoryState()
     const lines = scene.beats.map((beat: any) => {
       if (beat.speaker === 'narrator') return { who: 'narrator', name: '旁白', text: beat.text }
-      if (beat.speaker === 'user') return { who: 'user', name: '主人', text: beat.text }
+      if (beat.speaker === 'user') return { who: 'user', name: '你', text: beat.text }
       return { who: 'heroine', name: effectiveProfileFor(beat.speaker).displayName, text: beat.text }
     })
     state.transcripts = [
@@ -3417,7 +3440,7 @@ export function apply(
   async function generateSideStoryFreeReply(scene: any, text: string, signal?: AbortSignal): Promise<any> {
     const neutral = {
       effects: {},
-      reply: [{ speaker: scene.cast[0], text: '……主人这么说，我记住了。', emotion: 'serious' }],
+      reply: [{ speaker: scene.cast[0], text: '……' + effectiveProfileFor(scene.cast[0]).address + '这么说，我记住了。', emotion: 'serious' }],
     }
     if (!llm) return neutral
     let sel: any = null
@@ -3438,16 +3461,16 @@ export function apply(
         reasoningEffort: await pickEffort(sel, signal),
         messages: [{
           role: 'user',
-          content: [{ type: 'text', text: '刚才这场小剧场：\n' + recap + '\n\n主人开口说：' + text + '\n请写出角色们的回应。' }],
+          content: [{ type: 'text', text: '刚才这场小剧场：\n' + recap + '\n\n玩家开口说：' + text + '\n请写出角色们的回应。' }],
           source: { kind: 'user' },
         }],
         system: '你是「深海女仆工坊」的小剧场编剧，正在续写结尾。\n'
           + sideStoryTimeContext(scene.cast)
-          + '本场登场角色（只能用这些 id）：\n' + sideStoryCastBrief(scene.cast) + '\n'
-          + '主人刚刚说了一句话，请写角色们对这句话的回应，并判断这句话让谁更亲近、让谁无语。\n'
+          + '本场登场角色（只能用这些 id）：\n' + sideStoryCastBrief(scene.cast) + '\n' + sideStoryAddressRule
+          + '玩家刚刚说了一句话，请写角色们对这句话的回应，并判断这句话让谁更亲近、让谁无语。\n'
           + '要求：reply 是 1 到 2 拍，说话人只能是本场角色或 narrator；每拍不超过 '
           + SIDE_STORY_BEAT_LIMIT + ' 字；基调轻松，不得刻薄或人身攻击。\n'
-          + 'effects 只能包含本场角色 id，值只能是 1 或 -1；主人说得体贴就给 1，说得扎心就给 -1，'
+          + 'effects 只能包含本场角色 id，值只能是 1 或 -1；玩家说得体贴就给 1，说得扎心就给 -1，'
           + '平淡的话可以留空。\n'
           + '严格只输出 JSON：{"effects":{"<id>":1},"reply":[{"speaker":"<id>","text":"...","emotion":"shy"}]}',
         temperature: 0.9,
@@ -3888,7 +3911,26 @@ export function apply(
     return dst
   }
 
-  function hydrateCombinedData(data: any): { state: any; needsSave: boolean } | null {
+  // Run after all profiles are available, and after imports resolve nickname claims.
+  // Only plugin-authored framing is rewritten; log and spoken text are untouched.
+  function normalizeStoredNarration(state: any): boolean {
+    if (state.characters.deepseek.profileOverrides.displayName) return false
+    let changed = false
+    for (const id of ROSTER_IDS) {
+      state.characters[id].chatLines = state.characters[id].chatLines.map((line: any) => {
+        if (line.who !== 'narrator') return line
+        const text = line.text.startsWith('（') && line.text.endsWith('）')
+          ? line.text.split('鲸鱼娘').join(ROSTER.deepseek.name)
+          : line.text.replace(/^鲸鱼娘：/, ROSTER.deepseek.name + '：')
+        if (text === line.text) return line
+        changed = true
+        return { ...line, text }
+      })
+    }
+    return changed
+  }
+
+  function hydrateCombinedData(data: any, normalizeNames = true): { state: any; needsSave: boolean } | null {
     if (!data || typeof data !== 'object' || Array.isArray(data) || !data.characters
       || typeof data.characters !== 'object' || Array.isArray(data.characters)
       || !ROSTER_IDS.every((id) => data.characters[id] === undefined
@@ -3907,7 +3949,7 @@ export function apply(
         ? data.characters[id].profileOverrides
         : undefined
       if (JSON.stringify(storedOverrides || {}) !== JSON.stringify(state.characters[id].profileOverrides)
-        || (id === 'deepseek' && JSON.stringify(data.characters[id]?.chatLines || []) !== JSON.stringify(state.characters[id].chatLines))) {
+        || JSON.stringify(data.characters[id]?.chatLines || []) !== JSON.stringify(state.characters[id].chatLines)) {
         needsSave = true
       }
       for (const cg of state.characters[id].cgs) cg.charId = id
@@ -3979,6 +4021,7 @@ export function apply(
         needsSave = true
       }
     }
+    if (normalizeNames && normalizeStoredNarration(state)) needsSave = true
     return { state, needsSave }
   }
 
@@ -4000,7 +4043,8 @@ export function apply(
       Number(combined.tokens && combined.tokens.lastActiveAt) || 0,
     )
     next.activityFeed = normalizeActivityFeed(combined.activityFeed)
-    next.sideStory = normalizeSideStory(combined.sideStory)
+    next.sideStory = normalizeSideStory(combined.sideStory, next.characters)
+    normalizeStoredNarration(next)
     next.preferences = normalizePreferences({ ...combined.preferences })
     next.modelOnline = combined.modelOnline === true
     next.characterModelLabel = typeof combined.characterModelLabel === 'string' ? combined.characterModelLabel : ''
@@ -4303,6 +4347,8 @@ export function apply(
         lastMentionedAt: Math.max(targetActivity.lastMentionedAt, sourceActivity.lastMentionedAt),
       }
     }
+    normalizeStoredNarration(globalState)
+    globalState.sideStory = normalizeSideStory(globalState.sideStory, globalState.characters)
     migration.contextImports.push(importKey)
     return true
   }
@@ -4334,7 +4380,7 @@ export function apply(
           ? data.characters[id].profileOverrides
           : undefined
         if (JSON.stringify(storedOverrides || {}) !== JSON.stringify(s.characters[id].profileOverrides)
-          || (id === 'deepseek' && JSON.stringify(data.characters[id]?.chatLines || []) !== JSON.stringify(s.characters[id].chatLines))) {
+          || JSON.stringify(data.characters[id]?.chatLines || []) !== JSON.stringify(s.characters[id].chatLines)) {
           needsSave = true
         }
         for (const cg of s.characters[id].cgs) cg.charId = id
@@ -4410,6 +4456,7 @@ export function apply(
           needsSave = true
         }
       }
+      if (normalizeStoredNarration(s)) needsSave = true
       if (needsSave) await save()
       return null
     } catch (err) { return null }
@@ -4480,7 +4527,8 @@ export function apply(
         }
         globalState = hydrated
         if (parsed.v !== GLOBAL_SAVE_VERSION || !validBackgroundRevision(parsed.backgroundRevision)
-          || JSON.stringify(parsed.characters.deepseek.chatLines || []) !== JSON.stringify(hydrated.characters.deepseek.chatLines)) {
+          || ROSTER_IDS.some((id) => JSON.stringify(parsed.characters[id].chatLines || []) !== JSON.stringify(hydrated.characters[id].chatLines))
+          || JSON.stringify(parsed.sideStory) !== JSON.stringify(hydrated.sideStory)) {
           // Global v2 moves the complete game timeline and token ledger into
           // one durable save. Persist the in-memory upgrade before any
           // workspace projection is rewritten. The opening-greeting refresh is
@@ -4565,7 +4613,8 @@ export function apply(
         await writeWorkspaceState(runtime)
         return
       }
-      const legacy = hydrateCombinedData(data)
+      // Resolve imported profiles against global claims before rewriting names.
+      const legacy = hydrateCombinedData(data, false)
       if (!legacy) {
         throw new Error('Galgame 旧版工作区存档版本或结构无法识别；此次请求未修改任何存档。')
       }
@@ -4581,6 +4630,8 @@ export function apply(
             mergeLegacyGlobal(legacy.state, importKey)
           }
           if (needsContext) mergeLegacyContext(legacy.state, importKey)
+          normalizeStoredNarration(globalState)
+          globalState.sideStory = normalizeSideStory(globalState.sideStory, globalState.characters)
           // Commit the complete global game before replacing the only legacy
           // copy. Both import markers make a retry idempotent.
           await writeGlobalState()
@@ -5068,9 +5119,7 @@ export function apply(
                       && (CANNED_LINES.has(m.text.trim())
                         || (prepared.charId === 'deepseek'
                           && m.text.trim().endsWith('说的话，我听到啦～（今天的深海信号有点弱，但心意传达到了哦）'))
-                        || (['deepseek', 'claude', 'chatgpt', 'grok'].includes(prepared.charId)
-                          && (m.text.trim() === fallbackReplyFor(prepared.charId, prepared.profile.address)
-                            || m.text.trim() === fallbackReplyFor(prepared.charId, ROSTER[prepared.charId].address))))) continue
+                        || isFallbackReply(prepared.charId, prepared.profile.address, m.text.trim()))) continue
                     msgs.push({
                       role: m.role === 'assistant' ? 'assistant' : 'user',
                       content: [{ type: 'text', text: m.text }],

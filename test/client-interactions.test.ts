@@ -4,6 +4,15 @@ import test from 'node:test'
 
 const source = readFileSync(new URL('../src/client/index.ts', import.meta.url), 'utf8')
 
+test('workshop copy and player nameplates address the user as 你', () => {
+  assert.ok(source.includes('找不到就聊你最近在忙的事'))
+  assert.ok(source.includes('还没有演过小剧场。等你忙点什么，她们就有话题了。'))
+  assert.ok(source.includes('工坊今天很安静，等你忙点什么之后再来看看吧。'))
+  assert.equal((source.match(/who === 'user' \? '你'/g) || []).length, 2)
+  assert.ok(source.includes("const plateLabel = isUser ? '你'"))
+  assert.doesNotMatch(source, /主人/)
+})
+
 function section(start: string, end: string): string {
   const from = source.indexOf(start)
   const to = source.indexOf(end, from + start.length)

@@ -111,6 +111,7 @@ function makeHarness(options: {
   }]
   const versions = new Map<string, number>()
   let routeHandler: any = null
+  const requests: any[] = []
 
   const services: any = {
     fs: {
@@ -153,6 +154,7 @@ function makeHarness(options: {
       resolveModelInfo: async () => ({}),
       stream: async function* (opts: any): AsyncGenerator<any> {
         const system = String(opts && opts.system || '')
+        requests.push(opts)
         // The follow-up prompt also says 小剧场编剧, so it has to be matched first.
         if (system.includes('正在续写结尾')) {
           const cast = [...system.matchAll(/^- ([a-z]+)（/gm)].map((row) => row[1])
@@ -217,7 +219,7 @@ function makeHarness(options: {
     return JSON.parse(body)
   }
 
-  return { post }
+  return { post, requests }
 }
 
 /** Advance until the master is asked to speak, or the scene runs out of beats. */
@@ -305,6 +307,7 @@ test('gives the master more than one place to speak inside a single skit', async
 
     const log = await post('side-story-log')
     assert.equal(log.skits.length, 1)
+    assert.ok(log.skits[0].lines.filter((row: any) => row.who === 'user').every((row: any) => row.name === '你'))
     assert.deepEqual(log.skits[0].cast.map((row: any) => row.id), scene.cast.map((row: any) => row.id))
     assert.equal(log.skits[0].lines.filter((row: any) => row.who === 'user').length, 2)
 
@@ -484,12 +487,17 @@ test('still settles an interlude when the follow-up generation fails', async () 
       files,
       freeReply: () => ({ nonsense: true }),
     })
+    await post('settings-set', { characterMode: 'manual', characterId: 'grok' })
+    await post('profile-set', { characterId: 'grok', overrides: { address: '船长' } })
     const entry = await post('view')
     const started = await post('side-story', { op: 'start' })
     await playToChoices(post, started)
     const spoken = await post('side-story', { op: 'speak', text: '随便说说' })
     const userBeat = spoken.sideStory.scene.beats.find((row: any) => row.speaker === 'user')
     assert.ok(userBeat, 'a broken reply must not strand the interlude')
+    const fallbackBeat = spoken.sideStory.scene.beats[spoken.sideStory.scene.beats.indexOf(userBeat) + 1]
+    assert.equal(fallbackBeat.speaker, 'grok')
+    assert.equal(fallbackBeat.text, '……船长这么说，我记住了。')
     // Neutral fallback: playback continues but nobody moves.
     assert.equal(spoken.affection, entry.affection)
   } finally {
@@ -642,7 +650,7 @@ test('a topic typed by the master outranks both the web and the activity feed', 
   Math.random = () => 0
   let searched = 0
   try {
-    const { post } = makeHarness({
+    const { post, requests } = makeHarness({
       root: 'E:\\workspace\\topic',
       dshHome,
       files,
@@ -654,7 +662,109 @@ test('a topic typed by the master outranks both the web and the activity feed', 
     const scene = started.sideStory.scene
     assert.equal(scene.seed.kind, 'manual')
     assert.equal(scene.seed.summary.includes('谁泡的茶最难喝'), true)
+    assert.equal(scene.seed.summary, '你提起：谁泡的茶最难喝')
+    assert.match(requests.find((req: any) => req.system.includes('小剧场编剧')).messages[0].content[0].text, /玩家提起：谁泡的茶最难喝/)
     assert.equal(searched, 0, 'a supplied topic makes the web lookup pointless')
+  } finally {
+    Math.random = originalRandom
+    await drain()
+    rmSync(dshHome, { recursive: true, force: true })
+  }
+})
+
+test('saved skit labels and seeds normalize durably without rewriting dialogue or prompt history', async () => {
+  for (const overrides of [{}, { displayName: '鲸鱼娘' }, { displayName: '小鲸' }]) {
+    const dshHome = mkdtempSync(join(tmpdir(), 'dsh-whale-old-skit-'))
+    const root = 'E:\\workspace\\old-skit'
+    const files: SharedDisk = new Map()
+    const path = join(dshHome, 'storages', 'dsh-whale-galgame', 'global.json')
+    try {
+      const initial = makeHarness({ root, dshHome, files })
+      await initial.post('settings-set', { sideStorySeedSource: 'activity', sideStoryCooldownMinutes: 0 })
+      await drain()
+      const saved = JSON.parse(await nativeFs.readFile(path, 'utf8'))
+      saved.characters.deepseek.profileOverrides = overrides
+      const seeds = ['主人最近在忙「旧工程」', '主人提起：旧由头', '有人说主人提起：别改这里']
+      saved.sideStory.history = seeds.map((digest) => ({ at: 1, digest, cast: ['deepseek', 'grok'] }))
+      saved.sideStory.transcripts = seeds.map((seed, i) => ({
+        id: 'old-skit-' + i, at: 1, seed, cast: ['deepseek', 'grok'], cgId: '',
+        lines: [
+          { who: 'user', name: i ? '其他旧名' : '主人', text: '鲸鱼娘，这是我的原话。' },
+          { who: 'heroine', name: '鲸鱼娘', text: '主人，鲸鱼娘我在呢。' },
+          { who: 'heroine', name: '洛可', text: '鲸鱼娘今天很忙。' },
+          { who: 'narrator', name: '鲸鱼娘', text: '原样旁白。' },
+        ],
+      }))
+      await nativeFs.writeFile(path, JSON.stringify(saved))
+      const loaded = makeHarness({ root, dshHome, files })
+      // A read-only action must durably save normalization.
+      const log = await loaded.post('side-story-log')
+      const persisted = JSON.parse(await nativeFs.readFile(path, 'utf8'))
+      const expectedSeeds = ['你最近在忙「旧工程」', '你提起：旧由头', seeds[2]]
+      assert.deepEqual(persisted.sideStory.transcripts.map((row: any) => row.seed), expectedSeeds)
+      assert.deepEqual(persisted.sideStory.history.map((row: any) => row.digest), seeds, 'digest is only prompt history')
+      for (const [i, row] of persisted.sideStory.transcripts.entries()) {
+        assert.equal(row.lines[0].name, '你')
+        assert.equal(row.lines[1].name, 'displayName' in overrides ? '鲸鱼娘' : '大肥鱼')
+        assert.equal(row.lines[2].name, '洛可')
+        assert.equal(row.lines[3].name, '鲸鱼娘')
+        assert.deepEqual(row.lines.map((line: any) => line.text), saved.sideStory.transcripts[i].lines.map((line: any) => line.text))
+        const returned = log.skits.find((skit: any) => skit.id === row.id)
+        assert.equal(returned.seed, expectedSeeds[i])
+        assert.deepEqual(returned.lines, row.lines)
+      }
+      const reloaded = makeHarness({ root, dshHome, files })
+      assert.deepEqual(await reloaded.post('side-story-log'), log)
+      assert.deepEqual(JSON.parse(await nativeFs.readFile(path, 'utf8')), persisted)
+      await reloaded.post('side-story', { op: 'start' })
+      const generated = reloaded.requests.find((req: any) => req.system.includes('小剧场编剧'))
+      const prompt = generated.messages[0].content[0].text
+      assert.match(prompt, /玩家最近在忙「旧工程」；玩家提起：旧由头/)
+      assert.match(prompt, /今天工坊里流传的说法：玩家最近在忙「/)
+    } finally {
+      await drain()
+      rmSync(dshHome, { recursive: true, force: true })
+    }
+  }
+})
+
+test('skit prompts carry each effective address and distinguish the player in generation and follow-ups', async () => {
+  const dshHome = mkdtempSync(join(tmpdir(), 'dsh-whale-addresses-'))
+  const originalRandom = Math.random
+  Math.random = () => 0
+  try {
+    const { post, requests } = makeHarness({ root: 'E:\\workspace\\skit-addresses', dshHome, files: new Map() })
+    const expected: Record<string, string> = { deepseek: '主人', claude: '校订者', chatgpt: '小家伙', gemini: '旅人', kimi: '执笔人', grok: '老板' }
+    await post('settings-set', { sideStorySeedSource: 'activity', sideStoryCooldownMinutes: 0 })
+    await post('profile-set', { characterId: 'claude', overrides: { address: '校订者' } })
+    const seen = new Set<string>()
+    for (const id of Object.keys(expected)) {
+      await post('settings-set', { characterMode: 'manual', characterId: id })
+      const started = await post('side-story', { op: 'start' })
+      assert.ok(started.sideStory.scene)
+      assert.match(started.sideStory.scene.seed.summary, /^你最近在忙「/)
+      const generated = requests.filter((req: any) => req.system.includes('小剧场编剧')).at(-1)
+      assert.match(generated.messages[0].content[0].text, /玩家最近在忙「/)
+      assert.doesNotMatch(generated.messages[0].content[0].text, /主人|你最近在忙/)
+      await playToChoices(post, started)
+      const spoken = await post('side-story', { op: 'speak', text: '我陪你们一起收拾' })
+      const followUp = requests.filter((req: any) => req.system.includes('正在续写结尾')).at(-1)
+      assert.match(followUp.messages[0].content[0].text, /玩家开口说：我陪你们一起收拾/)
+      for (const req of [generated, followUp]) {
+        assert.match(req.system, /每个角色提到或直接对玩家说话时，必须使用上面列出的她自己的称呼；不同角色不要用同一个称呼/)
+        // Dafeiyu's own persona legitimately says 主人; the compiler's instructions must say 玩家.
+        assert.doesNotMatch(req.system.split('\n').filter((line: string) => !line.startsWith('- ')).join('\n'), /主人/)
+        for (const member of started.sideStory.scene.cast) {
+          seen.add(member.id)
+          const line = req.system.split('\n').find((line: string) => line.startsWith('- ' + member.id + '（'))
+          assert.ok(line.endsWith('称呼玩家为「' + expected[member.id] + '」'), line)
+        }
+      }
+      const secondStop = await playToChoices(post, spoken)
+      await post('side-story', { op: 'choose', choiceId: secondStop.sideStory.scene.choices[0].id })
+      await post('side-story', { op: 'close' })
+    }
+    assert.equal(seen.size, 6)
   } finally {
     Math.random = originalRandom
     await drain()

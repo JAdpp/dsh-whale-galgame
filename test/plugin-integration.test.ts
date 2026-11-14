@@ -7,6 +7,10 @@ import { runInNewContext } from 'node:vm'
 import { apply } from '../src/index.ts'
 import { ACTIVITY_LOOKBACK_MS, activityBackgroundInstruction, activitySystemInstruction, nextUnseenActivity } from '../src/activity-context.ts'
 
+const DEFAULT_ADDRESSES: Record<string, string> = {
+  deepseek: '主人', claude: '您', chatgpt: '小家伙', gemini: '旅人', kimi: '执笔人', grok: '老板',
+}
+
 const serverSource = readFileSync(new URL('../src/index.ts', import.meta.url), 'utf8')
 function serverSection(start: string, end: string): string {
   const from = serverSource.indexOf(start)
@@ -145,6 +149,15 @@ test('community personas remove obsolete identities and retain companion constra
   const match = source.match(/const ROSTER: Record<string, any> = (\{[\s\S]*?\n\})\n/)
   assert.ok(match, 'the built-in roster must be present')
   const roster = runInNewContext('(' + match[1] + ')')
+  assert.equal(new Set(Object.values(roster).map((row: any) => row.address)).size, 6)
+  for (const [id, address] of Object.entries(DEFAULT_ADDRESSES)) {
+    assert.equal(roster[id].address, address)
+    assert.ok(roster[id].system.includes('称呼对方为「' + address + '」'))
+    if (id !== 'deepseek') {
+      assert.doesNotMatch(roster[id].persona + roster[id].tone + roster[id].system + roster[id].affectionHigh, /主人/)
+    }
+  }
+  assert.match(roster.grok.persona, /非常护短.*谁敢欺负自家老板/)
   assert.equal(roster.deepseek.name, '大肥鱼')
   assert.match(roster.deepseek.persona, /聪明但爱偷懒，贪吃/)
   assert.match(roster.deepseek.visual, /盛着大白饭的大铁盆/)
@@ -158,10 +171,61 @@ test('community personas remove obsolete identities and retain companion constra
     for (const field of ['persona', 'tone', 'system']) {
       assert.doesNotMatch(character[field], /递归编织|琥珀文稿审校|宇宙信号侦察/, id + '.' + field)
     }
-    assert.equal(character.address, '主人', id)
-    assert.ok(character.system.includes('你是纯情感陪伴角色：绝不写文件、不执行任务、不主动给工作建议，只陪伴主人。'), id)
-    assert.ok(character.system.includes('每次只回复一句话（一屏一句），不超过40字；不要复读主人的话。'), id)
+    assert.equal(character.address, DEFAULT_ADDRESSES[id], id)
+    assert.ok(character.system.includes('你是纯情感陪伴角色：绝不写文件、不执行任务、不主动给工作建议，只陪伴' + character.address + '。'), id)
+    assert.ok(character.system.includes('每次只回复一句话（一屏一句），不超过40字；不要复读' + character.address + '的话。'), id)
     assert.ok(character.system.includes('工坊关系：'), id)
+  }
+})
+
+test('fallback replies preserve each voice and recognize historical address and suffix combinations', () => {
+  const roster = runInNewContext('(' + serverSource.match(/const ROSTER: Record<string, any> = (\{[\s\S]*?\n\})\n/)![1] + ')')
+  const { fallbackReplyFor, isFallbackReply } = runInNewContext(stripTypeScriptTypes(
+    serverSection('const LEGACY_DEFAULT_ADDRESSES:', '// Keep legacy canned lines')
+      + '\n({ fallbackReplyFor, isFallbackReply })',
+  ), { ROSTER: roster })
+  const suffixes: Record<string, string> = {
+    deepseek: '说的话我听着呢～再扒口大白饭就陪你歇会儿。',
+    claude: '说的话，咱都记下了，慢慢说就好。',
+    chatgpt: '说的话，本龙听着呢，你可是最珍贵的财宝。',
+    gemini: '说的话……我听见了，两种颜色都收好了。',
+    kimi: '说的话，我已经记在长卷上了。',
+    grok: '说的话我都听见了，吐槽归吐槽，我罩着你。',
+  }
+  const generic = '说的话，我听到啦～（今天的深海信号有点弱，但心意传达到了哦）'
+  for (const [id, address] of Object.entries(DEFAULT_ADDRESSES)) {
+    assert.equal(fallbackReplyFor(id, address), address + suffixes[id])
+    const oldAddress = ['gemini', 'kimi'].includes(id) ? '你' : '主人'
+    for (const value of [address, oldAddress, '自定称呼']) {
+      assert.equal(isFallbackReply(id, '自定称呼', value + suffixes[id]), true)
+      assert.equal(isFallbackReply(id, '自定称呼', value + generic), true)
+    }
+    assert.equal(isFallbackReply(id, address, '这是模型真正说的话。'), false)
+  }
+  assert.equal(fallbackReplyFor('unknown', '同伴'), '同伴' + generic)
+})
+
+test('narration uses noun and respectful addresses for entrances, decay and level-ups', () => {
+  for (const address of ['旅人', '您']) {
+    const character = { level: 1, affection: 200, chatLines: [] as any[], cgs: [], choices: [] }
+    const state = { current: 'old', lastCurrent: 'old', characters: { target: character }, tokens: { bank: 0, lastActiveAt: Date.now() - 3 * 86400000 }, cg: null }
+    const { syncHeroine, settle, checkLevelUp } = runInNewContext(stripTypeScriptTypes(
+      serverSection('  function syncHeroine(', '  /**\n   * Client-facing side-story payload.')
+        + '\n({ syncHeroine, settle, checkLevelUp })',
+    ), {
+      Date, s: state, ROSTER: { target: {} }, ROSTER_IDS: ['target'],
+      ensureState() {}, ensurePreferences: () => ({ characterMode: 'manual', characterId: 'target' }),
+      effectiveProfileFor: () => ({ address, displayName: '测试角色', greeting: '问候' }), ensureReplyChoices: () => false,
+      splitStorageActive: () => false, RELATIONSHIP_TOUCH_INTERVAL_MS: 6 * 3600000,
+      DECAY_PER_DAY: 2, AFFECTION_FLOOR: 0, MAX_TOKEN_GAIN: 5, TOKEN_PER_POINT: 5000,
+      affectionCap: () => 30, makeId: () => 'cg-test', claimGlobalValue() {}, generateCg() {},
+    })
+    syncHeroine()
+    assert.equal(character.chatLines[0].text, '（' + address + '把角色来源切换为 测试角色，测试角色 登场了。）')
+    const result = settle()
+    assert.equal(character.chatLines.at(-1).text, '（分别了太久……好感度下降了 ' + result.decay + ' 点。测试角色 似乎一直在等' + address + '回来。）')
+    assert.equal(checkLevelUp('target', character), true)
+    assert.equal(character.chatLines.at(-1).text, '（好感度已满！测试角色 的等级提升至 Lv.2！正在为' + address + '准备礼物……）')
   }
 })
 
@@ -171,6 +235,8 @@ test('community defaults reach chat and preserve custom profiles across legacy r
     deepseek: '「主人回来啦～饭……啊不是，我是说，今天也想听你说话呢。」',
     claude: '「晚上好。咱把书签夹好了——今天想从哪一页说起？」',
     chatgpt: '「好问题——啊，你还没问呢。来吧，今天的心事我帮你分成三点。」',
+    gemini: '「同一句心事也会折出不同颜色呢。今晚想让我听见哪一种？」',
+    kimi: '「你来啦。长卷还留着空白，今晚的心事要写在哪一段？」',
     grok: '「哟，来啦？说吧，想听真话还是听梗——两样我都管够。」',
   }
   let diskSave = ''
@@ -234,7 +300,8 @@ test('community defaults reach chat and preserve custom profiles across legacy r
   startPlugin()
   for (const id of Object.keys(greetings)) {
     const profile = await post('profile-get', { characterId: id })
-    assert.equal(profile.effective.address, '主人', id)
+    assert.equal(profile.effective.address, DEFAULT_ADDRESSES[id], id)
+    assert.equal(profile.builtIn.address, DEFAULT_ADDRESSES[id], id)
     assert.equal(profile.effective.greeting, greetings[id], id)
     assert.deepEqual(profile.overrides, {}, id)
     const entered = await post('settings-set', { characterMode: 'manual', characterId: id })
@@ -242,7 +309,7 @@ test('community defaults reach chat and preserve custom profiles across legacy r
     const fallback = await post('chat', { text: '今天想聊聊' })
     assert.equal(fallback.fallbackUsed, true, id)
     const line = fallback.history.at(-1).text
-    assert.match(line, /^主人说的话/, id)
+    assert.ok(line.startsWith(DEFAULT_ADDRESSES[id] + '说的话'), id)
     assert.doesNotMatch(line, /频道|信号|噪声|线索|编织/, id)
     assert.ok(Array.from(line).length <= 40, id)
     fallbackLines[id] = line
@@ -272,7 +339,7 @@ test('community defaults reach chat and preserve custom profiles across legacy r
   for (const id of Object.keys(greetings)) {
     const reloaded = await post('profile-get', { characterId: id })
     assert.deepEqual(reloaded.overrides, customProfiles[id], id)
-    assert.equal(reloaded.builtIn.address, '主人', id)
+    assert.equal(reloaded.builtIn.address, DEFAULT_ADDRESSES[id], id)
     const restored = await post('settings-set', { characterMode: 'manual', characterId: id })
     const oldRows = legacy.characters[id].chatLines
     assert.equal(Object.hasOwn(restored.view.history[0], 'at'), false)
@@ -732,7 +799,7 @@ test('stores safe role-local profile overrides and applies the effective profile
     'displayName', 'address', 'greeting', 'persona', 'tone', 'visual',
   ])
   assert.equal(builtIn.builtIn.displayName, '克洛德')
-  assert.equal(builtIn.builtIn.address, '主人')
+  assert.equal(builtIn.builtIn.address, '您')
   assert.equal(Object.prototype.hasOwnProperty.call(builtIn.builtIn, 'system'), false)
   assert.deepEqual(builtIn.overrides, {})
   assert.deepEqual(builtIn.effective, builtIn.builtIn)
@@ -868,6 +935,7 @@ test('stores safe role-local profile overrides and applies the effective profile
   assert.match(mainSystem, /Harness 近期任务事件：类别是「代码调试」/)
   assert.match(mainSystem, /先接住对方当前情绪/)
   assert.match(mainSystem, /称呼对方时必须使用上方 JSON 的 address 字段/)
+  assert.match(mainSystem, /历史中的其他称呼是旧称呼，不要沿用，也不要两种都说/)
   assert.equal(mainSystem.match(/阿澜/g)?.length, 1)
   assert.equal(mainSystem.match(/同 伴/g)?.length, 1)
   assert.doesNotMatch(mainSystem, /主人/)

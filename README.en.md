@@ -154,6 +154,7 @@ Under **Settings → Plugins → Dafeiyu** (`大肥鱼`), choose the default cha
 ### Custom character profiles
 
 **Personalization → Character profile** (`个性化 → 角色设定`) edits the nickname, form of address, first greeting, personality, speaking style, and CG appearance description.
+Each AI girl has her own default way of addressing you: Dafeiyu uses “主人” (master), Claude “您” (respectful you), GPT “小家伙” (little one), Gemini “旅人” (traveller), Kimi “执笔人” (the one holding the pen), and Grok “老板” (boss); you can change it per character.
 Profiles are saved per character and shared across workspaces; **Restore defaults** resets only these six fields for the current character. Saving or restoring preserves affection, history, and custom sprites.
 See [profile details](docs/mechanics.md#自定义角色设定) for greeting updates and existing-history behavior.
 
