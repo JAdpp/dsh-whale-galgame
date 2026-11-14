@@ -18,7 +18,7 @@
 
 `dsh-whale-galgame` 是专为DeepSeek Harness Web与Desktop打造的独立多角色Galgame界面插件。通过无缝融入日常工作流，它让冰凉的AI交互化作温暖长情的陪伴：
 
-- **6 位性格各异的AI娘**：支持DeepSeek（大肥鱼）、Claude、GPT、Gemini、Kimi与Grok，立绘、好感度、记忆与背景相互独立。大肥鱼贪吃、爱偷懒，最爱吃大白饭。
+- **6 位性格各异的AI娘**：支持DeepSeek（大肥鱼）、Claude、GPT、Gemini、Kimi与Grok，立绘、好感度、记忆与背景相互独立。
 - **外观与内核解耦**：喜欢大肥鱼的机甲，又想用Claude或GPT进行深度对话（NTR?）角色形象与底层回复模型可随心搭配。
 - **「小剧场」模式**：告别单一问答，解锁多AI娘联动日常、工作复盘短剧与专属里程碑剧情。
 - **伴你成长的羁绊系统**：日常互动与工作Token积累均可提升好感，解锁专属亲昵语气与AI生成的纪念CG。
