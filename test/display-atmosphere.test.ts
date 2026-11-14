@@ -13,9 +13,9 @@ function section(start: string, end: string): string {
   return source.slice(from, to)
 }
 function evaluate(code: string, globals: Record<string, any> = {}): any {
-  return runInNewContext(stripTypeScriptTypes(code), globals)
+  return runInNewContext(stripTypeScriptTypes(code.replace(/^export /gm, '')), globals)
 }
-const defaults = { font: 'literary', ambience: true, sound: false, volume: 50, bgm: false }
+const defaults = { font: 'literary', panelOpacity: 55, ambience: true, sound: false, volume: 50, bgm: false }
 
 test('fonts and sound never load external resources', () => {
   assert.doesNotMatch(source, /fonts\.googleapis|https?:\/\/|new Audio\s*\(/)
@@ -32,9 +32,9 @@ test('display defaults are silent and storage failures and invalid values are re
   const read = (value: string | null, legacy: string | null = null, blocked = false) => evaluate(code + '\n({ settings: readDisplaySettings(), speed: readTextSpeed() })', {
     localStorage: { getItem(key: string) { if (blocked) throw new Error('blocked'); return key === 'whg-text-speed' ? legacy : value } },
   })
-  assert.equal(JSON.stringify(read(null).settings), JSON.stringify(defaults))
-  assert.equal(JSON.stringify(read(null, null, true).settings), JSON.stringify(defaults))
-  for (const value of ['broken', 'null']) assert.equal(JSON.stringify(read(value).settings), JSON.stringify(defaults))
+  assert.deepEqual(JSON.parse(JSON.stringify(read(null).settings)), defaults)
+  assert.deepEqual(JSON.parse(JSON.stringify(read(null, null, true).settings)), defaults)
+  for (const value of ['broken', 'null']) assert.deepEqual(JSON.parse(JSON.stringify(read(value).settings)), defaults)
   const saved = read(JSON.stringify({ font: 'system', ambience: false, sound: true, volume: 500, bgm: true, textSpeed: '快' }))
   assert.equal(saved.settings.volume, 100)
   assert.equal(saved.settings.font, 'system')
@@ -53,9 +53,72 @@ test('display defaults are silent and storage failures and invalid values are re
   assert.match(section('function textSpeedButton()', 'function levelMeter()'), /localStorage\.setItem\('whg-text-speed'/)
 })
 
+test('panel surface keeps a readable tint, increases monotonically and restores the original surface at 100', () => {
+  const surface = evaluate(section('const TEXT_SPEEDS', '// Generated once') + '\npanelSurface')
+  const expected = [
+    [0, { top: .15, bottom: .35, blur: 0, edge: .1 }],
+    [40, { top: .474, bottom: .602, blur: 1.92, edge: .161 }],
+    [55, { top: .596, bottom: .697, blur: 3.63, edge: .215 }],
+    [100, { top: .96, bottom: .98, blur: 12, edge: .48 }],
+  ] as const
+  for (const [opacity, values] of expected) {
+    const actual = surface(opacity)
+    for (const key of ['top', 'bottom', 'blur', 'edge'] as const) {
+      assert.ok(Math.abs(actual[key] - values[key]) <= .005, opacity + ': ' + key)
+      assert.equal(actual[key], Number(actual[key].toFixed(3)), key + ' rounds to three decimals')
+    }
+  }
+  assert.deepEqual(JSON.parse(JSON.stringify(surface(100))), { top: .96, bottom: .98, blur: 12, edge: .48 })
+  assert.deepEqual(JSON.parse(JSON.stringify(surface(-5))), JSON.parse(JSON.stringify(surface(0))))
+  assert.deepEqual(JSON.parse(JSON.stringify(surface(250))), JSON.parse(JSON.stringify(surface(100))))
+  let previous = surface(0)
+  for (let opacity = 1; opacity <= 100; opacity++) {
+    const current = surface(opacity)
+    for (const key of ['top', 'bottom', 'blur', 'edge'] as const) assert.ok(current[key] >= previous[key], opacity + ': ' + key)
+    assert.ok(current.top <= current.bottom, opacity + ': the box is never darker at the top')
+    previous = current
+  }
+  const style = evaluate(section('const TEXT_SPEEDS', '// Generated once') + '\npanelStyle')
+  for (const opacity of [0, 40, 55, 70]) assert.equal(style(opacity)['--whg-panel-topline'], 0, 'a translucent box has no hard top line')
+  assert.ok(style(55)['--whg-panel-feather'] > .2, 'the fade happens above the text band')
+  assert.equal(style(100)['--whg-panel-feather'], 0)
+  assert.equal(style(0)['--whg-panel-shadow'], 0)
+  assert.equal(style(100)['--whg-panel-topline'], 1)
+  assert.equal(style(100)['--whg-panel-shadow'], .6)
+})
+
+test('saved panel opacity defaults, rounds, clamps and repairs invalid values', () => {
+  const code = section('const TEXT_SPEEDS', '// Generated once')
+  const read = (saved: string | null) => evaluate(code + '\nreadDisplaySettings().panelOpacity', {
+    localStorage: { getItem() { return saved } },
+  })
+  for (const saved of [null, '{}', 'null', 'broken', '{"panelOpacity":"x"}', '{"panelOpacity":null}', '{"panelOpacity":true}', '{"panelOpacity":1e400}']) assert.equal(read(saved), 55, String(saved))
+  for (const [value, expected] of [[-5, 0], [250, 100], [54.4, 54], [54.5, 55], [0, 0], [100, 100]]) assert.equal(read(JSON.stringify({ panelOpacity: value })), expected)
+})
+
+test('panel CSS uses surface variables and accessibility preferences restore the solid surface', () => {
+  const css = section('const CSS = [', 'function art(')
+  const panel = css.match(/\.whg-panel\{--whg-brass:[^}]+\}/)?.[0]
+  assert.ok(panel, 'base panel rule')
+  assert.match(panel, /background:linear-gradient\(180deg,rgba\(7,30,45,var\(--whg-panel-top,\s*\.?0?596\)\) 0%/)
+  assert.match(panel, /var\(--whg-panel-mid,\s*\.?0?647\)[^;]*42%/)
+  assert.match(panel, /rgba\(3,17,31,var\(--whg-panel-bottom,\s*\.?0?697\)\) 100%/)
+  assert.match(panel, /backdrop-filter:blur\(var\(--whg-panel-blur,\s*3\.(?:6|63)px\)\)/)
+  assert.match(panel, /border:1px solid rgba\(215,182,108,var\(--whg-panel-edge,\s*\.?0?215\)\)/)
+  for (const preference of ['prefers-reduced-transparency:reduce', 'forced-colors:active']) {
+    const rule = css.split('\n').filter((line) => line.includes('(' + preference + ')')).join('\n')
+    assert.ok(rule.includes('.whg-panel'), preference + ' restores the panel')
+    assert.match(rule, /(?:--whg-panel-top:\.?0?96\s*!important|rgba\(7,30,45,\.96\))/)
+    assert.match(rule, /(?:--whg-panel-bottom:\.?0?98\s*!important|rgba\(3,17,31,\.98\))/)
+    assert.match(rule, /(?:--whg-panel-blur:12px\s*!important|backdrop-filter:blur\(12px\))/)
+    assert.match(rule, /(?:--whg-panel-edge:\.?0?48\s*!important|border(?:-color)?:[^;}]*(?:rgba\(215,182,108,\.48\)))/)
+  }
+  assert.match(css, /@media \(forced-colors:active\)\{\.whg-panel\{[^}]*background:Canvas;[^}]*color:CanvasText;[^}]*border-color:CanvasText/)
+})
+
 test('panel accents, decorations and new animations preserve sprite layout and reduced motion', () => {
   const css = section('const CSS = [', 'function art(')
-  assert.match(css, /\.whg-panel\{--whg-brass:#d7b66c;[\s\S]*?border:1px solid rgba\(215,182,108,\.48\)/)
+  assert.match(css, /\.whg-panel\{--whg-brass:#d7b66c;[^}]*border:1px solid rgba\(215,182,108,var\(--whg-panel-edge,/)
   assert.match(css, /\.whg-panel:before,\.whg-panel:after\{[^}]*left:8px;right:8px;[^}]*pointer-events:none/)
   assert.match(css, /\.whg-choice:hover,\.whg-choice:focus-visible\{[^}]*border-left-color:var\(--whg-accent\)/)
   const main = section('function dialogue()', 'function cgModal(')
@@ -345,12 +408,48 @@ test('typewriter ticks only for timed Unicode triplets, never for direct complet
 
 test('settings controls are named and dismiss to their trigger', () => {
   const settings = section('function DisplaySettingsPopover(', 'function Typewriter(')
-  for (const label of ['台词字体', '氛围特效', '音效', '音量', 'BGM']) assert.ok(settings.includes("'" + label + "'"), label)
+  for (const label of ['台词字体', '对话框不透明度', '氛围特效', '音效', '音量', 'BGM']) assert.ok(settings.includes("'" + label + "'"), label)
   assert.match(settings, /'aria-label': '显示设置', 'aria-expanded': props\.open, 'aria-haspopup': 'dialog'/)
   assert.match(settings, /event\.key !== 'Escape'/)
   assert.match(settings, /!wrapperRef\.current\?\.contains\(event\.target\)/)
   assert.match(settings, /requestAnimationFrame\(\(\) => triggerRef\.current\?\.focus\(\)\)/)
   assert.match(settings, /type: 'range', min: 0, max: 100, value: props\.settings\.volume, disabled: !props\.settings\.sound/)
+})
+
+test('opacity slider is a live display control and changes persist with the other settings', () => {
+  const changes: any[] = []
+  const popover = evaluate(section('function DisplaySettingsPopover(', 'function Typewriter(') + '\nDisplaySettingsPopover', {
+    React: { createElement(type: any, props: any, ...children: any[]) { return { type, props: props || {}, children } } },
+    useRef: () => ({ current: null }), useEffect: () => {},
+  })
+  const tree = popover({ settings: defaults, speedControl: null, open: true, onOpenChange() {}, onChange: (patch: any) => changes.push(patch) })
+  const slider = nodes(tree).find((node) => node.type === 'input' && node.props['aria-label'] === '对话框不透明度')
+  assert.ok(slider)
+  assert.equal(slider.props.type, 'range')
+  assert.equal(slider.props.min, 0)
+  assert.equal(slider.props.max, 100)
+  assert.equal(slider.props.step, 5)
+  assert.equal(slider.props.value, 55)
+  assert.equal(slider.props['aria-valuetext'], '55%')
+  assert.ok(!slider.props.disabled, 'opacity remains available with sound disabled')
+  const label = nodes(tree).find((node) => node.type === 'label' && node.children.includes(slider))
+  assert.ok(label && hasClass(label, 'whg-display-row'))
+  assert.ok(label.children.some((child: any) => typeof child === 'string' && child.includes('55%')))
+  slider.props.onChange({ target: { value: '25' } })
+  assert.deepEqual(JSON.parse(JSON.stringify(changes)), [{ panelOpacity: 25 }])
+
+  const stored: any[] = []
+  let live: any
+  const change = evaluate(section('function changeDisplaySettings(', 'function hideUi(') + '\nchangeDisplaySettings', {
+    displaySettings: defaults, textSpeed: 1, TEXT_SPEEDS: [{ label: '慢' }, { label: '中' }],
+    DEFAULT_DISPLAY_SETTINGS: defaults, atmosphereCharacter: 'deepseek', stageVisible: true,
+    localStorage: { setItem(key: string, value: string) { stored.push([key, JSON.parse(value)]) } },
+    setDisplaySettings(next: any) { live = next }, audio: { configure() {}, onUserGesture() {}, play() {} },
+  })
+  change(changes[0])
+  assert.equal(live.panelOpacity, 25)
+  assert.equal(stored[0][0], 'whg-display-settings')
+  assert.deepEqual(stored[0][1], { ...defaults, panelOpacity: 25, textSpeed: '中' })
 })
 
 test('H shortcuts reject editing and hidden or unowned conversations', () => {
@@ -454,7 +553,7 @@ function renderHarness(view: any) {
     createElement(type: any, props: any, ...children: any[]) { return { type, props: props || {}, children: children.flat(Infinity).filter((item) => item !== null && item !== undefined) } },
   }
   const App = evaluate(section('const CSS = [', 'export const name') + "\nrememberView(viewCacheKey('render-test'), fixture); App", {
-    React, useState, useRef, useEffect: () => {}, localStorage: { getItem: () => null }, fixture: view,
+    React, useState, useRef, useEffect: () => {}, localStorage: { getItem: () => null, setItem() {} }, fixture: view,
     WHALE_ART: { 'whale-normal': 'data:image/png;base64,AA', 'whale-angry': 'data:image/png;base64,BB' },
   })
   return () => { cursor = 0; return App({ variant: 'tab', sessionId: 'render-test', useSessions: null }) }
@@ -475,9 +574,20 @@ test('rendered main dialogue keeps its accent, ambient layer and stored-expressi
   const panel = nodes(tree).find((node) => hasClass(node, 'whg-panel'))
   assert.equal(panel.props.style['--whg-accent'], '#7fd0ff')
   assert.equal(panel.props['data-font'], 'literary')
+  assert.equal(panel.props.style['--whg-panel-top'], 0.596)
+  assert.equal(panel.props.style['--whg-panel-bottom'], .697)
+  assert.equal(panel.props.style['--whg-panel-mid'], .647)
+  assert.equal(panel.props.style['--whg-panel-blur'], '3.63px')
+  assert.equal(panel.props.style['--whg-panel-edge'], .215)
   const atmosphere = tree.children.findIndex((node: any) => node.type?.name === 'Ambience')
   assert.ok(atmosphere > tree.children.findIndex((node: any) => hasClass(node, 'whg-vignette')))
   assert.ok(atmosphere < tree.children.findIndex((node: any) => hasClass(node, 'whg-stage')))
+  nodes(tree).find((node) => node.type?.name === 'DisplaySettingsPopover').props.onChange({ panelOpacity: 25 })
+  tree = render()
+  const updatedPanel = nodes(tree).find((node) => hasClass(node, 'whg-panel'))
+  assert.equal(updatedPanel.props.style['--whg-panel-top'], 0.353)
+  assert.equal(updatedPanel.props.style['--whg-panel-blur'], '0.75px')
+  assert.equal(nodes(tree).find((node) => node.type?.name === 'DisplaySettingsPopover').props.settings.panelOpacity, 25)
   nodes(tree).find((node) => node.type === 'button' && node.children.includes('对话历史')).props.onClick({ currentTarget: {} })
   tree = render()
   const replay = nodes(tree).filter((node) => hasClass(node, 'whg-history-replay'))
@@ -500,6 +610,12 @@ test('side-story accents follow its speaker while ambience follows the first cas
     } },
   })
   const tree = render()
-  assert.equal(nodes(tree).find((node) => hasClass(node, 'whg-panel')).props.style['--whg-accent'], '#25c7d9')
+  const panel = nodes(tree).find((node) => hasClass(node, 'whg-panel'))
+  assert.equal(panel.props.style['--whg-accent'], '#25c7d9')
+  assert.equal(panel.props.style['--whg-panel-top'], 0.596)
+  assert.equal(panel.props.style['--whg-panel-bottom'], .697)
+  assert.equal(panel.props.style['--whg-panel-mid'], .647)
+  assert.equal(panel.props.style['--whg-panel-blur'], '3.63px')
+  assert.equal(panel.props.style['--whg-panel-edge'], .215)
   assert.equal(tree.children.find((node: any) => node.type?.name === 'Ambience').props.characterId, 'kimi')
 })
