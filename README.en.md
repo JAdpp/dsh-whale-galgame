@@ -18,7 +18,7 @@ Between Harness tasks, discover an “extraordinary” coworker relationship wit
 
 `dsh-whale-galgame` is a standalone multi-character Galgame interface plugin built for DeepSeek Harness Web and Desktop. By blending naturally into your daily workflow, it turns impersonal AI interactions into warm, lasting companionship:
 
-- **Six AI girls with distinct personalities**: DeepSeek (Dafeiyu — 大肥鱼, “Big Fat Fish”), Claude, GPT, Gemini, Kimi, and Grok, each with independent sprites, affection, memories, and backgrounds. Dafeiyu loves food, lazing around, and especially big bowls of plain white rice.
+- **Six AI girls with distinct personalities**: DeepSeek (Dafeiyu — 大肥鱼, “Big Fat Fish”), Claude, GPT, Gemini, Kimi, and Grok, each with independent sprites, affection, memories, and backgrounds. 
 - **Appearance and model are decoupled**: Like the Dafeiyu sprite but want an in-depth conversation with Claude or GPT? Mix and match the character image and underlying reply model freely.
 - **Side Story mode**: Go beyond one-to-one Q&A with multi-character daily scenes, work-recap skits, and dedicated milestone stories.
 - **A bond system that grows with you**: Daily interaction and accumulated work tokens both raise affection, unlocking more intimate dialogue styles and AI-generated commemorative CGs.
