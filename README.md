@@ -1,8 +1,10 @@
-<p align="center">
-  <img src="docs/brand/logo-simple.png" width="160" height="160" alt="深海工坊：鲸尾与星光">
-</p>
-
-<h1 align="center">dsh-whale-galgame</h1>
+<h1 align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/brand/logo-title-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="docs/brand/logo-title.svg">
+    <img src="docs/brand/logo-title.svg" width="380" alt="dsh-whale-galgame">
+  </picture>
+</h1>
 
 <h3 align="center">跨会话任务事件感知的多角色 Galgame 引擎</h3>
 
@@ -16,11 +18,11 @@
 
 `dsh-whale-galgame` 是专为DeepSeek Harness Web与Desktop打造的独立多角色Galgame界面插件。通过无缝融入日常工作流，它让冰凉的AI交互化作温暖长情的陪伴：
 
-- **6 位性格各异的AI娘**：支持DeepSeek（大肥鱼/鲸鱼娘）、Claude、GPT、Gemini、Kimi与Grok，立绘、好感度、记忆与背景相互独立。
+- **6 位性格各异的AI娘**：支持DeepSeek（大肥鱼）、Claude、GPT、Gemini、Kimi与Grok，立绘、好感度、记忆与背景相互独立。大肥鱼贪吃、爱偷懒，最爱吃大白饭。
 - **外观与内核解耦**：喜欢大肥鱼的机甲，又想用Claude或GPT进行深度对话（NTR?）角色形象与底层回复模型可随心搭配。
 - **「小剧场」模式**：告别单一问答，解锁多AI娘联动日常、工作复盘短剧与专属里程碑剧情。
 - **伴你成长的羁绊系统**：日常互动与工作Token积累均可提升好感，解锁专属亲昵语气与AI生成的纪念CG。
-- **轻量可爱的桌面宠物**：支持常驻屏幕一角，点击即可一键切入Galgame界面。
+- **轻量可爱的桌面宠物**：常驻屏幕一角，你干活时她掏出小电脑陪你赶工，闲下来顶铁盆、讨饭吃；可以拎起来随处安放，点击即可一键切入Galgame界面。
 - **深海工坊像素地图**：看看AI娘工作、散步和休息，点击即可聊天。
 
 ![dsh-whale-galgame在DSH Web中的实际运行界面](docs/screenshots/galgame-overview.jpg)
@@ -40,7 +42,7 @@
 
 <table>
   <tr>
-    <td align="center"><img src="assets/default/maid-left.webp" width="180" alt="DeepSeek 鲸鱼娘默认立绘"><br><strong>DeepSeek · 鲸鱼娘</strong></td>
+    <td align="center"><img src="assets/default/maid-left.webp" width="180" alt="DeepSeek 大肥鱼默认立绘"><br><strong>DeepSeek · 大肥鱼</strong></td>
     <td align="center"><img src="assets/default/claude-zipzippipe.webp" width="180" alt="Claude AI娘克洛德默认立绘"><br><strong>Claude · 克洛德</strong></td>
     <td align="center"><img src="assets/default/gpt-zipzippipe.webp" width="180" alt="GPT AI娘小吉默认立绘"><br><strong>GPT · 小吉</strong></td>
   </tr>
@@ -51,11 +53,11 @@
   </tr>
 </table>
 
-六个角色的新背景如下。Claude、GPT、Gemini、Kimi 和 Grok 默认使用各自背景；DeepSeek 鲸鱼娘仍以 `palace-night.webp` 深海宫殿为默认，下图海边书房是内置可选替代。
+六个角色的新背景如下。Claude、GPT、Gemini、Kimi 和 Grok 默认使用各自背景；大肥鱼默认使用海边书房，`palace-night.webp` 深海宫殿是内置可选替代。
 
 <table>
   <tr>
-    <td align="center"><img src="assets/default/bg-deepseek-seaside-study.webp" width="260" alt="DeepSeek 鲸鱼娘海边书房可选背景"><br><strong>DeepSeek · 可选替代</strong></td>
+    <td align="center"><img src="assets/default/bg-deepseek-seaside-study.webp" width="260" alt="DeepSeek 大肥鱼海边书房默认背景"><br><strong>DeepSeek · 默认背景</strong></td>
     <td align="center"><img src="assets/default/bg-claude-writing-study.webp" width="260" alt="Claude 写作书房默认背景"><br><strong>Claude</strong></td>
     <td align="center"><img src="assets/default/bg-gpt-collaboration-workshop.webp" width="260" alt="GPT 协作工坊默认背景"><br><strong>GPT</strong></td>
   </tr>
@@ -65,6 +67,19 @@
     <td align="center"><img src="assets/default/bg-grok-electronics-studio.webp" width="260" alt="Grok 电子工作室默认背景"><br><strong>Grok</strong></td>
   </tr>
 </table>
+
+### 深海工坊地图
+
+从 Galgame 顶栏打开“工坊地图”，宿舍随已接入模型自动增减。AI娘工作时前往工位，空闲时四处散步，停下来就做各自的消遣——吃白饭、看书、观星；点击小人或侧栏名单即可聊天。支持缩放、滚动与暂停散步。[详细机制](docs/mechanics.md#深海工坊地图的实时状态)。
+
+![深海工坊像素地图，演示状态](docs/screenshots/workshop-map.jpg)
+
+<details>
+<summary>仅接入 DeepSeek 时的布局</summary>
+
+![仅有 DeepSeek 宿舍的自适应地图，虚构状态演示](docs/screenshots/workshop-one-resident.jpg)
+
+</details>
 
 ## 安装
 
@@ -128,19 +143,6 @@ allowBuilds:
 
 顶栏“对话历史”用于回看普通对话，“小剧场”记录保存已完成的短剧，“CG图鉴”集中查看生成的图片，并可将 CG 设为背景。
 
-### 深海工坊地图
-
-从 Galgame 顶栏打开“工坊地图”，宿舍随已接入模型自动增减。AI娘工作时前往工位，空闲时散步或休息；点击小人或侧栏名单即可聊天。支持缩放、滚动与暂停散步。[详细机制](docs/mechanics.md#深海工坊地图的实时状态)。
-
-![深海工坊像素地图，演示状态](docs/screenshots/workshop-map.jpg)
-
-<details>
-<summary>仅接入 DeepSeek 时的布局</summary>
-
-![仅有 DeepSeek 宿舍的自适应地图，虚构状态演示](docs/screenshots/workshop-one-resident.jpg)
-
-</details>
-
 ### 快捷键
 
 | 操作 | 效果 |
@@ -155,20 +157,21 @@ allowBuilds:
 点击对话框右上角齿轮，调整文字速度、字体、氛围特效、音效、BGM 和音量；文艺字体使用本机字体。
 顶栏“个性化 → 背景图 / 角色立绘”支持上传 PNG、JPEG、WebP、AVIF；选择内置背景可恢复随角色切换的场景；图片大小与默认背景规则见[图片说明](docs/mechanics.md#舞台图片与显示设置)。
 
-在“设置 → 插件 → 鲸鱼娘”中设置默认角色与回复模型、启停插件或控制桌宠显示；停用插件会暂停对话与好感度结算，存档保留。
+在“设置 → 插件 → 大肥鱼”中设置默认角色与回复模型、启停插件或控制桌宠显示；停用插件会暂停对话与好感度结算，存档保留。
 
 ![DSH Web 中的插件配置界面](docs/screenshots/plugin-settings.png)
 
 ### 自定义角色设定
 
 顶栏“个性化 → 角色设定”可编辑昵称、对用户的称呼、首次问候、性格、语气和 CG 外观描述。
+每位 AI娘默认对你的称呼各不相同：大肥鱼“主人”、克洛德“您”、小吉“小家伙”、双子“旅人”、月见“执笔人”、洛可“老板”，也可以按角色修改。
 每个角色单独保存，在所有工作区共享；“恢复默认”只恢复当前角色的这六项设定，保存或恢复均保留好感度、历史与自定义立绘。
 问候更新及已有记录的处理见[详细设置](docs/mechanics.md#自定义角色设定)。
 
 ### 小剧场
 
 点击顶栏“小剧场”生成角色间的日常短剧或工作复盘，完成后可在“小剧场”记录中回看台词。
-联网取材默认开启，可在“设置 → 插件 → 鲸鱼娘 → 小剧场取材”中切换为“只用本地任务类别”。
+联网取材默认开启，可在“设置 → 插件 → 大肥鱼 → 小剧场取材”中切换为“只用本地任务类别”。
 生成合影CG需在记录中手动点击，使用与升级CG相同的DashScope配置。
 
 ![多角色小剧场效果展示](docs/screenshots/side-story-multi-character.png)
@@ -177,6 +180,11 @@ allowBuilds:
 
 桌宠内置且默认开启，点击进入 Galgame；顶栏“桌宠 · 开/关”与插件设置的“显示桌宠”同步。
 隐藏后仍可从 `galgame` 页签进入并重新开启。
+
+- 有会话在运行时，她会掏出笔记本电脑办公；会话结束就开饭，等你回话时向你招手。
+- 待机时目光跟着指针转；闲久了会偶尔顶起大铁盆、端着空盆要饭或打个盹。
+- 按住可以把她拎起来放到任意位置（方向键同样可以移动），位置保存在本机浏览器存储里；设置里的“归位”让她回到默认角落。
+- 系统开启“减少动态效果”时只显示静态姿势。
 
 ### 可选的升级 CG
 
@@ -218,15 +226,15 @@ npm run verify
 
 ## 许可与致谢
 
-代码、Galgame UI实现与文档采用 [MIT](LICENSE.md)。21 张默认图片采用 [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)（非商业使用，改编以相同许可共享）；项目制作的 AI 辅助图片在维护者持有相应权利的范围内提供。桌宠图集及直接继承的桌宠代码沿用上游 MIT 许可。
+代码、Galgame UI实现与文档采用 [MIT](LICENSE.md)。22 张默认图片采用 [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)（非商业使用，改编以相同许可共享）；项目制作的 AI 辅助图片（含重绘的桌宠图集）在维护者持有相应权利的范围内提供。直接继承的桌宠代码沿用上游 MIT 许可。
 
 感谢创作者与上游项目：
 
 - **上善**创作原始鲸鱼娘，**ZipZipPipe**加入 DeepSeek 元素完成女仆二创，**Small-tailqwq / [dsh-deep-whale](https://github.com/Small-tailqwq/dsh-deep-whale)** 提供沿用的立绘与深海宫殿背景；本项目据此制作表情差分。[上善 Pixiv](https://www.pixiv.net/users/62155430) · [Bilibili](https://space.bilibili.com/4456176) · [ZipZipPipe Pixiv](https://www.pixiv.net/users/18604994) · [Bilibili](https://space.bilibili.com/4168597)。
 - **ZipZipPipe**绘制 Claude、GPT、Grok 默认立绘（[原作动态](https://www.bilibili.com/opus/1233069202138464289)）；本项目去除白底、按人物裁切并转为 WebP。
-- **f0909172434 / [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet)** 提供桌宠实现与原样保留的图集；本项目调整集成、样式并加入点击进入 Galgame 的交互。
+- **f0909172434 / [dsh-deepseek-girl-pet](https://github.com/f0909172434/dsh-deepseek-girl-pet)** 提供桌宠实现、16 方向指针跟随与 1.1 秒复位逻辑及图集参考；当前桌宠图集由本项目使用 Codex 内置图像生成器参考重绘，来源与许可见 [NOTICE](NOTICE.md)。
 - Gemini、Kimi 立绘、六张角色背景和 Galgame UI 为本项目制作的非官方 AI 辅助素材。
-- 当前庄园主题宿舍、公共区、高清工作区、人物、行走关键帧、专属工位与室外装饰九张图及简约 Logo 使用 Codex 内置绘图制作；工具未提供具体模型版本。图片与参考背景、许可和历史素材记录见[庄园美术说明](assets/workshop/README.md)。
+- 当前庄园主题宿舍、公共区、高清工作区、人物、三张行走关键帧、休闲动作、专属工位与室外装饰十张图使用 Codex 内置绘图制作；工具未提供具体模型版本。此前的简约 Logo 也由它制作，现已由字标取代（见[品牌说明](docs/brand/README.md)）。图片与参考背景、许可和历史素材记录见[庄园美术说明](assets/workshop/README.md)。
 
 完整文件清单、来源与哈希见[默认美术说明](assets/default/README.md)，逐文件许可见 [NOTICE](NOTICE.md)、[第三方许可索引](THIRD_PARTY_LICENSES.md)及[上游许可原文](assets/default/licenses/)。所有角色均为非官方同人形象，名称与商标归各权利人，本项目与相关厂商无隶属、合作或背书关系。
 

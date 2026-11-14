@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
+import { closeSync, existsSync, mkdtempSync, openSync, readFileSync, readdirSync, rmSync, statSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { dirname, extname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { findMetadataChunks, readWebpDimensions } from './webp.mjs'
@@ -8,8 +9,31 @@ import { findMetadataChunks, readWebpDimensions } from './webp.mjs'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const npmExecPath = process.env.npm_execpath
 
+function captureCommand(command, args) {
+  try {
+    return execFileSync(command, args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
+  } catch (error) {
+    if (error.code !== 'EPERM') throw error
+    // Some managed Windows environments deny child-process pipe handles.
+    // Capture the same real command through a temporary file instead.
+    const directory = mkdtempSync(resolve(tmpdir(), 'whg-release-audit-'))
+    const output = resolve(directory, 'stdout.txt')
+    let fd
+    try {
+      fd = openSync(output, 'w')
+      execFileSync(command, args, { cwd: root, stdio: ['ignore', fd, 'inherit'] })
+      closeSync(fd)
+      fd = undefined
+      return readFileSync(output, 'utf8')
+    } finally {
+      if (fd !== undefined) closeSync(fd)
+      rmSync(directory, { recursive: true, force: true })
+    }
+  }
+}
+
 const expectedArtFiles = {
-  'pet-spritesheet': 'pet-spritesheet.webp',
+  'pet-dafeiyu': 'pet-dafeiyu.webp',
   'maid-left': 'maid-left.webp',
   'whale-cheerful': 'whale-cheerful.webp',
   'whale-shy': 'whale-shy.webp',
@@ -47,7 +71,7 @@ const expectedArtHashes = {
   'kimi-lunar-scroll-navigator-v5.webp': 'c6f07e2430a4d102abf4356ac3f785124a894cbf1213e05eec1738204d3943f9',
   'maid-left.webp': 'af7bfd2e18505fc9d6f94cefd9febc92b31c1b2b66c756982d91fc7b93fb184c',
   'palace-night.webp': 'ae6917bb1aafa71e6a10cfcaa1289f13e265aa7f32d3fb7c1988004bf50f8983',
-  'pet-spritesheet.webp': '234f24a97c18195a00c6093da0090773e675993c169e92e7e13a24c37b323fa2',
+  'pet-dafeiyu.webp': '3a83057aa89c39bf2b4f93ef87ec69caeeb69eaace1613b8c1de52b88f61dcad',
   'whale-angry.webp': '63bb54126cf3acc785b251a19d465a8e388865badbdc7baf17bbad4b68057a02',
   'whale-cheerful.webp': '117ed691623da550075056963764cee7a4cd14318d5ab87ce63d11926b83aa4b',
   'whale-confused.webp': 'f879656eeec7d02e07543774efcf93a62f03d5b73e577a4c5440d855b942d436',
@@ -57,7 +81,8 @@ const expectedArtHashes = {
   'whale-shy.webp': '87dea8920f550d75e68d189a816856fcc77379532a79c169cc766f02aeeb80f4',
   'whale-starry.webp': '65a3bd1eb9ad4f8cb357af4825311f84e91be4f7f57deb5357fb79116bcad774',
 }
-const whaleExpressionDimensions = {
+const defaultArtDimensions = {
+  'pet-dafeiyu.webp': [2304, 3584],
   'whale-cheerful.webp': [935, 1682],
   'whale-shy.webp': [935, 1682],
   'whale-serious.webp': [935, 1682],
@@ -120,7 +145,7 @@ for (const [key, fileName] of Object.entries(expectedArtFiles)) {
   const hash = createHash('sha256').update(exported).digest('hex')
   if (hash !== expectedArtHashes[fileName]) throw new Error(`${fileName} hash mismatch: ${hash}`)
 }
-for (const [fileName, [expectedWidth, expectedHeight]] of Object.entries(whaleExpressionDimensions)) {
+for (const [fileName, [expectedWidth, expectedHeight]] of Object.entries(defaultArtDimensions)) {
   const { width, height } = readWebpDimensions(readFileSync(resolve(artDir, fileName)), fileName)
   if (width !== expectedWidth || height !== expectedHeight) {
     throw new Error(`${fileName} dimensions changed: ${width} × ${height}; expected ${expectedWidth} × ${expectedHeight}`)
@@ -137,8 +162,8 @@ const workshopManifest = JSON.parse(readFileSync(resolve(root, 'assets/workshop/
 const workshopSource = readFileSync(resolve(root, 'src/client/workshop.generated.ts'), 'utf8')
 const workshopEntries = new Map([...workshopSource.matchAll(/^\s*'([^']+)'\s*:\s*'data:image\/webp;base64,([^']+)'/gm)]
   .map((match) => [match[1], Buffer.from(match[2], 'base64')]))
-const workshopKeys = ['workshop-map-atlas', 'workshop-office-atlas', 'workshop-room-atlas', 'workshop-resident-atlas', 'workshop-walk-atlas', 'workshop-walk-side-atlas', 'workshop-walk-mid-atlas', 'workshop-workstation-atlas', 'workshop-decor-atlas']
-if (workshopEntries.size !== 9 || workshopManifest.assets.length !== 9) throw new Error('Expected exactly nine workshop images')
+const workshopKeys = ['workshop-map-atlas', 'workshop-office-atlas', 'workshop-room-atlas', 'workshop-resident-atlas', 'workshop-walk-atlas', 'workshop-walk-side-atlas', 'workshop-walk-mid-atlas', 'workshop-leisure-atlas', 'workshop-workstation-atlas', 'workshop-decor-atlas']
+if (workshopEntries.size !== 10 || workshopManifest.assets.length !== 10) throw new Error('Expected exactly ten workshop images')
 for (const key of workshopKeys) {
   const asset = workshopManifest.assets.find((item) => item.key === key)
   if (!asset || !/^[a-z0-9-]+\.png$/.test(asset.file)) throw new Error('Invalid workshop asset: ' + key)
@@ -152,10 +177,17 @@ for (const key of workshopKeys) {
   if (createHash('sha256').update(runtimeBytes).digest('hex') !== runtime.sha256) throw new Error('Workshop runtime image integrity failed: ' + key)
 }
 const logo = workshopManifest.logo
+// The workshop manifest preserves the superseded PNG's generation record.
 if (!logo || !/^docs\/brand\/[a-z0-9-]+\.png$/.test(logo.file)) throw new Error('Invalid project logo manifest')
 const logoBytes = readFileSync(resolve(root, logo.file))
 if (createHash('sha256').update(logoBytes).digest('hex') !== logo.sha256
   || logoBytes.readUInt32BE(16) !== logo.width || logoBytes.readUInt32BE(20) !== logo.height) throw new Error('Logo image integrity failed')
+const currentWordmarks = [
+  'docs/brand/logo-title.svg',
+  'docs/brand/logo-title-dark.svg',
+  'docs/brand/logo-inline.svg',
+  'docs/brand/logo-inline-dark.svg',
+]
 
 // --ignore-scripts keeps the prepare script's stdout out of the --json payload;
 // lib/ is already built by the time the audit runs.
@@ -164,11 +196,7 @@ const packCommand = npmExecPath?.endsWith('.js')
   : process.platform === 'win32'
     ? [process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', 'npm.cmd pack --dry-run --json --ignore-scripts']]
     : ['npm', ['pack', '--dry-run', '--json', '--ignore-scripts']]
-const packResult = JSON.parse(execFileSync(packCommand[0], packCommand[1], {
-  cwd: root,
-  encoding: 'utf8',
-  stdio: ['ignore', 'pipe', 'pipe'],
-}))[0]
+const packResult = JSON.parse(captureCommand(packCommand[0], packCommand[1]))[0]
 const packPaths = packResult.files.map((file) => file.path.replaceAll('\\', '/'))
 const forbiddenPackPaths = packPaths.filter((path) => (
   path.endsWith('.map')
@@ -197,10 +225,12 @@ for (const required of [
   'src/activity-context.ts',
   'src/workshop-presence.ts',
   'src/client/index.ts',
+  'src/client/pet-behavior.ts',
   'src/client/workshop-art.ts',
   'src/client/workshop-map.ts',
   'src/client/workshop-world.ts',
   logo.file,
+  ...currentWordmarks,
   'docs/screenshots/workshop-map.jpg',
   'docs/screenshots/workshop-one-resident.jpg',
   'assets/workshop/README.md',
@@ -220,10 +250,7 @@ if (packResult.size > 40 * 1024 * 1024) {
   throw new Error(`Package is unexpectedly large: ${packResult.size} bytes`)
 }
 
-const tracked = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '-z'], {
-  cwd: root,
-  encoding: 'utf8',
-}).split('\0').filter(Boolean)
+const tracked = captureCommand('git', ['ls-files', '--cached', '--others', '--exclude-standard', '-z']).split('\0').filter(Boolean)
 const textExtensions = new Set(['.cjs', '.js', '.json', '.md', '.mjs', '.ts', '.txt', '.yaml', '.yml'])
 const secretPatterns = [
   /sk-proj-[A-Za-z0-9_-]{12,}/,

@@ -257,7 +257,7 @@ test('classification failures default to normal and fallback replies skip the cl
     assert.equal(result.fallbackUsed, fallback)
     assert.equal(classificationCalls, fallback ? 0 : 1)
     assert.equal(result.history.at(-1).who, 'heroine')
-    assert.equal(result.history.at(-1).emotion, fallback ? 'cheerful' : 'normal')
+    assert.equal(result.history.at(-1).emotion, 'normal')
     assert.equal(Object.hasOwn(result.history.at(-2), 'emotion'), false)
   }
 })

@@ -7,7 +7,7 @@ const sourcePath = resolve(root, 'src/client/art.generated.ts')
 const outputDir = resolve(root, 'assets/default')
 
 const files = {
-  'pet-spritesheet': ['image/webp', 'pet-spritesheet.webp'],
+  'pet-dafeiyu': ['image/webp', 'pet-dafeiyu.webp'],
   'maid-left': ['image/webp', 'maid-left.webp'],
   'whale-cheerful': ['image/webp', 'whale-cheerful.webp'],
   'whale-shy': ['image/webp', 'whale-shy.webp'],

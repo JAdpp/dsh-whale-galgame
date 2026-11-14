@@ -4,6 +4,15 @@ import test from 'node:test'
 
 const source = readFileSync(new URL('../src/client/index.ts', import.meta.url), 'utf8')
 
+test('workshop copy and player nameplates address the user as 你', () => {
+  assert.ok(source.includes('找不到就聊你最近在忙的事'))
+  assert.ok(source.includes('还没有演过小剧场。等你忙点什么，她们就有话题了。'))
+  assert.ok(source.includes('工坊今天很安静，等你忙点什么之后再来看看吧。'))
+  assert.equal((source.match(/who === 'user' \? '你'/g) || []).length, 2)
+  assert.ok(source.includes("const plateLabel = isUser ? '你'"))
+  assert.doesNotMatch(source, /主人/)
+})
+
 function section(start: string, end: string): string {
   const from = source.indexOf(start)
   const to = source.indexOf(end, from + start.length)
@@ -53,7 +62,7 @@ test('plugin-owned settings remain discoverable inside the Plugins section', () 
   assert.match(registration, /slots\.inject\('settings\.plugins\.tab'/)
   assert.match(registration, /name:\s*'settings\.plugins\.tab'/)
   assert.match(registration, /id:\s*'whale-galgame'/)
-  assert.match(registration, /label:\s*'鲸鱼娘'/)
+  assert.match(registration, /label:\s*'大肥鱼'/)
   assert.doesNotMatch(registration, /settings\.plugin\.item/)
 })
 
@@ -257,6 +266,11 @@ test('short and narrow viewports override both tab and fullscreen sprite and pan
     assert.ok(css.includes(breakpoint))
   }
   assert.match(css, /\.whg-sprite-wrap,\.whg-root-tab \.whg-sprite-wrap\{height:min\(78vh,100%\)/)
+  assert.match(css, /\.whg-sprite-wrap\{[^}]*translateY\(clamp\(56px,12vh,96px\)\) scale\(1\.33\);transform-origin:center top/)
+  assert.match(css, /height:min\(84vh,100%\);transform:translateY\(2vh\) scale\(1\.33\)/)
+  assert.match(css, /height:min\(78vh,100%\);transform:translateY\(3vh\) scale\(1\.33\)/)
+  assert.equal((css.match(/translateY\(0\) scale\(1\.1\)/g) || []).length, 3, 'portrait mode keeps its original scale at all breakpoints')
+  assert.doesNotMatch(css, /\.whg-cast-slot\{[^}]*scale\(1\.33\)/)
   assert.match(css, /\.whg-panel,\.whg-root-tab \.whg-panel\{box-sizing:border-box;left:10px;right:10px/)
   assert.match(css, /\.whg-level\{top:18px;left:14px;right:auto/)
   assert.match(css, /\.whg-text-speed\{top:15px;right:12px/)

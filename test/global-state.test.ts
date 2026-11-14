@@ -18,6 +18,9 @@ const PIXEL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAw
 const PIXEL_ALT = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl2nWQAAAAASUVORK5CYII='
 const TEMP_HOMES = new Set<string>()
 
+const OLD_DEEPSEEK_GREETING = '「主人，又见面啦～今天也想听你说话呢。」'
+const DAFEIYU_GREETING = '「主人回来啦～饭……啊不是，我是说，今天也想听你说话呢。」'
+
 after(() => {
   for (const root of TEMP_HOMES) rmSync(root, { recursive: true, force: true })
 })
@@ -70,6 +73,250 @@ function legacySave(label: string): string {
     },
   })
 }
+
+test('Dafeiyu upgrades the default name and preserves every explicit profile override', async () => {
+  const root = 'E:\\workspace\\dafeiyu-profile'
+  for (const overrides of [{}, {
+    displayName: '鲸鱼娘', address: '同伴', greeting: OLD_DEEPSEEK_GREETING,
+    persona: '这是用户的性格。', tone: '这是用户的语气。', visual: '用户自选外观。',
+  }]) {
+    const old = JSON.parse(legacySave('B'))
+    old.characters.deepseek.profileOverrides = overrides
+    const migrated = makeHarness({ roots: [root], legacy: { [root]: JSON.stringify(old) } })
+    const profile = await migrated.post('session-a', 'profile-get', { characterId: 'deepseek' })
+    assert.equal(profile.builtIn.displayName, '大肥鱼')
+    assert.equal(profile.effective.displayName, overrides.displayName || '大肥鱼')
+    assert.deepEqual(profile.overrides, overrides)
+    for (const [field, value] of Object.entries(overrides)) assert.equal(profile.effective[field], value)
+    const reloaded = makeHarness({ roots: [root], globalSave: migrated.files.get(migrated.globalPath) })
+    const again = await reloaded.post('session-a', 'profile-get', { characterId: 'deepseek' })
+    assert.deepEqual(again.effective, profile.effective)
+    assert.deepEqual(again.overrides, overrides)
+  }
+})
+
+test('Dafeiyu replaces only an uncustomized opening before any user speech in legacy and global saves', async () => {
+  const root = 'E:\\workspace\\dafeiyu-greeting'
+  const seed = makeHarness({ roots: [root] })
+  await seed.post('session-a', 'settings-set', { characterMode: 'manual', characterId: 'deepseek' })
+  const globalSeed = seed.files.get(seed.globalPath)!
+  const cases = [
+    { label: 'opening only', log: [], extra: [], overrides: {}, migrate: true },
+    { label: 'assistant-only log', log: [{ role: 'assistant', text: OLD_DEEPSEEK_GREETING }], extra: [], overrides: {}, migrate: true },
+    { label: 'user in log', log: [{ role: 'user', text: '我回来啦' }], extra: [], overrides: {}, migrate: false },
+    { label: 'user in display history', log: [], extra: [{ who: 'user', text: '我回来啦', at: 123 }], overrides: {}, migrate: false },
+    { label: 'custom old greeting', log: [], extra: [], overrides: { greeting: OLD_DEEPSEEK_GREETING }, migrate: false },
+    { label: 'custom greeting', log: [], extra: [], overrides: { greeting: '我的专属问候。' }, migrate: false },
+  ]
+  for (const storage of ['legacy', 'global']) {
+    for (const row of cases) {
+      const old = JSON.parse(storage === 'global' ? globalSeed : legacySave('B'))
+      const character = old.characters.deepseek
+      character.log = row.log
+      character.chatLines = [{ who: 'narrator', text: '（开场）' }, { who: 'heroine', text: OLD_DEEPSEEK_GREETING, emotion: 'cheerful' }, ...row.extra]
+      character.choices = []
+      character.profileOverrides = row.overrides
+      const before = structuredClone(character.chatLines)
+      const harness = makeHarness({ roots: [root], ...(storage === 'global'
+        ? { globalSave: JSON.stringify(old) } : { legacy: { [root]: JSON.stringify(old) } }) })
+      const view = await harness.post('session-a', 'view')
+      const expected = structuredClone(before)
+      if (row.migrate) expected[1].text = DAFEIYU_GREETING
+      assert.deepEqual(view.history, expected, storage + ': ' + row.label)
+      const persisted = JSON.parse(harness.files.get(harness.globalPath)!)
+      assert.deepEqual(persisted.characters.deepseek.chatLines, expected, 'opening update is durable')
+      assert.deepEqual(persisted.characters.deepseek.log, row.log, 'model history is never rewritten')
+      const reloaded = makeHarness({ roots: [root], globalSave: JSON.stringify(persisted) })
+      assert.deepEqual((await reloaded.post('session-a', 'view')).history, expected, 'reload is idempotent')
+    }
+  }
+})
+
+test('Dafeiyu filters both legacy and new canned replies without rewriting saved history', async () => {
+  const root = 'E:\\workspace\\dafeiyu-canned'
+  const canned = [
+    OLD_DEEPSEEK_GREETING,
+    DAFEIYU_GREETING,
+    '主人说的话，我听到啦～（今天的深海信号有点弱，但心意传达到了哦）',
+    '主人说的话，鲸鱼娘都听到啦～（今天的深海信号有点弱，但心意传达到了哦）',
+    '诶嘿，海风把声音吹散了一点点……不过没关系，我猜得到你在想什么。',
+    '……嗯嗯，我在认真听哦。你继续讲嘛。',
+    '（少女轻轻甩了甩头发，眼睛亮晶晶地等着你的下一句）',
+    '主人说的话我听着呢～再扒口大白饭就陪你歇会儿。',
+    '旧称呼说的话，我听到啦～（今天的深海信号有点弱，但心意传达到了哦）',
+  ]
+  const old = JSON.parse(legacySave('B'))
+  const character = old.characters.deepseek
+  character.log = [{ role: 'user', text: '保留这句真实发言。' }, ...canned.map((text) => ({ role: 'assistant', text }))]
+  character.chatLines = [{ who: 'heroine', text: OLD_DEEPSEEK_GREETING }, { who: 'user', text: '保留这句真实发言。' }]
+  const harness = makeHarness({ roots: [root], legacy: { [root]: JSON.stringify(old) } })
+  const result = await harness.post('session-a', 'chat', { text: '接着聊吧。' })
+  const request = harness.mainRequests.at(-1)
+  const assistants = request.messages.filter((message: any) => message.role === 'assistant')
+  assert.deepEqual(assistants, [], 'no canned reply is sent as real model history')
+  assert.ok(request.messages.some((message: any) => message.content[0].text === '保留这句真实发言。'))
+  assert.equal(result.history[0].text, OLD_DEEPSEEK_GREETING)
+  const persisted = JSON.parse(harness.files.get(harness.globalPath)!)
+  assert.deepEqual(persisted.characters.deepseek.log.slice(0, character.log.length), character.log)
+})
+
+test('only plugin narrator rows adopt Dafeiyu in legacy and global saves without a custom nickname', async () => {
+  const root = 'E:\\workspace\\dafeiyu-narration'
+  const seed = makeHarness({ roots: [root] })
+  await seed.post('session-a', 'view')
+  for (const storage of ['legacy', 'global']) {
+    for (const overrides of [{}, { address: '同伴' }, { displayName: '鲸鱼娘' }, { displayName: '小鲸' }]) {
+      const old = JSON.parse(storage === 'legacy' ? legacySave('B') : seed.files.get(seed.globalPath)!)
+      const character = old.characters.deepseek
+      character.profileOverrides = overrides
+      character.log = [
+        { role: 'user', text: '鲸鱼娘，这是我的原话。' },
+        { role: 'assistant', text: '（鲸鱼娘回答：这是模型原话。）' },
+      ]
+      character.chatLines = [
+        { who: 'narrator', text: '（分别了太久……鲸鱼娘 似乎一直在等主人回来。鲸鱼娘又叹了口气。）' },
+        { who: 'narrator', text: '鲸鱼娘：主人，鲸鱼娘我在呢。' },
+        { who: 'narrator', text: '鲸鱼娘今天在等你。' },
+        { who: 'narrator', text: '（鲸鱼娘没有闭合括号' },
+        { who: 'user', text: '鲸鱼娘，这是我的原话。' },
+        { who: 'heroine', text: '（鲸鱼娘回答：这是模型原话。）', emotion: 'normal' },
+      ]
+      old.characters.grok = { ...structuredClone(character), profileOverrides: { displayName: '洛可自定义' } }
+      const expected = structuredClone(character.chatLines)
+      if (!('displayName' in overrides)) {
+        expected[0].text = expected[0].text.replaceAll('鲸鱼娘', '大肥鱼')
+        expected[1].text = '大肥鱼：主人，鲸鱼娘我在呢。'
+      }
+      const harness = makeHarness({ roots: [root], ...(storage === 'legacy'
+        ? { legacy: { [root]: JSON.stringify(old) } } : { globalSave: JSON.stringify(old) }) })
+      // profile-get hydrates without adding dialogue: persistence must come from needsSave.
+      await harness.post('session-a', 'profile-get')
+      const persisted = JSON.parse(harness.files.get(harness.globalPath)!)
+      assert.deepEqual(persisted.characters.deepseek.chatLines, expected, storage + ': ' + JSON.stringify(overrides))
+      assert.deepEqual(persisted.characters.deepseek.log, character.log)
+      assert.deepEqual(persisted.characters.grok.chatLines, expected)
+      assert.deepEqual(persisted.characters.grok.log, character.log)
+      const reloaded = makeHarness({ roots: [root], globalSave: JSON.stringify(persisted) })
+      await reloaded.post('session-a', 'profile-get')
+      assert.equal(reloaded.writeTargets.filter((path) => path === reloaded.globalPath).length, 0, 'reload needs no further save')
+      assert.deepEqual((await reloaded.post('session-a', 'view')).history, expected)
+      const again = JSON.parse(reloaded.files.get(reloaded.globalPath)!)
+      assert.deepEqual(again.characters.grok.chatLines, expected)
+    }
+  }
+})
+
+test('other-character narration uses the final global nickname across combined and workspace-v1 imports', async () => {
+  const root = 'E:\\workspace\\dafeiyu-final-nickname'
+  for (const nickname of ['', '鲸鱼娘', '小鲸']) {
+    const seed = makeHarness({ roots: [root] })
+    await seed.post('session-a', 'settings-set', { petEnabled: false })
+    if (nickname) await seed.post('session-a', 'profile-set', { characterId: 'deepseek', overrides: { displayName: nickname } })
+    const global = JSON.parse(seed.files.get(seed.globalPath)!)
+    const lines = [
+      { who: 'narrator', text: '（小吉看着鲸鱼娘；鲸鱼娘有点无语。）' },
+      { who: 'narrator', text: '鲸鱼娘：鲸鱼娘我在呢。' },
+    ]
+    const expected = nickname ? lines : [
+      { who: 'narrator', text: '（小吉看着大肥鱼；大肥鱼有点无语。）' },
+      { who: 'narrator', text: '大肥鱼：鲸鱼娘我在呢。' },
+    ]
+    for (const kind of ['global', 'combined', 'workspace-v1']) {
+      const oldGlobal = structuredClone(global)
+      let legacy: Record<string, string> = {}
+      if (kind === 'global') oldGlobal.characters.grok.chatLines = lines
+      else {
+        const old = kind === 'combined' ? JSON.parse(legacySave('B')) : {
+          kind: 'dsh-whale-galgame-workspace', v: 1,
+          characters: structuredClone(global.characters), tokens: { bank: 0 },
+        }
+        if (kind === 'workspace-v1') {
+          for (const character of Object.values(old.characters) as any[]) {
+            character.profileOverrides = {}
+            character.chatLines = []
+          }
+        }
+        old.characters.grok = { ...structuredClone(global.characters.grok), chatLines: lines }
+        legacy = { [root]: JSON.stringify(old) }
+      }
+      const loaded = makeHarness({ roots: [root], globalSave: JSON.stringify(oldGlobal), legacy })
+      await loaded.post('session-a', 'profile-get')
+      const persisted = JSON.parse(loaded.files.get(loaded.globalPath)!)
+      assert.deepEqual(persisted.characters.grok.chatLines, expected, kind + ': ' + nickname)
+      assert.equal(persisted.characters.deepseek.profileOverrides.displayName || '', nickname)
+      const again = makeHarness({ roots: [root], globalSave: JSON.stringify(persisted) })
+      await again.post('session-a', 'profile-get')
+      assert.equal(again.writeTargets.length, 0, 'normalized save does not need another write')
+    }
+  }
+})
+
+test('old saves inherit distinct addresses and filter legacy fallback lines while preserving explicit overrides', async () => {
+  const root = 'E:\\workspace\\addresses'
+  const addresses = { deepseek: '主人', claude: '您', chatgpt: '小家伙', gemini: '旅人', kimi: '执笔人', grok: '老板' }
+  const suffixes: Record<string, string> = {
+    deepseek: '说的话我听着呢～再扒口大白饭就陪你歇会儿。',
+    claude: '说的话，咱都记下了，慢慢说就好。',
+    chatgpt: '说的话，本龙听着呢，你可是最珍贵的财宝。',
+    gemini: '说的话……我听见了，两种颜色都收好了。',
+    kimi: '说的话，我已经记在长卷上了。',
+    grok: '说的话我都听见了，吐槽归吐槽，我罩着你。',
+  }
+  const generic = '说的话，我听到啦～（今天的深海信号有点弱，但心意传达到了哦）'
+  for (const [id, address] of Object.entries(addresses)) {
+    for (const override of [null, '同伴', '你']) {
+      const old = JSON.parse(legacySave('B'))
+      const oldAddress = ['gemini', 'kimi'].includes(id) ? '你' : '主人'
+      const canned = [...new Set([address, oldAddress, override || address])]
+        .flatMap((value) => [value + generic, value + suffixes[id]])
+      const userText = oldAddress + suffixes[id]
+      old.characters[id] = {
+        profileOverrides: override ? { address: override } : {},
+        log: [{ role: 'user', text: userText }, { role: 'assistant', text: '真实模型回答。' }, ...canned.map((text) => ({ role: 'assistant', text }))],
+        chatLines: [{ who: 'heroine', text: '原来的问候' }],
+      }
+      const harness = makeHarness({ roots: [root], legacy: { [root]: JSON.stringify(old) } })
+      const profile = await harness.post('session-a', 'profile-get', { characterId: id })
+      assert.equal(profile.builtIn.address, address)
+      assert.equal(profile.effective.address, override || address)
+      assert.deepEqual(profile.overrides, override ? { address: override } : {})
+      await harness.post('session-a', 'settings-set', { characterMode: 'manual', characterId: id })
+      await harness.post('session-a', 'chat', { text: '继续聊。' })
+      const request = harness.mainRequests.at(-1)
+      assert.deepEqual(request.messages.filter((row: any) => row.role === 'assistant').map((row: any) => row.content[0].text), ['真实模型回答。'])
+      assert.ok(request.messages.some((row: any) => row.role === 'user' && row.content[0].text === userText))
+      const persisted = JSON.parse(harness.files.get(harness.globalPath)!)
+      assert.deepEqual(persisted.characters[id].log.slice(0, old.characters[id].log.length), old.characters[id].log)
+    }
+  }
+})
+
+test('Dafeiyu follows the new default only without a manual background and keeps global upload and CG overrides', async () => {
+  const root = 'E:\\workspace\\dafeiyu-background'
+  for (const chosen of [undefined, null, '', 'palace-night']) {
+    for (const override of [null, PIXEL_ALT, 'cg:global-cg']) {
+      const old = JSON.parse(legacySave('A'))
+      old.characters.deepseek.chosenBuiltinBackground = chosen
+      old.bg = override
+      const harness = makeHarness({ roots: [root], legacy: { [root]: JSON.stringify(old) } })
+      const view = await harness.post('session-a', 'view')
+      const builtin = chosen || 'bg-deepseek-seaside-study'
+      assert.equal(view.builtinBackgroundKey, builtin)
+      assert.equal(view.backgroundOptions.find((row: any) => row.default).key, 'bg-deepseek-seaside-study')
+      assert.equal(view.bg, override === PIXEL_ALT ? 'custom' : override ? 'cg' : builtin)
+      assert.equal(view.backgroundMode, override === PIXEL_ALT ? 'custom' : override ? 'cg' : 'builtin')
+      const persisted = harness.files.get(harness.globalPath)!
+      const reloaded = makeHarness({ roots: [root], globalSave: persisted })
+      const again = await reloaded.post('session-a', 'view')
+      assert.equal(again.bg, view.bg)
+      assert.equal(again.builtinBackgroundKey, builtin)
+      if (override) {
+        const switched = await reloaded.post('session-a', 'settings-set', { characterMode: 'manual', characterId: 'claude' })
+        assert.equal(switched.view.bg, view.bg, 'custom and CG backgrounds remain global')
+      }
+    }
+  }
+})
 
 function workspaceFile(root: string): string {
   return root.replace(/[\\/]$/, '') + '\\.whale-girl-save.json'
@@ -990,7 +1237,7 @@ test('migrates a combined save into global v2 and resumes its timeline after res
 test('upgrades deployed global v1 plus workspace v1 exactly once and preserves the complete game', async () => {
   const seedRoot = 'E:\\workspace\\v1-seed'
   const seed = makeHarness({ roots: [seedRoot], legacy: { [seedRoot]: legacySave('A') } })
-  await seed.post('session-a', 'view')
+  await seed.post('session-a', 'settings-set', { characterMode: 'manual', characterId: 'deepseek' })
   const seededGlobal = JSON.parse(seed.files.get(seed.globalPath) || '{}')
 
   const globalV1 = JSON.parse(JSON.stringify(seededGlobal))

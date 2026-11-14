@@ -10,22 +10,30 @@ import React, { useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { WHALE_ART } from './art.generated'
 import { WorkshopMap, WORKSHOP_CSS } from './workshop-map'
+import {
+  PET_FRAMES, PET_DEFAULT_POSITION, createPetBehavior, petTransition, petView,
+  clampPetPosition, readPetPosition, createPetDrag, movePetDrag, endPetDrag,
+} from './pet-behavior'
 
 const CSS = [
   // ── pet ────────────────────────────────────────────────────────────────
-  '.whg-pet{--whg-scale:1.15;--whg-y:0px;position:fixed;right:18px;bottom:124px;width:calc(192px * var(--whg-scale));height:calc(208px * var(--whg-scale));padding:0;border:0;border-radius:18px;background:transparent;cursor:zoom-in;filter:drop-shadow(0 10px 16px rgb(0 0 0 / 36%));transition:width 180ms ease,height 180ms ease,filter 180ms ease;z-index:9999}',
-  '.whg-pet[data-mode="running"]{--whg-y:-1456px}',
-  '.whg-pet[data-mode="waiting"]{--whg-y:-1248px}',
-  '.whg-pet-sprite{display:block;width:192px;height:208px;background-repeat:no-repeat;background-size:1536px 2288px;background-position:0 var(--whg-y);transform:scale(var(--whg-scale));transform-origin:left top;animation:whgPetFrames 1.7s step-end infinite}',
-  '.whg-pet[data-mode="running"] .whg-pet-sprite{animation-duration:900ms}',
-  '.whg-pet[data-mode="waiting"] .whg-pet-sprite{animation-duration:1.35s}',
-  '.whg-pet[data-looking="true"] .whg-pet-sprite{animation:none;background-position:var(--whg-look-x) var(--whg-look-y)}',
-  '@keyframes whgPetFrames{0%,16.66%{background-position:0 var(--whg-y)}16.67%,33.32%{background-position:-192px var(--whg-y)}33.33%,49.99%{background-position:-384px var(--whg-y)}50%,66.65%{background-position:-576px var(--whg-y)}66.66%,83.32%{background-position:-768px var(--whg-y)}83.33%,99.99%{background-position:-960px var(--whg-y)}100%{background-position:0 var(--whg-y)}}',
+  '.whg-pet{--whg-scale:.9;--whg-swing:0deg;position:fixed;right:18px;bottom:124px;width:calc(192px * var(--whg-scale));height:calc(256px * var(--whg-scale));padding:0;border:0;border-radius:18px;background:transparent;cursor:grab;touch-action:none;user-select:none;filter:drop-shadow(0 10px 16px rgb(0 0 0 / 36%));z-index:9999}',
+  '.whg-pet[data-act="carried"]{cursor:grabbing}',
+  '.whg-pet-density{position:absolute;left:0;top:0;display:block;width:192px;height:256px;transform:scale(var(--whg-scale));transform-origin:0 0;pointer-events:none}',
+  '.whg-pet-motion{display:block;width:100%;height:100%;transform:rotate(var(--whg-swing));transform-origin:96px 249px;transition:transform 180ms cubic-bezier(.2,.9,.3,1.25)}',
+  '.whg-pet[data-act="carried"] .whg-pet-motion{transform-origin:96px 20px}',
+  '.whg-pet-sprite{display:block;width:192px;height:256px;background-repeat:no-repeat;background-size:1152px 1792px;transform-origin:96px 249px}',
+  '.whg-pet[data-act="idle"] .whg-pet-sprite{animation:whgPetBreathe 4s ease-in-out infinite}',
+  '.whg-pet[data-act="landed"] .whg-pet-sprite{animation:whgPetLand .65s ease-out}',
+  '@keyframes whgPetBreathe{0%,100%{transform:scaleY(1)}50%{transform:scaleY(1.006)}}',
+  '@keyframes whgPetLand{0%{transform:scale(1.045,.94)}45%{transform:scale(.985,1.025)}100%{transform:scale(1)}}',
+  '.whg-pet-bubble{position:absolute;bottom:calc(100% + 5px);left:50%;width:max-content;max-width:220px;transform:translateX(-50%);padding:7px 10px;border:1px solid #dcc58a;border-radius:12px;background:#fff9eb;color:#493c35;font:12px/1.5 system-ui,sans-serif;white-space:normal;pointer-events:none}',
+  '.whg-pet-controls{display:inline-flex;align-items:center;gap:8px}',
   '.whg-pet-status{position:absolute;right:8px;bottom:-28px;max-width:184px;overflow:hidden;padding:5px 10px;border:1px solid var(--dsw-alias-border-l2);border-radius:999px;color:var(--dsw-alias-text-secondary);background:color-mix(in srgb,var(--dsw-alias-bg-base) 88%,transparent);font:12px/1.2 system-ui,sans-serif;text-overflow:ellipsis;white-space:nowrap;opacity:0;transform:translateY(4px);transition:opacity 150ms ease,transform 150ms ease;pointer-events:none}',
   '.whg-pet:hover .whg-pet-status,.whg-pet:focus-visible .whg-pet-status{opacity:1;transform:translateY(0)}',
   '.whg-pet:focus-visible{outline:2px solid var(--dsw-alias-border-l3);outline-offset:4px}',
-  '@media (max-width:760px){.whg-pet{--whg-scale:.9;right:8px;bottom:106px}}',
-  '@media (prefers-reduced-motion:reduce){.whg-pet-sprite{animation:none}}',
+  '@media (max-width:760px){.whg-pet{--whg-scale:.75}}',
+  '@media (prefers-reduced-motion:reduce){.whg-pet[data-act] .whg-pet-sprite{animation:none}.whg-pet-motion{transform:none;transition:none}}',
   // ── fullscreen VN ──────────────────────────────────────────────────────
   '.whg-root{position:fixed;inset:0;z-index:8000;font-family:system-ui,"Segoe UI","Microsoft YaHei",sans-serif;user-select:none;pointer-events:auto;overflow:hidden;background:#050b18;color:#eaf5ff}',
   '.whg-root-tab{position:relative;flex:1 1 0;width:100%;height:100%;min-height:0;box-sizing:border-box;z-index:auto;font-family:system-ui,"Segoe UI","Microsoft YaHei",sans-serif;user-select:none;overflow:hidden;background:#050b18;color:#eaf5ff;border:0;border-radius:0}',
@@ -110,7 +118,7 @@ const CSS = [
   '.whg-sprite-custom{max-width:min(70vw,100%);object-fit:contain;object-position:center bottom}',
   '.whg-stage{position:absolute;inset:0;z-index:2;pointer-events:none;display:flex;align-items:flex-end;justify-content:center}',
   '.whg-tint{position:absolute;inset:0}',
-  '.whg-sprite-wrap{position:relative;margin-right:0;margin-bottom:0;height:96vh;display:flex;align-items:flex-end;transform:translateY(clamp(56px,12vh,96px)) scale(1.1);transform-origin:center top}',
+  '.whg-sprite-wrap{position:relative;margin-right:0;margin-bottom:0;height:96vh;display:flex;align-items:flex-end;transform:translateY(clamp(56px,12vh,96px)) scale(1.33);transform-origin:center top}',
   '.whg-sprite{height:100%;width:auto;display:block;filter:drop-shadow(0 18px 40px rgba(0,10,30,.65));transition:filter .5s ease}',
   // Side-story stage: two or three cast slots share the floor line. The speaker
   // keeps full brightness while the rest step back.
@@ -228,8 +236,8 @@ const CSS = [
   '.whg-send{background:linear-gradient(135deg,#174456,#0c293b);border:1px solid rgba(215,182,108,.5);color:#f1e2bf;border-radius:14px;padding:0 20px;font-size:14px;cursor:pointer;font-weight:700;font-family:inherit}',
   '.whg-send:hover,.whg-send:focus-visible{background:linear-gradient(135deg,#265264,#173b4d);border-color:var(--whg-brass);box-shadow:inset 0 0 12px rgba(215,182,108,.1)}',
   '.whg-send:disabled{opacity:.5;cursor:default}',
-  '@media (max-height:700px){.whg-sprite-wrap,.whg-root-tab .whg-sprite-wrap{height:min(84vh,100%);transform:translateY(2vh) scale(1.1)}.whg-sprite-wrap.whg-portrait,.whg-root-tab .whg-sprite-wrap.whg-portrait{height:32vh;margin-bottom:48vh;transform:translateY(0) scale(1.1)}.whg-panel,.whg-root-tab .whg-panel{box-sizing:border-box;min-height:28vh;max-height:44vh;bottom:1vh;padding:38px 22px 12px}.whg-line-now{min-height:0;overflow-y:auto;font-size:16px;line-height:1.55}.whg-choices{min-height:0;overflow-y:auto;gap:5px;margin-top:8px}.whg-choice{padding:6px 10px}.whg-input-row{flex-shrink:0;margin-top:8px}.whg-cast-slot,.whg-cast-slot[data-lead="true"]{height:84vh}}',
-  '@media (max-width:720px),(max-aspect-ratio:3/4){.whg-sprite-wrap,.whg-root-tab .whg-sprite-wrap{height:min(78vh,100%);transform:translateY(3vh) scale(1.1)}.whg-sprite-wrap.whg-portrait,.whg-root-tab .whg-sprite-wrap.whg-portrait{height:32vh;margin-bottom:50vh;transform:translateY(0) scale(1.1)}.whg-panel,.whg-root-tab .whg-panel{box-sizing:border-box;left:10px;right:10px;bottom:1vh;min-height:28vh;max-height:46vh;padding:42px 14px 12px}.whg-plate{left:14px;max-width:calc(100% - 64px);box-sizing:border-box;overflow-wrap:anywhere;padding:6px 14px;font-size:13px;letter-spacing:1px}.whg-level{top:18px;left:14px;right:auto;gap:5px;font-size:10px}.whg-level-track{width:clamp(36px,12vw,80px)}.whg-text-speed{top:15px;right:12px;font-size:10px;padding:3px 7px}.whg-line-now{min-height:0;overflow-y:auto;font-size:16px;line-height:1.6}.whg-choices{min-height:0;overflow-y:auto;gap:5px;margin-top:8px}.whg-choice{padding:6px 10px;font-size:12px}.whg-input-row{flex-shrink:0;margin-top:8px}.whg-input{min-width:0}.whg-send{padding:0 12px}.whg-cast-slot,.whg-cast-slot[data-lead="true"]{height:78vh}}',
+  '@media (max-height:700px){.whg-sprite-wrap,.whg-root-tab .whg-sprite-wrap{height:min(84vh,100%);transform:translateY(2vh) scale(1.33)}.whg-sprite-wrap.whg-portrait,.whg-root-tab .whg-sprite-wrap.whg-portrait{height:32vh;margin-bottom:48vh;transform:translateY(0) scale(1.1)}.whg-panel,.whg-root-tab .whg-panel{box-sizing:border-box;min-height:28vh;max-height:44vh;bottom:1vh;padding:38px 22px 12px}.whg-line-now{min-height:0;overflow-y:auto;font-size:16px;line-height:1.55}.whg-choices{min-height:0;overflow-y:auto;gap:5px;margin-top:8px}.whg-choice{padding:6px 10px}.whg-input-row{flex-shrink:0;margin-top:8px}.whg-cast-slot,.whg-cast-slot[data-lead="true"]{height:84vh}}',
+  '@media (max-width:720px),(max-aspect-ratio:3/4){.whg-sprite-wrap,.whg-root-tab .whg-sprite-wrap{height:min(78vh,100%);transform:translateY(3vh) scale(1.33)}.whg-sprite-wrap.whg-portrait,.whg-root-tab .whg-sprite-wrap.whg-portrait{height:32vh;margin-bottom:50vh;transform:translateY(0) scale(1.1)}.whg-panel,.whg-root-tab .whg-panel{box-sizing:border-box;left:10px;right:10px;bottom:1vh;min-height:28vh;max-height:46vh;padding:42px 14px 12px}.whg-plate{left:14px;max-width:calc(100% - 64px);box-sizing:border-box;overflow-wrap:anywhere;padding:6px 14px;font-size:13px;letter-spacing:1px}.whg-level{top:18px;left:14px;right:auto;gap:5px;font-size:10px}.whg-level-track{width:clamp(36px,12vw,80px)}.whg-text-speed{top:15px;right:12px;font-size:10px;padding:3px 7px}.whg-line-now{min-height:0;overflow-y:auto;font-size:16px;line-height:1.6}.whg-choices{min-height:0;overflow-y:auto;gap:5px;margin-top:8px}.whg-choice{padding:6px 10px;font-size:12px}.whg-input-row{flex-shrink:0;margin-top:8px}.whg-input{min-width:0}.whg-send{padding:0 12px}.whg-cast-slot,.whg-cast-slot[data-lead="true"]{height:78vh}}',
   // ── CG reward ──────────────────────────────────────────────────────────
   '.whg-cg-backdrop{position:fixed;inset:0;z-index:9500;background:rgba(2,6,18,.85);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:18px;backdrop-filter:blur(6px)}',
   '.whg-cg-img{max-width:80vw;max-height:72vh;border-radius:18px;box-shadow:0 24px 80px rgba(0,0,0,.7);border:2px solid rgba(140,200,255,.35)}',
@@ -1211,59 +1219,190 @@ function SpeakerCue(props: {
 
 function Pet(props: { useSessions: any; onOpen: () => void }): React.ReactElement {
   const mode = props.useSessions ? props.useSessions(selectMode) : 'idle'
-  const [lookIndex, setLookIndex] = useState<number | null>(null)
-  const buttonRef = useRef<any>(null)
-  const sheet = art('pet-spritesheet')
-  const spriteStyle = sheet
-    ? { backgroundImage: 'url(' + sheet + ')' }
-    : { background: 'linear-gradient(160deg,#0e2b52,#123a63)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40 }
+  const [reducedMotion, setReducedMotion] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+  const [behavior, setBehavior] = useState(() => createPetBehavior(mode, reducedMotion))
+  const behaviorRef = useRef(behavior)
+  const clockRef = useRef(performance.now())
+  const buttonRef = useRef<HTMLButtonElement | null>(null)
+  const dragRef = useRef<{ gesture: ReturnType<typeof createPetDrag>; pointerId: number; x: number; time: number } | null>(null)
+  const suppressClick = useRef(false)
+  const settleTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const [swing, setSwing] = useState(0)
+  const [sheetFailed, setSheetFailed] = useState(false)
+  const sheet = art('pet-dafeiyu')
+
+  function geometry() {
+    const scale = window.innerWidth <= 760 ? .75 : .9
+    return { viewport: { width: window.innerWidth, height: window.innerHeight }, size: { width: 192 * scale, height: 256 * scale }, scale }
+  }
+  const [position, setPosition] = useState(() => {
+    const { viewport, size } = geometry()
+    try { return readPetPosition(localStorage.getItem('whg-pet-position'), viewport, size) }
+    catch { return clampPetPosition(PET_DEFAULT_POSITION, viewport, size) }
+  })
+  const positionRef = useRef(position)
+
+  function place(next: typeof position, persist = false) {
+    const { viewport, size } = geometry()
+    const clamped = clampPetPosition(next, viewport, size)
+    positionRef.current = clamped
+    setPosition(clamped)
+    if (persist) {
+      try { localStorage.setItem('whg-pet-position', JSON.stringify(clamped)) } catch { /* position still works for this session */ }
+    }
+  }
+  function send(event: Parameters<typeof petTransition>[1]) {
+    // Account for elapsed time at events as well as deadlines: pointer motion must
+    // not keep postponing a frame or bubble timeout. No animation polling loop.
+    const now = performance.now()
+    const elapsed = Math.max(0, now - clockRef.current)
+    const advanced = petTransition(behaviorRef.current, { type: 'tick', ms: elapsed })
+    const next = petTransition(advanced, event)
+    clockRef.current = now
+    behaviorRef.current = next
+    setBehavior(next)
+  }
+  const view = petView(behavior)
+  const frame = PET_FRAMES[view.frame]
 
   useEffect(() => {
-    if (mode !== 'idle') {
-      setLookIndex(null)
-      return undefined
+    send({ type: 'mode', mode })
+  }, [mode])
+  useEffect(() => {
+    const query = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const sync = () => {
+      setReducedMotion(query.matches)
+      setSwing(0)
+      send({ type: 'reduced', reducedMotion: query.matches })
     }
-    let idleTimer: any
-    const handlePointerMove = (event: PointerEvent) => {
-      const rect = buttonRef.current && buttonRef.current.getBoundingClientRect ? buttonRef.current.getBoundingClientRect() : null
+    sync()
+    query.addEventListener('change', sync)
+    return () => query.removeEventListener('change', sync)
+  }, [])
+  useEffect(() => {
+    if (view.delay === null) return undefined
+    const remaining = Math.max(1, Math.ceil(view.delay - (performance.now() - clockRef.current)))
+    const timer = setTimeout(() => send({ type: 'tick', ms: 0 }), remaining)
+    return () => clearTimeout(timer)
+  }, [behavior])
+  useEffect(() => {
+    setSheetFailed(false)
+    if (!sheet) return undefined
+    const image = new Image()
+    image.onerror = () => setSheetFailed(true)
+    image.src = sheet
+    return () => { image.onerror = null }
+  }, [sheet])
+  useEffect(() => {
+    const resize = () => place(positionRef.current, true)
+    const reset = () => {
+      try { localStorage.removeItem('whg-pet-position') } catch { /* storage may be unavailable */ }
+      place(PET_DEFAULT_POSITION)
+    }
+    window.addEventListener('resize', resize)
+    window.addEventListener('whg:pet-reset', reset)
+    return () => {
+      window.removeEventListener('resize', resize)
+      window.removeEventListener('whg:pet-reset', reset)
+      clearTimeout(settleTimer.current)
+    }
+  }, [])
+  useEffect(() => {
+    if (mode !== 'idle' || reducedMotion) return undefined
+    const move = (event: PointerEvent) => {
+      if (dragRef.current || event.pointerType === 'touch'
+        || event.clientX < 0 || event.clientX > window.innerWidth
+        || event.clientY < 0 || event.clientY > window.innerHeight) return
+      const rect = buttonRef.current?.getBoundingClientRect()
       if (!rect) return
       const dx = event.clientX - (rect.left + rect.width / 2)
       const dy = event.clientY - (rect.top + rect.height / 2)
-      const clockwiseFromUp = (Math.atan2(dx, -dy) * 180 / Math.PI + 360) % 360
-      setLookIndex(Math.round(clockwiseFromUp / 22.5) % 16)
-      if (idleTimer) clearTimeout(idleTimer)
-      idleTimer = setTimeout(() => setLookIndex(null), 1100)
+      send({ type: 'look', dx, dy })
     }
-    window.addEventListener('pointermove', handlePointerMove, { passive: true })
-    return () => {
-      window.removeEventListener('pointermove', handlePointerMove)
-      if (idleTimer) clearTimeout(idleTimer)
-    }
-  }, [mode])
+    window.addEventListener('pointermove', move, { passive: true })
+    return () => window.removeEventListener('pointermove', move)
+  }, [mode, reducedMotion])
 
-  const lookRow = lookIndex === null ? 0 : lookIndex < 8 ? 9 : 10
-  const lookColumn = lookIndex === null ? 0 : lookIndex % 8
-  const label = mode === 'running' ? 'deepseek娘正在工作' : mode === 'waiting' ? 'deepseek娘正在等待你' : 'deepseek娘正在待机'
-  const hint = '点击开始galgame'
+  function pointerDown(event: React.PointerEvent<HTMLButtonElement>) {
+    if (!event.isPrimary || event.button !== 0 || dragRef.current) return
+    suppressClick.current = false
+    dragRef.current = { gesture: createPetDrag(event.pointerId, event.clientX, event.clientY), pointerId: event.pointerId, x: event.clientX, time: event.timeStamp }
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+  function pointerMove(event: React.PointerEvent<HTMLButtonElement>) {
+    const drag = dragRef.current
+    if (!drag || drag.pointerId !== event.pointerId) return
+    const gesture = movePetDrag(drag.gesture, event.clientX, event.clientY)
+    const dx = event.clientX - drag.x
+    const elapsed = Math.max(16, event.timeStamp - drag.time)
+    dragRef.current = { gesture, pointerId: event.pointerId, x: event.clientX, time: event.timeStamp }
+    if (!gesture.dragging) return
+    event.preventDefault()
+    if (!drag.gesture.dragging) send({ type: 'hover', hovered: false })
+    const direction = dx > .5 ? 1 : dx < -.5 ? -1 : 0
+    send({ type: 'carry', direction })
+    setSwing(reducedMotion ? 0 : Math.max(-12, Math.min(12, -dx / elapsed * 8)))
+    const { viewport, size, scale } = geometry()
+    // Atlas pickup point (192,40) / 2: align the head ornament to the pointer.
+    place({ right: viewport.width - event.clientX - (192 - 96) * scale, bottom: viewport.height - event.clientY - (256 - 20) * scale })
+    clearTimeout(settleTimer.current)
+    settleTimer.current = setTimeout(() => { setSwing(0); send({ type: 'carry', direction: 0 }) }, 120)
+  }
+  function pointerEnd(event: React.PointerEvent<HTMLButtonElement>) {
+    const drag = dragRef.current
+    if (!drag || drag.pointerId !== event.pointerId) return
+    dragRef.current = null
+    clearTimeout(settleTimer.current)
+    const result = endPetDrag(drag.gesture)
+    suppressClick.current = result.suppressClick
+    if (result.suppressClick) {
+      setSwing(0)
+      send({ type: 'land' })
+      place(positionRef.current, true)
+    }
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
+  }
+  const label = mode === 'running' ? '大肥鱼正在干活' : mode === 'waiting' ? '大肥鱼在等你回话' : '大肥鱼正在摸鱼'
+  const hint = '点击开始 galgame，按住可拖动'
+  const hasSheet = !!sheet && !sheetFailed
+  const spriteStyle = hasSheet
+    ? { backgroundImage: 'url(' + sheet + ')', backgroundPosition: (-frame.column * 192) + 'px ' + (-frame.row * 256) + 'px' }
+    : { background: 'linear-gradient(160deg,#0e2b52,#123a63)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40 }
   return React.createElement('button', {
     'aria-label': label + '，' + hint,
     className: 'whg-pet',
-    'data-looking': String(lookIndex !== null),
     'data-mode': mode,
-    onClick: props.onOpen,
+    'data-act': view.act,
+    'data-frame': view.frame,
+    onClick: (event: React.MouseEvent) => {
+      if (suppressClick.current && event.detail !== 0) { suppressClick.current = false; event.preventDefault(); return }
+      suppressClick.current = false
+      props.onOpen()
+    },
+    onPointerDown: pointerDown,
+    onPointerMove: pointerMove,
+    onPointerUp: pointerEnd,
+    onPointerCancel: pointerEnd,
+    onLostPointerCapture: pointerEnd,
+    onPointerEnter: (event: React.PointerEvent) => { if (!dragRef.current && event.pointerType !== 'touch') send({ type: 'hover', hovered: true }) },
+    onPointerLeave: () => { if (!dragRef.current?.gesture.dragging) send({ type: 'hover', hovered: false }) },
+    onDragStart: (event: React.DragEvent) => event.preventDefault(),
+    onKeyDown: (event: React.KeyboardEvent) => {
+      const step = event.shiftKey ? 64 : 16
+      const offset = { ArrowLeft: [step, 0], ArrowRight: [-step, 0], ArrowUp: [0, step], ArrowDown: [0, -step] }[event.key]
+      if (!offset || dragRef.current) return
+      event.preventDefault()
+      place({ right: positionRef.current.right + offset[0], bottom: positionRef.current.bottom + offset[1] }, true)
+    },
     ref: buttonRef,
-    style: {
-      '--whg-look-x': (-lookColumn * 192) + 'px',
-      '--whg-look-y': (-lookRow * 208) + 'px',
-    } as any,
+    style: { right: position.right + 'px', bottom: position.bottom + 'px', '--whg-swing': (view.act === 'carried' ? swing : 0) + 'deg' } as any,
     title: label + '，' + hint,
     type: 'button',
   },
-    React.createElement('span', {
-      'aria-hidden': 'true',
-      className: 'whg-pet-sprite',
-      style: spriteStyle,
-    }, sheet ? undefined : '🐋'),
+    React.createElement('span', { className: 'whg-pet-density', 'aria-hidden': 'true' },
+      React.createElement('span', { className: 'whg-pet-motion' },
+        React.createElement('span', { className: 'whg-pet-sprite', style: spriteStyle }, hasSheet ? undefined : '🐋'))),
+    view.bubble ? React.createElement('span', { className: 'whg-pet-bubble', 'aria-hidden': 'true' }, view.bubble) : null,
     React.createElement('span', { className: 'whg-pet-status' }, label),
   )
 }
@@ -1539,13 +1678,13 @@ function PluginSettingsCard(): React.ReactElement {
   return React.createElement('li', { className: 'whg-settings-card', 'data-open': String(open) },
     React.createElement('button', {
       'aria-expanded': open,
-      'aria-label': (open ? '收起' : '展开') + '鲸鱼娘 Galgame 设置',
+      'aria-label': (open ? '收起' : '展开') + '大肥鱼 Galgame 设置',
       className: 'whg-settings-head',
       onClick: () => setOpen(!open),
       type: 'button',
     },
       React.createElement('span', { className: 'whg-settings-heading' },
-        React.createElement('span', { className: 'whg-settings-name' }, '鲸鱼娘 Galgame'),
+        React.createElement('span', { className: 'whg-settings-name' }, '大肥鱼 Galgame'),
         React.createElement('span', { className: 'whg-settings-desc' }, '控制插件、桌宠显示、出场角色与台词模型。'),
       ),
       React.createElement('span', { className: 'whg-settings-status' }, loading ? '读取中' : error ? '不可用' : enabled ? '已启用' : '已关闭'),
@@ -1572,6 +1711,7 @@ function PluginSettingsCard(): React.ReactElement {
             React.createElement('strong', null, '显示桌宠'),
             React.createElement('small', null, '关闭后仍可从会话顶部的 galgame 页签进入，并在这里重新开启。'),
           ),
+          React.createElement('span', { className: 'whg-pet-controls' },
           React.createElement('button', {
             'aria-checked': petEnabled,
             'aria-label': '显示桌宠',
@@ -1581,6 +1721,15 @@ function PluginSettingsCard(): React.ReactElement {
             role: 'switch',
             type: 'button',
           }, petEnabled ? '已显示' : '已隐藏'),
+          React.createElement('button', {
+            className: 'whg-settings-toggle',
+            type: 'button',
+            'aria-label': '桌宠归位',
+            onClick: () => {
+              try { localStorage.removeItem('whg-pet-position') } catch { /* storage may be unavailable */ }
+              window.dispatchEvent(new CustomEvent('whg:pet-reset'))
+            },
+          }, '归位')),
         ),
         React.createElement('label', { className: 'whg-settings-row' },
           React.createElement('span', { className: 'whg-settings-copy' },
@@ -3255,7 +3404,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
         React.createElement('span', null, cooling ? '冷却中 · 约 ' + mins + ' 分钟' : '可开演'),
       ),
       React.createElement('p', { className: 'whg-side-seed' },
-        '不填就让她们自己找话题：优先看看外面在聊什么，找不到就聊主人最近在忙的事。'),
+        '不填就让她们自己找话题：优先看看外面在聊什么，找不到就聊你最近在忙的事。'),
       React.createElement('input', {
         className: 'whg-input',
         value: skitTopic,
@@ -3479,7 +3628,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
         : skitLogLoading
           ? React.createElement('div', { className: 'whg-archive-empty' }, '正在翻出后台的演出记录……')
           : skitLog.length === 0
-            ? React.createElement('div', { className: 'whg-archive-empty' }, '还没有演过小剧场。等主人忙点什么，她们就有话题了。')
+            ? React.createElement('div', { className: 'whg-archive-empty' }, '还没有演过小剧场。等你忙点什么，她们就有话题了。')
             : React.createElement('div', { className: 'whg-skit-log' },
               skitLog.map((skit: any) => React.createElement('section', { className: 'whg-skit', key: String(skit.id) },
                 React.createElement('header', { className: 'whg-skit-head' },
@@ -3524,7 +3673,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
         ? React.createElement('div', { className: 'whg-archive-empty' }, '还没有对话记录。和' + s.name + '说句话，第一份深海档案就会在这里归档。')
         : React.createElement('div', { className: 'whg-history' },
           history.map((line: any, index: number) => {
-            const who = line && line.who === 'heroine' ? s.name : line && line.who === 'user' ? '主人' : '旁白'
+            const who = line && line.who === 'heroine' ? s.name : line && line.who === 'user' ? '你' : '旁白'
             const kind = line && line.who ? String(line.who) : 'narrator'
             const emotion = line?.emotion === 'happy' ? 'cheerful' : EMOTION_LABELS[line?.emotion] ? line.emotion : 'normal'
             const symbol = emotion !== 'normal' ? EMOTION_SYMBOLS[emotion] : ''
@@ -3821,7 +3970,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     const code = s && typeof s.sideStoryError === 'string' ? s.sideStoryError : ''
     if (!code) return null
     const message = code === 'no-seed'
-      ? '工坊今天很安静，等主人忙点什么之后再来看看吧。'
+      ? '工坊今天很安静，等你忙点什么之后再来看看吧。'
       : code === 'cooldown'
         ? '刚热闹过一场，让她们缓一缓。'
         : '这次没编出像样的短剧，稍后再试一次吧。'
@@ -3990,7 +4139,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     const isNarrator = !beat || beat.speaker === 'narrator'
     const isUser = pendingLine !== null || (!!beat && beat.speaker === 'user')
     const member = isNarrator || isUser ? null : scene.cast.find((row: any) => row.id === beat.speaker)
-    const plateLabel = isUser ? '主人' : isNarrator ? '旁白' : (member ? member.name : '???')
+    const plateLabel = isUser ? '你' : isNarrator ? '旁白' : (member ? member.name : '???')
     const plateColor = isUser ? '#ff9cc8' : isNarrator ? '#8fb4dd' : (member ? member.color : '#8fb4dd')
     const atEnd = sideStoryAtEnd(scene)
     // The server offers choices only at the interlude the master is standing in,
@@ -4091,7 +4240,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     if (activeScene) return sideStoryDialogue(activeScene)
     const last = pendingLine !== null ? { who: 'user', text: pendingLine } : lastLine()
     const plateLabel = last
-      ? (last.who === 'heroine' ? s.name : last.who === 'user' ? '主人' : '旁白')
+      ? (last.who === 'heroine' ? s.name : last.who === 'user' ? '你' : '旁白')
       : s.name
     const plateClass = last ? (last.who === 'heroine' ? '' : ' ' + last.who) : ''
     const plateColor = last
@@ -4257,8 +4406,8 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
       return React.createElement('div', { id: 'whg-tab-root', className: 'whg-root-tab' },
         React.createElement('div', { className: 'whg-disabled' },
           React.createElement('div', { className: 'whg-disabled-card' },
-            React.createElement('h2', null, '鲸鱼娘 Galgame 已关闭'),
-            React.createElement('p', null, '在左侧“设置 → 插件 → 鲸鱼娘”中展开鲸鱼娘 Galgame，即可重新开启。'),
+            React.createElement('h2', null, '大肥鱼 Galgame 已关闭'),
+            React.createElement('p', null, '在左侧“设置 → 插件 → 大肥鱼”中展开大肥鱼 Galgame，即可重新开启。'),
           ),
         ),
       )
@@ -4362,7 +4511,7 @@ export function apply(ctx: any): void {
   // The plugin owns its settings through /whale-galgame-api rather than a
   // DSH settings namespace, so expose it as a feature-owned Plugins tab.
   slots.inject('settings.plugins.tab', () => slots.register(
-    { name: 'settings.plugins.tab', id: 'whale-galgame', order: 20, label: '鲸鱼娘' },
+    { name: 'settings.plugins.tab', id: 'whale-galgame', order: 20, label: '大肥鱼' },
     () => React.createElement('ul', { className: 'whg-settings-tab-list' },
       React.createElement(PluginSettingsCard),
     ),

@@ -92,15 +92,16 @@
       "file": "walk-cycle-front-back.png",
       "width": 1536,
       "height": 1024,
-      "sha256": "80ee61a9ffa518755d713710fd8e4d43a5e0977048a33921fb0e108be773807c",
+      "sha256": "37db551ee0a26be8834e6c04911a352f8f5e8d17316f2a762f9a7c7918fd25ec",
       "model": "Codex built-in image generation",
       "modelVersionExposed": false,
       "reference": "residents-atlas-builtin.png",
       "notes": "walk-cycle-notes.md",
       "runtime": {
         "file": "walk-cycle-front-back.webp",
-        "sha256": "d16f37fce99adb91858c8360a19df7c34d950059044fe60991dea76426d19dba"
-      }
+        "sha256": "10b905aa3e3801f7ea5eed1634991720abe4480d06754b4d6846e76b3e30d500"
+      },
+      "correctionNotes": "leisure-actions-notes.md: 正面两行已修正多出的手，其余像素不变。"
     },
     {
       "key": "workshop-walk-side-atlas",
@@ -130,6 +131,21 @@
       "runtime": {
         "file": "walk-cycle-side-mid.webp",
         "sha256": "379edfcd850bf73c377c028a14d28a493998b58a0531c7adcc65ca2ed5929400"
+      }
+    },
+    {
+      "key": "workshop-leisure-atlas",
+      "file": "leisure-actions.png",
+      "width": 1536,
+      "height": 1024,
+      "model": "Codex built-in image generation",
+      "modelVersionExposed": false,
+      "reference": "residents-atlas-builtin.png",
+      "notes": "leisure-actions-notes.md",
+      "sha256": "9b268d224f4e2e392d622f15c42155e4035f65ed9aa8659fb386f71d1503d098",
+      "runtime": {
+        "file": "leisure-actions.webp",
+        "sha256": "82b071fec1631b806b2b4a926bc06823685fe2359bc709e2a598f828f5d38a34"
       }
     }
   ],
@@ -276,7 +292,18 @@
           "y": 246
         }
       ]
-    ]
+    ],
+    "activeRows": [
+      0
+    ],
+    "deprecatedRows": {
+      "rows": [
+        1,
+        2,
+        3
+      ],
+      "description": "已停用的旧帧：第 2～3 行旧行走、第 4 行读写；第 4 行洛可（Grok）有三只手的已知画错。运行时仅使用第 1 行待机。"
+    }
   },
   "weaveCreditsSpent": 22,
   "note": "The user approved built-in generation for the current themed dormitories and public interiors, as well as residents and the minimalist logo. The exact built-in model version is not exposed. Earlier Image 2.6 logo and environment records are retained as superseded source history; Weave credits spent remain 22.",
@@ -796,5 +823,139 @@
         ]
       ]
     }
+  },
+  "leisureLayout": {
+    "columns": 6,
+    "rows": 4,
+    "characters": [
+      "deepseek",
+      "claude",
+      "chatgpt",
+      "gemini",
+      "kimi",
+      "grok"
+    ],
+    "frames": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "description": "空闲且停在宿舍或公共区时，第 1→2→3→4 行各播 13 个计数，再在第 4 行收尾姿势停留 100 个计数，周期 152，期间不穿插待机；她停下后从第一帧起播；刚打开地图时六人依次起手，相邻两人相隔 20 个计数（约 0.6 秒）。暂停时帧计数停止、姿势定格；减少动态效果时静止显示第 4 行，缺图回退待机。每列四帧共用脚部横坐标与脚底高度的中位数锚点，比例按待机身高对齐后乘头身修正系数 0.92。静止待机与小头像沿用人物第 1 行锚点，正面行走过渡站姿使用 walk.idle。",
+    "activities": {
+      "deepseek": "用钢盆吃大白饭",
+      "claude": "看书",
+      "chatgpt": "双手捧起微型银河观测",
+      "gemini": "用魔法生成水晶",
+      "kimi": "用望远镜观星",
+      "grok": "挥斧头"
+    },
+    "scale": 0.9,
+    "footAnchors": [
+      [
+        {
+          "x": 142,
+          "y": 254
+        },
+        {
+          "x": 136,
+          "y": 254
+        },
+        {
+          "x": 127,
+          "y": 254.5
+        },
+        {
+          "x": 125,
+          "y": 253
+        },
+        {
+          "x": 118.5,
+          "y": 254
+        },
+        {
+          "x": 124.5,
+          "y": 251
+        }
+      ],
+      [
+        {
+          "x": 142,
+          "y": 254
+        },
+        {
+          "x": 136,
+          "y": 254
+        },
+        {
+          "x": 127,
+          "y": 254.5
+        },
+        {
+          "x": 125,
+          "y": 253
+        },
+        {
+          "x": 118.5,
+          "y": 254
+        },
+        {
+          "x": 124.5,
+          "y": 251
+        }
+      ],
+      [
+        {
+          "x": 142,
+          "y": 254
+        },
+        {
+          "x": 136,
+          "y": 254
+        },
+        {
+          "x": 127,
+          "y": 254.5
+        },
+        {
+          "x": 125,
+          "y": 253
+        },
+        {
+          "x": 118.5,
+          "y": 254
+        },
+        {
+          "x": 124.5,
+          "y": 251
+        }
+      ],
+      [
+        {
+          "x": 142,
+          "y": 254
+        },
+        {
+          "x": 136,
+          "y": 254
+        },
+        {
+          "x": 127,
+          "y": 254.5
+        },
+        {
+          "x": 125,
+          "y": 253
+        },
+        {
+          "x": 118.5,
+          "y": 254
+        },
+        {
+          "x": 124.5,
+          "y": 251
+        }
+      ]
+    ]
   }
 }
