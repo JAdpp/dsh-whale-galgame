@@ -163,7 +163,9 @@ const CSS = [
   '.whg-portrait .whg-emotion-bubble{left:76%;top:5%}',
   '.whg-blush{position:absolute;left:14%;top:16%;width:72%;height:28%;background:radial-gradient(ellipse at center,rgba(255,120,160,.9),transparent 70%);border-radius:50%;mix-blend-mode:screen;transition:opacity .5s ease}',
   '.whg-sprite-fallback{height:100%;display:flex;align-items:center;font-size:20vh;filter:drop-shadow(0 18px 40px rgba(0,10,30,.6))}',
-  '.whg-panel{--whg-brass:#d7b66c;--whg-accent:#8fd8ef;position:absolute;left:5vw;right:5vw;bottom:2.6vh;min-height:26vh;max-height:38vh;background:linear-gradient(180deg,rgba(7,30,45,.96),rgba(3,17,31,.98));border:1px solid rgba(215,182,108,.48);border-radius:22px;backdrop-filter:blur(12px);padding:26px 30px 18px;z-index:4;box-shadow:0 24px 60px rgba(0,8,24,.6),inset 0 1px var(--whg-accent);display:flex;flex-direction:column}',
+  '.whg-panel{--whg-brass:#d7b66c;--whg-accent:#8fd8ef;position:absolute;left:5vw;right:5vw;bottom:2.6vh;min-height:26vh;max-height:38vh;background:linear-gradient(180deg,rgba(7,30,45,var(--whg-panel-top,.596)) 0%,rgba(5,24,38,var(--whg-panel-mid,.647)) 42%,rgba(3,17,31,var(--whg-panel-bottom,.697)) 100%);border:1px solid rgba(215,182,108,var(--whg-panel-edge,.215));border-top-color:rgba(215,182,108,calc(var(--whg-panel-edge,.215)*var(--whg-panel-topline,0)));border-radius:22px;backdrop-filter:blur(var(--whg-panel-blur,3.6px));padding:26px 30px 18px;z-index:4;box-shadow:0 24px 60px rgba(0,8,24,var(--whg-panel-shadow,.33)),0 -22px 34px -8px rgba(5,24,38,var(--whg-panel-feather,.402)),inset 0 1px color-mix(in srgb,var(--whg-accent) calc(var(--whg-panel-topline,0)*100%),transparent);display:flex;flex-direction:column}',
+  '@media (prefers-reduced-transparency:reduce),(forced-colors:active){.whg-panel{--whg-panel-top:.96 !important;--whg-panel-mid:.97 !important;--whg-panel-bottom:.98 !important;--whg-panel-blur:12px !important;--whg-panel-edge:.48 !important;--whg-panel-shadow:.6 !important;--whg-panel-feather:0 !important;--whg-panel-topline:1 !important}}',
+  '@media (forced-colors:active){.whg-panel{background:Canvas;color:CanvasText;border-color:CanvasText}}',
   '.whg-panel:before,.whg-panel:after{content:"";position:absolute;left:8px;right:8px;height:10px;border-left:2px solid var(--whg-brass);border-right:2px solid var(--whg-brass);pointer-events:none}',
   '.whg-panel:before{top:8px;background:linear-gradient(var(--whg-brass),var(--whg-brass)) left top/10px 2px no-repeat,linear-gradient(var(--whg-brass),var(--whg-brass)) right top/10px 2px no-repeat}',
   '.whg-panel:after{bottom:8px;background:linear-gradient(var(--whg-brass),var(--whg-brass)) left bottom/10px 2px no-repeat,linear-gradient(var(--whg-brass),var(--whg-brass)) right bottom/10px 2px no-repeat}',
@@ -176,11 +178,13 @@ const CSS = [
   '.whg-level-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,#4aa8ff,#ff7ab8);transition:width .6s ease}',
   '.whg-line-now{font-family:"LXGW WenKai","霞鹜文楷","LXGW WenKai Screen","Source Han Serif SC","思源宋体","Noto Serif SC","Songti SC","STSong","SimSun",serif;font-size:clamp(16px,1.7vw,22px);line-height:1.8;animation:whgIn .45s ease;padding-top:6px}',
   '.whg-panel[data-font="system"] .whg-line-now{font-family:system-ui,"Segoe UI","Microsoft YaHei",sans-serif}',
-  '.whg-line-now.narrator{color:#9aafc1;letter-spacing:.06em;font-size:clamp(14px,1.4vw,18px)}',
+  '.whg-line-now.narrator{color:#c2d2de;letter-spacing:.06em;font-size:clamp(14px,1.4vw,18px)}',
   '.whg-line-now.user{color:#ffd9ec}',
   '.whg-line-now{cursor:pointer;white-space:pre-wrap}',
+  '.whg-panel .whg-line-now,.whg-panel .whg-level,.whg-panel .whg-response,.whg-panel .whg-fallback-note,.whg-panel .whg-side-seed,.whg-panel .whg-side-sources{text-shadow:0 1px 2px rgba(0,8,24,.9),0 0 10px rgba(0,8,24,.65)}',
   '.whg-text-speed{position:absolute;top:8px;right:14px;font-size:11px;z-index:6}',
-  '.whg-settings-trigger{padding:4px 9px;font-size:14px;color:#e6d2a3;border-color:rgba(215,182,108,.48)}',
+  '.whg-settings-trigger{padding:4px 9px;font-size:14px;color:#e6d2a3;border-color:rgba(215,182,108,.48);background:rgba(6,26,40,.82);backdrop-filter:blur(6px)}',
+  '.whg-settings-trigger:hover{background:rgba(23,57,73,.92)}',
   '.whg-display-popover.whg-picker{box-sizing:border-box;top:auto;bottom:calc(100% + 8px);left:auto;right:0;width:min(300px,calc(100vw - 52px));max-height:min(430px,60vh);padding:12px;font-size:13px}',
   '.whg-display-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;color:#dbe9ee}',
   '.whg-display-row select{max-width:130px;padding:4px 8px;border:1px solid rgba(215,182,108,.45);border-radius:6px;background:#092536;color:#f1e2bf;font:inherit}',
@@ -226,16 +230,18 @@ const CSS = [
   '@keyframes whgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}',
   '.whg-fallback-note{font-size:11px;color:#e8b04b;margin-top:6px}',
   '.whg-choices{display:flex;flex-direction:column;gap:8px;margin-top:10px}',
-  '.whg-choice{background:rgba(215,182,108,.06);border:1px solid rgba(215,182,108,.32);color:#e3edf2;border-radius:14px;padding:9px 16px;font-size:clamp(13px,1.3vw,16px);cursor:pointer;text-align:left;line-height:1.5;font-family:inherit}',
-  '.whg-choice:hover,.whg-choice:focus-visible{background:rgba(215,182,108,.13);border-color:rgba(215,182,108,.65);border-left-color:var(--whg-accent);box-shadow:inset 2px 0 var(--whg-accent)}',
+  '.whg-choice{background:rgba(6,26,40,.6);backdrop-filter:blur(6px);border:1px solid rgba(215,182,108,.32);color:#e3edf2;border-radius:14px;padding:9px 16px;font-size:clamp(13px,1.3vw,16px);cursor:pointer;text-align:left;line-height:1.5;font-family:inherit}',
+  '.whg-choice:hover,.whg-choice:focus-visible{background:rgba(23,57,73,.92);border-color:rgba(215,182,108,.65);border-left-color:var(--whg-accent);box-shadow:inset 2px 0 var(--whg-accent)}',
   '.whg-panel .whg-choice:focus-visible,.whg-send:focus-visible{outline:2px solid var(--whg-brass);outline-offset:2px}',
-  '.whg-choice:disabled{opacity:.5;cursor:default}',
+  '.whg-choice:disabled{background:rgba(6,26,40,.82);color:#94a8b5;border-color:rgba(215,182,108,.24);box-shadow:none;cursor:default}',
   '.whg-input-row{display:flex;gap:8px;margin-top:10px}',
-  '.whg-input{flex:1;background:rgba(255,255,255,.09);border:1px solid rgba(140,200,255,.32);color:#eaf5ff;border-radius:14px;padding:10px 14px;font-size:clamp(13px,1.3vw,16px);outline:none;font-family:inherit;min-width:0}',
-  '.whg-input:focus{border-color:rgba(160,215,255,.75)}',
-  '.whg-send{background:linear-gradient(135deg,#174456,#0c293b);border:1px solid rgba(215,182,108,.5);color:#f1e2bf;border-radius:14px;padding:0 20px;font-size:14px;cursor:pointer;font-weight:700;font-family:inherit}',
+  '.whg-input{flex:1;background:rgba(6,26,40,.6);backdrop-filter:blur(6px);border:1px solid rgba(215,182,108,.32);color:#eaf5ff;border-radius:14px;padding:10px 14px;font-size:clamp(13px,1.3vw,16px);outline:none;font-family:inherit;min-width:0}',
+  '.whg-input::placeholder{color:#a9bdca;opacity:1}',
+  '.whg-input:focus{border-color:rgba(215,182,108,.75)}',
+  '.whg-input:disabled{color:#94a8b5;border-color:rgba(215,182,108,.24);-webkit-text-fill-color:#94a8b5;opacity:1;cursor:default}',
+  '.whg-send{background:linear-gradient(135deg,#174456,#0c293b);backdrop-filter:blur(6px);border:1px solid rgba(215,182,108,.5);color:#f1e2bf;border-radius:14px;padding:0 20px;font-size:14px;cursor:pointer;font-weight:700;font-family:inherit}',
   '.whg-send:hover,.whg-send:focus-visible{background:linear-gradient(135deg,#265264,#173b4d);border-color:var(--whg-brass);box-shadow:inset 0 0 12px rgba(215,182,108,.1)}',
-  '.whg-send:disabled{opacity:.5;cursor:default}',
+  '.whg-send:disabled{background:rgba(6,26,40,.82);color:#94a8b5;border-color:rgba(215,182,108,.24);box-shadow:none;cursor:default}',
   '@media (max-height:700px){.whg-sprite-wrap,.whg-root-tab .whg-sprite-wrap{height:min(84vh,100%);transform:translateY(2vh) scale(1.33)}.whg-sprite-wrap.whg-portrait,.whg-root-tab .whg-sprite-wrap.whg-portrait{height:32vh;margin-bottom:48vh;transform:translateY(0) scale(1.1)}.whg-panel,.whg-root-tab .whg-panel{box-sizing:border-box;min-height:28vh;max-height:44vh;bottom:1vh;padding:38px 22px 12px}.whg-line-now{min-height:0;overflow-y:auto;font-size:16px;line-height:1.55}.whg-choices{min-height:0;overflow-y:auto;gap:5px;margin-top:8px}.whg-choice{padding:6px 10px}.whg-input-row{flex-shrink:0;margin-top:8px}.whg-cast-slot,.whg-cast-slot[data-lead="true"]{height:84vh}}',
   '@media (max-width:720px),(max-aspect-ratio:3/4){.whg-sprite-wrap,.whg-root-tab .whg-sprite-wrap{height:min(78vh,100%);transform:translateY(3vh) scale(1.33)}.whg-sprite-wrap.whg-portrait,.whg-root-tab .whg-sprite-wrap.whg-portrait{height:32vh;margin-bottom:50vh;transform:translateY(0) scale(1.1)}.whg-panel,.whg-root-tab .whg-panel{box-sizing:border-box;left:10px;right:10px;bottom:1vh;min-height:28vh;max-height:46vh;padding:42px 14px 12px}.whg-plate{left:14px;max-width:calc(100% - 64px);box-sizing:border-box;overflow-wrap:anywhere;padding:6px 14px;font-size:13px;letter-spacing:1px}.whg-level{top:18px;left:14px;right:auto;gap:5px;font-size:10px}.whg-level-track{width:clamp(36px,12vw,80px)}.whg-text-speed{top:15px;right:12px;font-size:10px;padding:3px 7px}.whg-line-now{min-height:0;overflow-y:auto;font-size:16px;line-height:1.6}.whg-choices{min-height:0;overflow-y:auto;gap:5px;margin-top:8px}.whg-choice{padding:6px 10px;font-size:12px}.whg-input-row{flex-shrink:0;margin-top:8px}.whg-input{min-width:0}.whg-send{padding:0 12px}.whg-cast-slot,.whg-cast-slot[data-lead="true"]{height:78vh}}',
   // ── CG reward ──────────────────────────────────────────────────────────
@@ -632,8 +638,8 @@ function readTextSpeed(): number {
   }
 }
 
-type DisplaySettings = { font: 'literary' | 'system'; ambience: boolean; sound: boolean; volume: number; bgm: boolean }
-const DEFAULT_DISPLAY_SETTINGS: DisplaySettings = { font: 'literary', ambience: true, sound: false, volume: 50, bgm: false }
+type DisplaySettings = { font: 'literary' | 'system'; ambience: boolean; sound: boolean; volume: number; bgm: boolean; panelOpacity: number }
+const DEFAULT_DISPLAY_SETTINGS: DisplaySettings = { font: 'literary', ambience: true, sound: false, volume: 50, bgm: false, panelOpacity: 55 }
 
 function readDisplaySettings(): DisplaySettings {
   try {
@@ -644,10 +650,40 @@ function readDisplaySettings(): DisplaySettings {
       sound: saved.sound === true,
       volume: typeof saved.volume === 'number' && Number.isFinite(saved.volume) ? Math.max(0, Math.min(100, saved.volume)) : 50,
       bgm: saved.bgm === true,
+      panelOpacity: typeof saved.panelOpacity === 'number' && Number.isFinite(saved.panelOpacity) ? Math.max(0, Math.min(100, Math.round(saved.panelOpacity))) : 55,
     }
   } catch {
     return { ...DEFAULT_DISPLAY_SETTINGS }
   }
+}
+
+/** Top and bottom background alpha and blur for a 0–100 dialogue opacity. */
+export function panelSurface(opacity: number): { top: number; bottom: number; blur: number; edge: number } {
+  const t = Math.max(0, Math.min(100, opacity)) / 100
+  const round = (value: number) => Math.round(value * 1000) / 1000
+  return {
+    top: round(.15 + .81 * t),
+    bottom: round(.35 + .63 * t),
+    blur: round(12 * t * t),
+    edge: round(.10 + .38 * t * t),
+  }
+}
+
+function panelStyle(opacity: number): React.CSSProperties {
+  const surface = panelSurface(opacity)
+  const t = Math.max(0, Math.min(100, opacity)) / 100
+  return {
+    '--whg-panel-top': surface.top,
+    '--whg-panel-mid': Math.round((surface.top + surface.bottom) / 2 * 1000) / 1000,
+    '--whg-panel-bottom': surface.bottom,
+    '--whg-panel-blur': surface.blur + 'px',
+    '--whg-panel-edge': surface.edge,
+    '--whg-panel-shadow': Math.round(.6 * t * 1000) / 1000,
+    // The fade to nothing happens above the box, so the text band keeps its tint.
+    '--whg-panel-feather': Math.round(surface.top * (1 - t) * 1.5 * 1000) / 1000,
+    // The hard top line and highlight only return as the box approaches solid.
+    '--whg-panel-topline': Math.round(Math.max(0, (t - .7) / .3) * 1000) / 1000,
+  } as React.CSSProperties
 }
 
 // Generated once from fixed integer sequences, never from render-time randomness.
@@ -1045,6 +1081,12 @@ function DisplaySettingsPopover(props: {
           'aria-label': '台词字体', value: props.settings.font,
           onChange: (event: any) => props.onChange({ font: event.target.value }),
         }, React.createElement('option', { value: 'literary' }, '文艺'), React.createElement('option', { value: 'system' }, '系统'))),
+      React.createElement('label', { className: 'whg-display-row' }, '对话框不透明度 · ' + props.settings.panelOpacity + '%',
+        React.createElement('input', {
+          type: 'range', min: 0, max: 100, step: 5, value: props.settings.panelOpacity,
+          'aria-label': '对话框不透明度', 'aria-valuetext': props.settings.panelOpacity + '%',
+          onChange: (event: any) => props.onChange({ panelOpacity: Number(event.target.value) }),
+        })),
       toggle('氛围特效', 'ambience'), toggle('音效', 'sound'),
       React.createElement('label', { className: 'whg-display-row' }, '音量 · ' + props.settings.volume,
         React.createElement('input', {
@@ -4211,7 +4253,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
       : null
     return React.createElement('div', {
       id: 'whg-panel', className: 'whg-panel', tabIndex: -1, 'data-font': displaySettings.font, onWheel: onPanelWheel,
-      style: { '--whg-accent': member?.color || plateColor } as React.CSSProperties,
+      style: { ...panelStyle(displaySettings.panelOpacity), '--whg-accent': member?.color || plateColor } as React.CSSProperties,
     },
       React.createElement('div', { className: 'whg-plate' + (isUser ? ' user' : ''), style: { background: plateColor, '--whg-plate-color': plateColor } as React.CSSProperties }, plateLabel),
       textSpeedButton(),
@@ -4284,7 +4326,7 @@ function App(props: { useSessions: any; variant?: string; sessionId?: string }):
     })
     return React.createElement('div', {
       id: 'whg-panel', className: 'whg-panel', tabIndex: -1, 'data-font': displaySettings.font, onWheel: onPanelWheel,
-      style: { '--whg-accent': s.color } as React.CSSProperties,
+      style: { ...panelStyle(displaySettings.panelOpacity), '--whg-accent': s.color } as React.CSSProperties,
     },
       React.createElement('div', { className: 'whg-plate' + plateClass, style: { background: plateColor, '--whg-plate-color': plateColor } as React.CSSProperties }, plateLabel),
       textSpeedButton(),

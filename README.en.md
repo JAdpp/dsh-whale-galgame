@@ -145,6 +145,7 @@ The top-bar **Dialogue history** (`对话历史`) opens ordinary conversations, 
 ### Display and images
 
 The gear at the dialogue panel's upper-right controls text speed, font, ambient effects, sound effects, BGM, and volume; the literary font option uses fonts installed locally.
+The dialogue box fades upward, with opacity adjustable in display settings.
 Open **Personalization** (`个性化`) in the top bar, then **Background** (`背景图`) or **Character sprite** (`角色立绘`) to upload PNG, JPEG, WebP, or AVIF images; selecting a built-in background restores character-based scene switching. See [image details](docs/mechanics.md#舞台图片与显示设置) for size limits and default-background rules.
 
 Under **Settings → Plugins → Dafeiyu** (`大肥鱼`), choose the default character and reply model, enable or disable the plugin, or toggle the pet. Disabling the plugin pauses dialogue and affection settlement while keeping saves.
