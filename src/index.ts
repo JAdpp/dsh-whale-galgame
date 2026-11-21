@@ -584,6 +584,62 @@ const CANNED_LINES = new Set([
 export const name = 'whale-galgame'
 export const inject = ['webServer', 'llm']
 
+const API_ROUTE_PATH = '/whale-galgame-api'
+type ApiRouteHandler = (req: any, res: any) => Promise<void>
+interface ApiRouteSlot { count: number; handler: ApiRouteHandler; dispose?: () => void }
+
+/**
+ * Shared per-webServer registry. Kept on globalThis (not module scope) because a
+ * hot mount and a bundle install can load two copies of this module into one
+ * process; both must share one route seat or the second register throws
+ * `duplicate prefix route`.
+ */
+function apiRouteSlots(): WeakMap<object, ApiRouteSlot> {
+  const key = Symbol.for('dsh-whale-galgame.api-route-slots')
+  const g = globalThis as any
+  if (!(g[key] instanceof WeakMap)) g[key] = new WeakMap()
+  return g[key]
+}
+
+/**
+ * Register the API prefix route, shared by every live plugin instance on the
+ * same webServer. The newest instance's handler serves; the route is removed
+ * when the last instance disposes. Returns the disposer for `ctx.effect`.
+ */
+export function registerSharedApiRoute(webServer: any, handler: ApiRouteHandler): () => void {
+  const slots = apiRouteSlots()
+  let slot = slots.get(webServer)
+  if (slot === undefined) {
+    const fresh: ApiRouteSlot = { count: 0, handler }
+    const route = { kind: 'prefix', path: API_ROUTE_PATH, handler: (req: any, res: any) => fresh.handler(req, res) }
+    try {
+      fresh.dispose = webServer.register(route)
+    } catch (err) {
+      // A build before this fix never released the route, so an in-process
+      // update from it finds a stale seat. The path is ours; take it over.
+      const table = webServer.prefixes
+      if (!(table instanceof Map) || !table.has(API_ROUTE_PATH)) throw err
+      console.warn('whale-galgame: replacing a stale /whale-galgame-api route left by an older build')
+      table.delete(API_ROUTE_PATH)
+      fresh.dispose = webServer.register(route)
+    }
+    slot = fresh
+    slots.set(webServer, slot)
+  }
+  const owned = slot
+  owned.handler = handler
+  owned.count += 1
+  let released = false
+  return () => {
+    if (released) return
+    released = true
+    owned.count -= 1
+    if (owned.count > 0) return
+    if (slots.get(webServer) === owned) slots.delete(webServer)
+    if (typeof owned.dispose === 'function') owned.dispose()
+  }
+}
+
 export function apply(
   ctx: any,
   config: any = {},
@@ -5706,40 +5762,39 @@ export function apply(
   }
 
   if (webServer && typeof webServer.register === 'function') {
-    webServer.register({
-      kind: 'prefix',
-      path: '/whale-galgame-api',
-      handler: async (req: any, res: any) => {
-        if (req.method !== 'POST') {
-          res.writeHead(req.method === 'GET' ? 200 : 405, { 'Content-Type': 'application/json; charset=utf-8' })
-          res.end(JSON.stringify({ ok: true, service: 'dsh-whale-galgame' }))
-          return
-        }
-        try {
-          const parts: Buffer[] = []
-          let totalBytes = 0
-          for await (const c of req) {
-            const chunk = Buffer.isBuffer(c) ? c : Buffer.from(typeof c === 'string' ? c : String(c), 'utf8')
-            totalBytes += chunk.length
-            if (totalBytes > MAX_API_BODY_BYTES) {
-              res.writeHead(413, { 'Content-Type': 'application/json; charset=utf-8' })
-              res.end(JSON.stringify({ error: '请求体过大；上传图片请控制在 18MB 以内' }))
-              return
-            }
-            parts.push(chunk)
+    // Register now and let ctx.effect own the disposer, so unload / hot reload /
+    // market update releases the route instead of leaving a duplicate behind.
+    const disposeApiRoute = registerSharedApiRoute(webServer, async (req: any, res: any) => {
+      if (req.method !== 'POST') {
+        res.writeHead(req.method === 'GET' ? 200 : 405, { 'Content-Type': 'application/json; charset=utf-8' })
+        res.end(JSON.stringify({ ok: true, service: 'dsh-whale-galgame' }))
+        return
+      }
+      try {
+        const parts: Buffer[] = []
+        let totalBytes = 0
+        for await (const c of req) {
+          const chunk = Buffer.isBuffer(c) ? c : Buffer.from(typeof c === 'string' ? c : String(c), 'utf8')
+          totalBytes += chunk.length
+          if (totalBytes > MAX_API_BODY_BYTES) {
+            res.writeHead(413, { 'Content-Type': 'application/json; charset=utf-8' })
+            res.end(JSON.stringify({ error: '请求体过大；上传图片请控制在 18MB 以内' }))
+            return
           }
-          const raw = parts.length ? Buffer.concat(parts).toString('utf8') : ''
-          const body = raw ? JSON.parse(raw) : {}
-          const action = typeof body.action === 'string' ? body.action : 'view'
-          const result = await handleAction(action, body.args || {})
-          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' })
-          res.end(JSON.stringify(result))
-        } catch (err: any) {
-          res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' })
-          res.end(JSON.stringify({ error: err && err.message ? err.message : String(err) }))
+          parts.push(chunk)
         }
-      },
+        const raw = parts.length ? Buffer.concat(parts).toString('utf8') : ''
+        const body = raw ? JSON.parse(raw) : {}
+        const action = typeof body.action === 'string' ? body.action : 'view'
+        const result = await handleAction(action, body.args || {})
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' })
+        res.end(JSON.stringify(result))
+      } catch (err: any) {
+        res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' })
+        res.end(JSON.stringify({ error: err && err.message ? err.message : String(err) }))
+      }
     })
+    ctx.effect(() => disposeApiRoute)
   }
 
   ctx.effect(() => {

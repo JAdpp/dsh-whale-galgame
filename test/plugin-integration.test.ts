@@ -583,8 +583,12 @@ test('migrates role-local backgrounds, preserves override behavior, and reloads 
     },
     inject: (_names: string[], callback: Function) => callback(services),
     on: () => undefined,
-    effect: (callback: Function) => callback(),
+    effect: (callback: Function) => {
+      const dispose = callback()
+      if (typeof dispose === 'function') disposers.push(dispose)
+    },
   }
+  const disposers: Function[] = []
   apply(ctx, { chatProvider: 'deepseek-official', chatModel: 'deepseek-v4-flash' })
   assert.equal(typeof routeHandler, 'function')
 
@@ -674,6 +678,7 @@ test('migrates role-local backgrounds, preserves override behavior, and reloads 
   assert.equal(whaleAgain.view.bg, 'bg-deepseek-seaside-study')
 
   routeHandler = null
+  for (const dispose of disposers.splice(0).reverse()) dispose()
   apply(ctx, { chatProvider: 'deepseek-official', chatModel: 'deepseek-v4-flash' })
   assert.equal(typeof routeHandler, 'function')
   const reloaded = await post('view')
@@ -768,11 +773,16 @@ test('stores safe role-local profile overrides and applies the effective profile
     llm,
     inject: (_names: string[], callback: Function) => callback(services),
     on: () => undefined,
-    effect: (callback: Function) => callback(),
+    effect: (callback: Function) => {
+      const dispose = callback()
+      if (typeof dispose === 'function') disposers.push(dispose)
+    },
   }
+  const disposers: Function[] = []
 
   function startPlugin(): void {
     routeHandler = null
+    for (const dispose of disposers.splice(0).reverse()) dispose()
     apply(ctx, { chatProvider: 'deepseek-official', chatModel: 'deepseek-v4-flash' })
     assert.equal(typeof routeHandler, 'function')
   }
